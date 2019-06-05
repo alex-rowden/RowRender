@@ -76,10 +76,12 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>C:\Users\alrowden\Documents\CLibs\include;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Users\alrowden\Documents\CLibs\Libs\Release;$(LibraryPath)</LibraryPath>
+    <SourcePath>C:\Users\alrowden\Documents\CLibs\src;$(SourcePath)</SourcePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>C:\Users\alrowden\Documents\CLibs\include;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Users\alrowden\Documents\CLibs\Libs\Debug;$(LibraryPath)</LibraryPath>
+    <SourcePath>C:\Users\alrowden\Documents\CLibs\src;$(SourcePath)</SourcePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
