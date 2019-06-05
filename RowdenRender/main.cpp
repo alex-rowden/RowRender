@@ -2,6 +2,16 @@
 #include <glad/glad.h> //must come before GLFW call (annoyingly)
 #include <GLFW/glfw3.h>
 
+int counter = 0;
+//any old render function
+void render() {
+	counter += 1;
+	if (counter > 100)
+		counter -= 100;
+	glClearColor(counter/100.0f, counter / 100.0f, counter / 100.0f, 1.0);
+	glClear(GL_COLOR_BUFFER_BIT);
+}
+
 //Call in order to resize the window
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
@@ -41,6 +51,8 @@ int main() {
 	while (!glfwWindowShouldClose(window)) //main render loop
 	{
 		processInput(window); //get keypresses etc.
+
+		render();
 
 		glfwSwapBuffers(window); //dual buffer swap
 		glfwPollEvents();//get polled events
