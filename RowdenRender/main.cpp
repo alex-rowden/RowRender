@@ -8,6 +8,12 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 	glViewport(0, 0, width, height);
 }
 
+void processInput(GLFWwindow* window) {
+	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+		glfwSetWindowShouldClose(window, true);
+	}
+}
+
 int main() {
 	std::cout << "Hello World" << std::endl;
 	glfwInit();
@@ -34,8 +40,10 @@ int main() {
 
 	while (!glfwWindowShouldClose(window)) //main render loop
 	{
+		processInput(window); //get keypresses etc.
+
 		glfwSwapBuffers(window); //dual buffer swap
-		glfwPollEvents();//get input
+		glfwPollEvents();//get polled events
 	}
 	glfwTerminate(); //Shut it down!
 
