@@ -2,7 +2,7 @@
 #include "Window.h"
 #include "Shape.h"
 #include "Mesh.h"
-
+#include <fstream>
 int counter = 0;
 //any old render function
 void render() {
@@ -18,8 +18,19 @@ void error_callback(int error, const char* description)
 	fprintf(stderr, "Error: %s\n", description);
 }
 
+#include <windows.h>
+
+std::string getexepath()
+{
+	char result[MAX_PATH];
+	return std::string(result, GetModuleFileName(NULL, result, MAX_PATH));
+}
+
 int main() {
-	std::cout << "Hello World" << std::endl;
+	
+
+
+	std::cout << getexepath() << std::endl;
 	glfwInit();
 	glfwSetErrorCallback(error_callback);
 	Window w;
@@ -49,10 +60,32 @@ int main() {
 
 	Mesh mesh = Mesh(triangle);
 
+	char *vertexShaderString;
+	std::ifstream vertex_shader_file;
+	vertex_shader_file.open("vertex_shader.glsl", std::ifstream::in);
+	if (vertex_shader_file.is_open()) {
+		return -1;
+	}
+	std::streampos size = vertex_shader_file.tellg();
+	vertexShaderString = new char[size];
+	vertex_shader_file.read(vertexShaderString, size);
+
+	unsigned int vertexShader;
+	vertexShader = glCreateShader(GL_VERTEX_SHADER);
+	glShaderSource(vertexShader, 1, (GLchar * const *)vertexShaderString, NULL);
+	glCompileShader(vertexShader);
+
+	int success;
+	glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
+
+	if (!success) {
+		char infoLog[512];
+		glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
+		std::cout << "ERROR::SHADER::COMPILATION_FAILED\n" << infoLog << std::endl;
+	}
+
 	while (!glfwWindowShouldClose(w.window)) //main render loop
 	{
-		
-
 		render();
 		w.ProcessFrame();
 	}

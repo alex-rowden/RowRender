@@ -6,12 +6,14 @@ Mesh::Mesh() {
 }
 
 Mesh::Mesh(Shape shape) {
-	Mesh({ shape });
+	std::vector<Shape> shapes = std::vector<Shape>();
+	shapes.emplace_back(shape);
+	Mesh();
 }
 Mesh::Mesh(std::vector<Shape> shapes) {
 	Mesh();
 	for (auto shape : shapes) {
-		for (auto vertex : *shape.getVertices()) {
+		for (auto vertex : shape.getVertices()) {
 			vertices.emplace_back(vertex);
 		}
 	}

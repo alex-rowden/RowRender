@@ -31,6 +31,9 @@
     <ClInclude Include="Shape.h" />
     <ClInclude Include="Window.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="vertex_shader.glsl" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <ProjectGuid>{E2912EF4-FFA8-4FB3-B23D-EAD34108C36F}</ProjectGuid>
