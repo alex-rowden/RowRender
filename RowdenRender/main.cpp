@@ -1,6 +1,7 @@
 #pragma once
 #include "Window.h"
 #include "Shape.h"
+#include "Mesh.h"
 
 int counter = 0;
 //any old render function
@@ -45,6 +46,8 @@ int main() {
 	triangle.addVertex(glm::vec3(-.5, -.5, 0));
 	triangle.addVertex(glm::vec3(.5, -.5, 0));
 	triangle.addVertex(glm::vec3(0, .5, 0));
+
+	Mesh mesh = Mesh(triangle);
 
 	while (!glfwWindowShouldClose(w.window)) //main render loop
 	{

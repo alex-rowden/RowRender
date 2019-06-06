@@ -5,6 +5,9 @@ Mesh::Mesh() {
 	glGenBuffers(1, &VertexBufferObject);
 }
 
+Mesh::Mesh(Shape shape) {
+	Mesh({ shape });
+}
 Mesh::Mesh(std::vector<Shape> shapes) {
 	Mesh();
 	for (auto shape : shapes) {
