@@ -11,9 +11,6 @@ void render() {
 	glClear(GL_COLOR_BUFFER_BIT);
 }
 
-
-
-
 void error_callback(int error, const char* description)
 {
 	fprintf(stderr, "Error: %s\n", description);
