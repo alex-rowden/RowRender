@@ -11,11 +11,7 @@ void render() {
 	glClear(GL_COLOR_BUFFER_BIT);
 }
 
-//Call in order to resize the window
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
-{
-	glViewport(0, 0, width, height);
-}
+
 
 
 void error_callback(int error, const char* description)
@@ -45,8 +41,7 @@ int main() {
 		return false;
 	}
 	
-	glViewport(0, 0, 800, 600); //Set viewport to full window size
-	glfwSetFramebufferSizeCallback(w.window, framebuffer_size_callback); //Set framebuffer callback
+	w.SetFramebuferSizeCallback();
 
 	while (!glfwWindowShouldClose(w.window)) //main render loop
 	{
