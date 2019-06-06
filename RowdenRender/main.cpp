@@ -60,8 +60,8 @@ int main() {
 
 	Mesh mesh = Mesh(triangle);
 
-	std::string vertexShaderString;
-	std::ifstream vertex_shader_file;
+	std::string vertexShaderString, fragmentShaderString;
+	std::ifstream vertex_shader_file, fragment_shader_file;
 
 	std::string path = __FILE__; //gets source code path, include file name
 	path = path.substr(0, 1 + path.find_last_of('\\')); //removes file name
@@ -75,9 +75,20 @@ int main() {
 			vertexShaderString.append("\n");
 		}
 	}
-	
+	vertex_shader_file.close();
 
-	unsigned int vertexShader;
+	fragment_shader_file.open(path + "fragment_shader.glsl");
+	if (fragment_shader_file.is_open()) {
+		char line[256];
+		while (fragment_shader_file.good()) {
+			fragment_shader_file.getline(line, 256);
+			fragmentShaderString.append(line);
+			fragmentShaderString.append("\n");
+		}
+	}
+	fragment_shader_file.close();
+
+	unsigned int vertexShader, fragmentShader;
 	vertexShader = glCreateShader(GL_VERTEX_SHADER);
 	const char* shader_source = vertexShaderString.c_str();
 	glShaderSource(vertexShader, 1, &shader_source, NULL);
@@ -89,8 +100,39 @@ int main() {
 	if (!success) {
 		char infoLog[512];
 		glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-		std::cout << "ERROR::SHADER::COMPILATION_FAILED\n" << infoLog << std::endl;
+		std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
 	}
+
+	fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+	shader_source = fragmentShaderString.c_str();
+	glShaderSource(fragmentShader, 1, &shader_source, NULL);
+	glCompileShader(fragmentShader);
+
+	glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
+
+	if (!success) {
+		char infoLog[512];
+		glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
+		std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
+	}
+
+	unsigned int shaderProgram;
+	shaderProgram = glCreateProgram();
+	glAttachShader(shaderProgram, vertexShader);
+	glAttachShader(shaderProgram, fragmentShader);
+	glLinkProgram(shaderProgram);
+
+	glGetShaderiv(shaderProgram, GL_LINK_STATUS, &success);
+
+	if (!success) {
+		char infoLog[512];
+		glGetShaderInfoLog(shaderProgram, 512, NULL, infoLog);
+		std::cout << "ERROR::SHADERPROGRAM::LINK_FAILED\n" << infoLog << std::endl;
+	}
+
+	glUseProgram(shaderProgram);
+	glDeleteShader(vertexShader);
+	glDeleteShader(fragmentShader);
 
 	while (!glfwWindowShouldClose(w.window)) //main render loop
 	{
