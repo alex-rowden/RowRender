@@ -1,5 +1,11 @@
 #include "Window.h"
 
+void standardInputProcessor(GLFWwindow* window) { //Go to processInputFunction, no extra steps needed
+	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+		glfwSetWindowShouldClose(window, true);
+	}
+}
+
 void Window::SetVersion(int version_major, int version_minor) {
 	
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, version_major);
@@ -20,3 +26,17 @@ bool Window::makeWindow(int height, int width, std::string title) {
 	glfwMakeContextCurrent(window); //focus on the new window
 	return true;
 }
+
+//Process each input frame, by default uses standard input processor
+void Window::ProcessFrame(bool useStandard) {
+	standardInputProcessor(window); //get keypresses etc.
+	glfwSwapBuffers(window); //dual buffer swap
+	glfwPollEvents();//get polled events
+}
+
+//allow custom input processing function, standard process by default not used
+void Window::ProcessFrame(void (*processInputFunc)(GLFWwindow *), bool useStandard) { 
+	processInputFunc(window);
+	ProcessFrame();
+}
+
