@@ -1,5 +1,6 @@
+#pragma once
 #include "Window.h"
-
+#include "Shape.h"
 
 int counter = 0;
 //any old render function
@@ -39,6 +40,11 @@ int main() {
 	}
 	
 	w.SetFramebuferSizeCallback();
+
+	Shape triangle = Shape();
+	triangle.addVertex(glm::vec3(-.5, -.5, 0));
+	triangle.addVertex(glm::vec3(.5, -.5, 0));
+	triangle.addVertex(glm::vec3(0, .5, 0));
 
 	while (!glfwWindowShouldClose(w.window)) //main render loop
 	{
