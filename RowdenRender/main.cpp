@@ -60,7 +60,7 @@ int main() {
 
 	Mesh mesh = Mesh(triangle);
 
-	char *vertexShaderString;
+	std::string vertexShaderString;
 	std::ifstream vertex_shader_file;
 
 	std::string path = __FILE__; //gets source code path, include file name
@@ -68,16 +68,19 @@ int main() {
 
 	vertex_shader_file.open(path + "vertex_shader.glsl");
 	if (vertex_shader_file.is_open()) {
-		std::cerr << "File Not Found @ " << path << "vertex_shader.glsl" << std::endl;
-		return -1;
+		char line[256];
+		while (vertex_shader_file.good()) {
+			vertex_shader_file.getline(line, 256);
+			vertexShaderString.append(line);
+			vertexShaderString.append("\n");
+		}
 	}
-	std::streampos size = vertex_shader_file.tellg();
-	vertexShaderString = new char[size];
-	vertex_shader_file.read(vertexShaderString, size);
+	
 
 	unsigned int vertexShader;
 	vertexShader = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vertexShader, 1, (GLchar * const *)vertexShaderString, NULL);
+	const char* shader_source = vertexShaderString.c_str();
+	glShaderSource(vertexShader, 1, &shader_source, NULL);
 	glCompileShader(vertexShader);
 
 	int success;
