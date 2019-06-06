@@ -62,8 +62,13 @@ int main() {
 
 	char *vertexShaderString;
 	std::ifstream vertex_shader_file;
-	vertex_shader_file.open("vertex_shader.glsl", std::ifstream::in);
+
+	std::string path = __FILE__; //gets source code path, include file name
+	path = path.substr(0, 1 + path.find_last_of('\\')); //removes file name
+
+	vertex_shader_file.open(path + "vertex_shader.glsl");
 	if (vertex_shader_file.is_open()) {
+		std::cerr << "File Not Found @ " << path << "vertex_shader.glsl" << std::endl;
 		return -1;
 	}
 	std::streampos size = vertex_shader_file.tellg();
