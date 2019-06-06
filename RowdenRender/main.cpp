@@ -23,27 +23,29 @@ void processInput(GLFWwindow* window) {
 	}
 }
 
+void error_callback(int error, const char* description)
+{
+	fprintf(stderr, "Error: %s\n", description);
+}
+
 int main() {
 	std::cout << "Hello World" << std::endl;
 	glfwInit();
+	glfwSetErrorCallback(error_callback);
 	Window w;
 	w.SetVersion(3, 3);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); //Use core-profile (access a smaller subset of open-gl features
+	
 
 	bool window_made = w.makeWindow(800, 600, "helloClass");
 
-	if (window_made) {
+	if (!window_made) {
 		std::cout << "Failed to create window" << std::endl;
 		glfwTerminate();
 		return -1;
 	}
-	glfwMakeContextCurrent(w.window); //focus on the new window
+	
 
-	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) //load GLAD
-	{
-		std::cout << "Failed to initialize GLAD" << std::endl;
-		return -1;
-	}
+	
 	glViewport(0, 0, 800, 600); //Set viewport to full window size
 	glfwSetFramebufferSizeCallback(w.window, framebuffer_size_callback); //Set framebuffer callback
 

@@ -2,8 +2,9 @@
 
 void Window::SetVersion(int version_major, int version_minor) {
 	
-	glfwWindowHint(GLFW_VERSION_MAJOR, (int)version_major);
-	glfwWindowHint(GLFW_VERSION_MINOR, ((int)(version_minor)));
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, version_major);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, version_minor);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); //Use core-profile (access a smaller subset of open-gl features
 }
 
 void Window::SetVersion(float version) {
@@ -13,6 +14,13 @@ void Window::SetVersion(float version) {
 bool Window::makeWindow(int height, int width, std::string title) {
 	window = glfwCreateWindow(height, width, title.c_str(), NULL, NULL);
 	if (window == NULL) {
+		
+		return false;
+	}
+	glfwMakeContextCurrent(window); //focus on the new window
+	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) //load GLAD
+	{
+		std::cout << "Failed to initialize GLAD" << std::endl;
 		return false;
 	}
 	return true;
