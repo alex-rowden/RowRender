@@ -18,10 +18,5 @@ bool Window::makeWindow(int height, int width, std::string title) {
 		return false;
 	}
 	glfwMakeContextCurrent(window); //focus on the new window
-	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) //load GLAD
-	{
-		std::cout << "Failed to initialize GLAD" << std::endl;
-		return false;
-	}
 	return true;
 }

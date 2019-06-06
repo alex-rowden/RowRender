@@ -44,7 +44,11 @@ int main() {
 		return -1;
 	}
 	
-
+	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) //load GLAD
+	{
+		std::cout << "Failed to initialize GLAD" << std::endl;
+		return false;
+	}
 	
 	glViewport(0, 0, 800, 600); //Set viewport to full window size
 	glfwSetFramebufferSizeCallback(w.window, framebuffer_size_callback); //Set framebuffer callback
