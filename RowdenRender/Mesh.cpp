@@ -8,13 +8,16 @@ Mesh::Mesh() {
 Mesh::Mesh(std::vector<Shape> shapes) {
 	Mesh();
 	for (auto shape : shapes) {
-		vertices.emplace_back(shape.getVertices());
+		for (auto vertex : *shape.getVertices()) {
+			vertices.emplace_back(vertex);
+		}
 	}
 }
 
 Mesh::Mesh(std::vector<glm::vec3> _vertices) {
 	Mesh();
-	vertices.emplace_back(_vertices);
+	for (auto vertex: _vertices)
+		vertices.emplace_back(vertex);
 }
 
 void Mesh::SetData(GLenum usage) {
