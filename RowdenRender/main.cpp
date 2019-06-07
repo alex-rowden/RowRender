@@ -27,6 +27,21 @@ std::string getexepath()
 	return std::string(result, GetModuleFileName(NULL, result, MAX_PATH));
 }
 
+void MessageCallback(GLenum source,
+	GLenum type,
+	GLuint id,
+	GLenum severity,
+	GLsizei length,
+	const GLchar* message,
+	const void* userParam)
+{
+	fprintf(stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
+		(type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""),
+		type, severity, message);
+}
+
+
+
 int main() {
 	
 
@@ -51,7 +66,10 @@ int main() {
 		std::cout << "Failed to initialize GLAD" << std::endl;
 		return false;
 	}
-	
+	// During init, enable debug output
+	glEnable(GL_DEBUG_OUTPUT);
+	glDebugMessageCallback(MessageCallback, 0);
+
 	w.SetFramebuferSizeCallback();
 
 	Shape triangle = Shape();
@@ -123,7 +141,7 @@ int main() {
 	glAttachShader(shaderProgram, fragmentShader);
 	glLinkProgram(shaderProgram);
 
-	glGetShaderiv(shaderProgram, GL_LINK_STATUS, &success);
+	glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
 
 	if (!success) {
 		char infoLog[512];

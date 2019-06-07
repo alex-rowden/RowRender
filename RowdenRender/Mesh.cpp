@@ -32,7 +32,7 @@ void Mesh::SetData(GLenum usage) {
 	glBindVertexArray(VertexArrayObject);
 	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferObject);
 
-	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3), (void *)&vertices, usage);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3), (void *)&vertices[0], usage);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
 	glEnableVertexAttribArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
