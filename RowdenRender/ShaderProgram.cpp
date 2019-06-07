@@ -42,7 +42,6 @@ void ShaderProgram::importShaderFile(Shaders shader, std::string *ShaderString) 
 		throw "Not a valid shader";
 	}
 
-	ShaderString = new std::string("");
 	std::ifstream shader_file;
 
 	std::string path = __FILE__; //gets source code path, include file name
