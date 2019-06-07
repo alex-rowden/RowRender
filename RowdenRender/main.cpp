@@ -72,12 +72,16 @@ int main() {
 
 	w.SetFramebuferSizeCallback();
 
-	Shape triangle = Shape();
-	triangle.addVertex(glm::vec3(-.5, -.5, 0));
-	triangle.addVertex(glm::vec3(.5, -.5, 0));
-	triangle.addVertex(glm::vec3(0, .5, 0));
+	Shape quad = Shape();
+	quad.addVertex(glm::vec3(.5, .5, 0));
+	quad.addVertex(glm::vec3(.5, -.5, 0));
+	quad.addVertex(glm::vec3(-.5, -.5, 0));
+	quad.addVertex(glm::vec3(-.5, .5, 0));
 
-	Mesh mesh = Mesh(&triangle);
+	quad.addIndex(glm::ivec3(0, 1, 3));
+	quad.addIndex(glm::ivec3(1, 2, 3));
+
+	Mesh mesh = Mesh(&quad);
 
 	std::string vertexShaderString, fragmentShaderString;
 	std::ifstream vertex_shader_file, fragment_shader_file;
