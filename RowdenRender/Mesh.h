@@ -11,7 +11,7 @@ public:
 	void SetData(GLenum usage = GL_STATIC_DRAW);
 	void Render();
 private:
-	std::vector<glm::vec3> vertices;
+	std::vector<float> vertices;
 	unsigned int VertexBufferObject, VertexArrayObject;
 };
 
