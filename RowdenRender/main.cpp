@@ -87,16 +87,7 @@ int main() {
 
 	ShaderProgram sp = ShaderProgram({ShaderProgram::Shaders::FRAGMENT, ShaderProgram::Shaders::VERTEX});
 
-	unsigned int shaderProgram;
-
-	
-
-	glDeleteShader(vertexShader);
-	glDeleteShader(fragmentShader);
-
 	mesh.SetData();
-
-	glUseProgram(shaderProgram);
 	
 
 	while (!glfwWindowShouldClose(w.window)) //main render loop

@@ -1,14 +1,21 @@
 #include "ShaderProgram.h"
 
 ShaderProgram::ShaderProgram(std::vector<Shaders> shaders) {
+	shaderProgram = glCreateProgram();
 	for (auto shader : shaders) {
 		SetupShader(shader);
+		switch (shader) {
+		case Shaders::VERTEX:
+			glAttachShader(shaderProgram, vertexShader);
+			break;
+		case Shaders::FRAGMENT:
+			glAttachShader(shaderProgram, fragmentShader);
+			break;
+		}
 	}
-	shaderProgram = glCreateProgram();
-	glAttachShader(shaderProgram, vertexShader);
-	glAttachShader(shaderProgram, fragmentShader);
 	glLinkProgram(shaderProgram);
 	program_error_check();
+	glUseProgram(shaderProgram);
 }
 
 void ShaderProgram::program_error_check() {
@@ -31,6 +38,8 @@ const char* ShaderProgram::importShaderFile(Shaders shader) {
 	case Shaders::FRAGMENT:
 		filename = "fragment_shaders.glsl";
 		break;
+	default:
+		throw "Not a valid shader";
 	}
 
 	std::string ShaderString;
