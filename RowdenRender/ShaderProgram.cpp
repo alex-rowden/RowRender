@@ -29,20 +29,20 @@ void ShaderProgram::program_error_check() {
 	}
 }
 
-const char* ShaderProgram::importShaderFile(Shaders shader) {
+void ShaderProgram::importShaderFile(Shaders shader, std::string *ShaderString) {
 	const char* filename;
 	switch (shader) {
 	case Shaders::VERTEX:
 		filename = "vertex_shader.glsl";
 		break;
 	case Shaders::FRAGMENT:
-		filename = "fragment_shaders.glsl";
+		filename = "fragment_shader.glsl";
 		break;
 	default:
 		throw "Not a valid shader";
 	}
 
-	std::string ShaderString;
+	ShaderString = new std::string("");
 	std::ifstream shader_file;
 
 	std::string path = __FILE__; //gets source code path, include file name
@@ -53,12 +53,11 @@ const char* ShaderProgram::importShaderFile(Shaders shader) {
 		char line[256];
 		while (shader_file.good()) {
 			shader_file.getline(line, 256);
-			ShaderString.append(line);
-			ShaderString.append("\n");
+			ShaderString->append(line);
+			ShaderString->append("\n");
 		}
 	}
 	shader_file.close();
-	return ShaderString.c_str();
 }
 
 void ShaderProgram::shader_error_check(Shaders shader) {
@@ -89,7 +88,9 @@ void ShaderProgram::shader_error_check(Shaders shader) {
 }
 
 void ShaderProgram::SetupShader(Shaders shader) {
-	const char* shader_source = importShaderFile(shader);
+	std::string shaderString;
+	importShaderFile(shader, &shaderString);
+	const char* shader_source = shaderString.c_str();
 	switch (shader) {
 	case Shaders::VERTEX:
 		vertexShader = glCreateShader(GL_VERTEX_SHADER);
