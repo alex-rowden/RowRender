@@ -5,12 +5,13 @@
 #include <fstream>
 int counter = 0;
 //any old render function
-void render() {
+void render(Mesh mesh) {
 	counter += 1;
 	if (counter > 100)
 		counter -= 100;
 	glClearColor(counter/100.0f, counter / 100.0f, counter / 100.0f, 1.0);
 	glClear(GL_COLOR_BUFFER_BIT);
+	mesh.Render();
 }
 
 void error_callback(int error, const char* description)
@@ -58,7 +59,7 @@ int main() {
 	triangle.addVertex(glm::vec3(.5, -.5, 0));
 	triangle.addVertex(glm::vec3(0, .5, 0));
 
-	Mesh mesh = Mesh(triangle);
+	Mesh mesh = Mesh(&triangle);
 
 	std::string vertexShaderString, fragmentShaderString;
 	std::ifstream vertex_shader_file, fragment_shader_file;
@@ -130,13 +131,17 @@ int main() {
 		std::cout << "ERROR::SHADERPROGRAM::LINK_FAILED\n" << infoLog << std::endl;
 	}
 
-	glUseProgram(shaderProgram);
 	glDeleteShader(vertexShader);
 	glDeleteShader(fragmentShader);
 
+	mesh.SetData();
+
+	glUseProgram(shaderProgram);
+	
+
 	while (!glfwWindowShouldClose(w.window)) //main render loop
 	{
-		render();
+		render(mesh);
 		w.ProcessFrame();
 	}
 	glfwTerminate(); //Shut it down!
