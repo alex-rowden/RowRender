@@ -18,6 +18,69 @@ ShaderProgram::ShaderProgram(std::vector<Shaders> shaders) {
 	glUseProgram(shaderProgram);
 }
 
+void ShaderProgram::SetUniform4f(const char *name, glm::vec4 vec) {
+	int location = glGetUniformLocation(shaderProgram, name);
+	glUseProgram(shaderProgram);
+	glUniform4f(location, vec.x, vec.y, vec.z, vec.w);
+}
+void ShaderProgram::SetUniform3f(const char* name, glm::vec3 vec) {
+	int location = glGetUniformLocation(shaderProgram, name);
+	glUseProgram(shaderProgram);
+	glUniform3f(location, vec.x, vec.y, vec.z);
+}
+void ShaderProgram::SetUniform2f(const char* name, glm::vec2 vec) {
+	int location = glGetUniformLocation(shaderProgram, name);
+	glUseProgram(shaderProgram);
+	glUniform2f(location, vec.x, vec.y);
+}
+void ShaderProgram::SetUniform1f(const char* name, float val) {
+	int location = glGetUniformLocation(shaderProgram, name);
+	glUseProgram(shaderProgram);
+	glUniform1f(location, val);
+}
+
+void ShaderProgram::SetUniform4i(const char* name, glm::ivec4 vec) {
+	int location = glGetUniformLocation(shaderProgram, name);
+	glUseProgram(shaderProgram);
+	glUniform4i(location, vec.x, vec.y, vec.z, vec.w);
+}
+void ShaderProgram::SetUniform3i(const char* name, glm::ivec3 vec) {
+	int location = glGetUniformLocation(shaderProgram, name);
+	glUseProgram(shaderProgram);
+	glUniform3i(location, vec.x, vec.y, vec.z);
+}
+void ShaderProgram::SetUniform2i(const char* name, glm::ivec2 vec) {
+	int location = glGetUniformLocation(shaderProgram, name);
+	glUseProgram(shaderProgram);
+	glUniform2i(location, vec.x, vec.y);
+}
+void ShaderProgram::SetUniform1i(const char* name, int val) {
+	int location = glGetUniformLocation(shaderProgram, name);
+	glUseProgram(shaderProgram);
+	glUniform1i(location, val);
+}
+
+void ShaderProgram::SetUniform4ui(const char* name, glm::uvec4 vec) {
+	int location = glGetUniformLocation(shaderProgram, name);
+	glUseProgram(shaderProgram);
+	glUniform4ui(location, vec.x, vec.y, vec.z, vec.w);
+}
+void ShaderProgram::SetUniform3ui(const char* name, glm::uvec3 vec) {
+	int location = glGetUniformLocation(shaderProgram, name);
+	glUseProgram(shaderProgram);
+	glUniform3ui(location, vec.x, vec.y, vec.z);
+}
+void ShaderProgram::SetUniform2ui(const char* name, glm::uvec2 vec) {
+	int location = glGetUniformLocation(shaderProgram, name);
+	glUseProgram(shaderProgram);
+	glUniform2ui(location, vec.x, vec.y);
+}
+void ShaderProgram::SetUniform1ui(const char* name, unsigned int val) {
+	int location = glGetUniformLocation(shaderProgram, name);
+	glUseProgram(shaderProgram);
+	glUniform1ui(location, val);
+}
+
 void ShaderProgram::program_error_check() {
 	int success;
 	glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);

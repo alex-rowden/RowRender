@@ -87,11 +87,17 @@ int main() {
 
 	ShaderProgram sp = ShaderProgram({ShaderProgram::Shaders::FRAGMENT, ShaderProgram::Shaders::VERTEX});
 
+	
+
 	mesh.SetData();
 	
 
 	while (!glfwWindowShouldClose(w.window)) //main render loop
 	{
+		float timeValue = glfwGetTime();
+		float greenVal = (sin(timeValue) / 2.0) + .5;
+
+		sp.SetUniform4f("ourColor", glm::vec4(0.0f, greenVal, 0.0f, 1.0f));
 		render(mesh);
 		w.ProcessFrame();
 	}
