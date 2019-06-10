@@ -9,9 +9,10 @@ Shape::Shape(const Shape &shape) {
 	Shape(shape.getVertices(), shape.getIndices(), shape.getTexCoords());
 }
 
-Shape::Shape(std::vector<glm::vec3> _vertices, std::vector<glm::ivec3> _indices) {
+Shape::Shape(std::vector<glm::vec3> _vertices, std::vector<glm::ivec3> _indices, std::vector<glm::vec2> _texCoords) {
 	vertices = std::vector<glm::vec3>(_vertices);
 	indices = std::vector<glm::ivec3>(_indices);
+	texCoords = std::vector<glm::vec2>(_texCoords);
 }
 
 void Shape::addVertex(glm::vec3 vertex) {

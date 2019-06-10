@@ -24,6 +24,7 @@
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="ShaderProgram.cpp" />
     <ClCompile Include="Shape.cpp" />
+    <ClCompile Include="Texture2D.cpp" />
     <ClCompile Include="Window.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -31,6 +32,7 @@
     <ClInclude Include="RowRender.h" />
     <ClInclude Include="ShaderProgram.h" />
     <ClInclude Include="Shape.h" />
+    <ClInclude Include="Texture2D.h" />
     <ClInclude Include="Window.h" />
   </ItemGroup>
   <ItemGroup>
@@ -92,14 +94,14 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>C:\Users\alrowden\Documents\CLibs\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\alrowden\Documents\CLibs\Libs\Release;$(LibraryPath)</LibraryPath>
-    <SourcePath>C:\Users\alrowden\Documents\CLibs\src;$(SourcePath)</SourcePath>
+    <IncludePath>$(SolutionDir)\RowdenRender\CLibs\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\RowdenRender\CLibs\Libs;$(LibraryPath)</LibraryPath>
+    <SourcePath>$(SolutionDir)\RowdenRender\CLibs\src;$(SourcePath)</SourcePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>C:\Users\alrowden\Documents\CLibs\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\alrowden\Documents\CLibs\Libs\Debug;$(LibraryPath)</LibraryPath>
-    <SourcePath>C:\Users\alrowden\Documents\CLibs\src;$(SourcePath)</SourcePath>
+    <IncludePath>$(SolutionDir)\RowdenRender\CLibs\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\RowdenRender\CLibs\libs;$(LibraryPath)</LibraryPath>
+    <SourcePath>$(SolutionDir)\RowdenRender\CLibs\src;$(SourcePath)</SourcePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

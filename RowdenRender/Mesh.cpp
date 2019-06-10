@@ -33,6 +33,10 @@ Mesh::Mesh(Shape *shape) {
 		indices.emplace_back(index.y);
 		indices.emplace_back(index.z);
 	}
+	for (auto texCoord : shape->getTexCoords()) {
+		texCoords.emplace_back(texCoord.x);
+		texCoords.emplace_back(texCoord.y);
+	}
 }
 
 Mesh::Mesh(std::vector<glm::vec3> _vertices, std::vector<glm::ivec3> _indices) {

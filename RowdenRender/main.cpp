@@ -82,6 +82,11 @@ int main() {
 	quad.addIndex(glm::ivec3(0, 1, 3));
 	quad.addIndex(glm::ivec3(1, 2, 3));
 
+	quad.addTexCoord(glm::vec2(1, 1));
+	quad.addTexCoord(glm::vec2(1, 0));
+	quad.addTexCoord(glm::vec2(0, 0));
+	quad.addTexCoord(glm::vec2(0, 1));
+
 	Mesh mesh = Mesh(&quad);
 
 
