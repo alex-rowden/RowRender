@@ -87,17 +87,20 @@ int main() {
 
 	ShaderProgram sp = ShaderProgram({ShaderProgram::Shaders::FRAGMENT, ShaderProgram::Shaders::VERTEX});
 
-	
+	std::vector<glm::vec4> colors;
+	colors.emplace_back(1, 0, 0, 1);
+	colors.emplace_back(0, 1, 0, 1);
+	colors.emplace_back(0, 0, 1, 1);
+	colors.emplace_back(0, 0, 0, 1);
+	mesh.SetColors(colors);
 
 	mesh.SetData();
 	
-
 	while (!glfwWindowShouldClose(w.window)) //main render loop
 	{
 		float timeValue = glfwGetTime();
 		float greenVal = (sin(timeValue) / 2.0) + .5;
 
-		sp.SetUniform4f("ourColor", glm::vec4(0.0f, greenVal, 0.0f, 1.0f));
 		render(mesh);
 		w.ProcessFrame();
 	}
