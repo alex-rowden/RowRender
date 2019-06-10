@@ -94,9 +94,9 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(SolutionDir)\RowdenRender\CLibs\include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\RowdenRender\CLibs\Libs;$(LibraryPath)</LibraryPath>
-    <SourcePath>$(SolutionDir)\RowdenRender\CLibs\src;$(SourcePath)</SourcePath>
+    <IncludePath>$(SolutionDir)RowdenRender\CLibs\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)RowdenRender\CLibs\Libs;C:\Users\alrowden\source\repos\RowdenRender\RowdenRender\CLibs\Libs;$(LibraryPath)</LibraryPath>
+    <SourcePath>$(SolutionDir)RowdenRender\CLibs\src;$(SourcePath)</SourcePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>$(SolutionDir)\RowdenRender\CLibs\include;$(IncludePath)</IncludePath>
