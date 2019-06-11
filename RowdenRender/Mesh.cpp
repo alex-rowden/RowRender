@@ -80,6 +80,7 @@ void Mesh::SetData(GLenum usage) {
 	glGenBuffers(1, &VertexBufferObject);
 	glGenBuffers(1, &ColorBufferArray);
 	glGenBuffers(1, &IndexBufferArray);
+	glGenBuffers(1, &TexCoordBuffer);
 
 	glBindVertexArray(VertexArrayObject);
 
@@ -88,6 +89,9 @@ void Mesh::SetData(GLenum usage) {
 
 	glBindBuffer(GL_ARRAY_BUFFER, ColorBufferArray);
 	glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof(float), (void*)colors.data(), usage);
+
+	glBindBuffer(GL_ARRAY_BUFFER, TexCoordBuffer);
+	glBufferData(GL_ARRAY_BUFFER, texCoords.size() * sizeof(float), (void*)texCoords.data(), usage);
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
@@ -102,6 +106,11 @@ void Mesh::SetData(GLenum usage) {
 	glBindBuffer(GL_ARRAY_BUFFER, ColorBufferArray);
 	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void*)0);
 	glEnableVertexAttribArray(1);
+
+	glBindBuffer(GL_ARRAY_BUFFER, TexCoordBuffer);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, (void*)0);
+	glEnableVertexAttribArray(2);
+
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 }

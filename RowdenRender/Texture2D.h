@@ -1,7 +1,6 @@
 #pragma once
 #include "RowRender.h"
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
+
 class Texture2D
 {
 public:
@@ -11,6 +10,7 @@ public:
 	void setTexParameterWrap(GLint wrap);
 	void setTexMinMagFilter(GLint min, GLint mag);
 	void setTexMinMagFilter(GLint filter);
+	void Bind();
 private:
 	unsigned int texture;
 	int height, width, numChannels;

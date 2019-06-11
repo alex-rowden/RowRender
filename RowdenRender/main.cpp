@@ -3,6 +3,7 @@
 #include "Shape.h"
 #include "Mesh.h"
 #include "ShaderProgram.h"
+#include "Texture2D.h"
 #include <fstream>
 int counter = 0;
 //any old render function
@@ -44,10 +45,6 @@ void MessageCallback(GLenum source,
 
 
 int main() {
-	
-
-
-	std::cout << getexepath() << std::endl;
 	glfwInit();
 	glfwSetErrorCallback(error_callback);
 	Window w;
@@ -101,11 +98,13 @@ int main() {
 
 	mesh.SetData();
 	
+	Texture2D texture = Texture2D("\Content\\Textures\\brick_wall.jpg");
+
 	while (!glfwWindowShouldClose(w.window)) //main render loop
 	{
 		float timeValue = glfwGetTime();
 		float greenVal = (sin(timeValue) / 2.0) + .5;
-
+		//texture.Bind();
 		render(mesh);
 		w.ProcessFrame();
 	}

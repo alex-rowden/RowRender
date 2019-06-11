@@ -1,5 +1,8 @@
 #include "Texture2D.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
 Texture2D::Texture2D(const char * filename) {
 	unsigned char * data = loadTextureData(filename);
 	if (!data) {
@@ -55,5 +58,9 @@ void Texture2D::setTexMinMagFilter(GLint filter) {
 
 unsigned char* Texture2D::loadTextureData(const char *filename) {
 	return stbi_load(filename, &width, &height, &numChannels, 0);
+}
+
+void Texture2D::Bind() {
+	glBindTexture(GL_TEXTURE_2D, texture);
 }
 

@@ -99,7 +99,7 @@
     <SourcePath>$(USERPROFILE)\Documents\CLibs\src;$(SourcePath)</SourcePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(SolutionDir)\RowdenRender\CLibs\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(USERPROFILE)\Documents\CLibs\include;$(IncludePath)</IncludePath>
     <LibraryPath>$(USERPROFILE)\Documents\CLibs\Libs\Debug;$(LibraryPath)</LibraryPath>
     <SourcePath>$(USERPROFILE)\Documents\CLibs\src;$(SourcePath)</SourcePath>
   </PropertyGroup>
