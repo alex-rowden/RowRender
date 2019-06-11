@@ -16,6 +16,7 @@ private:
 	std::vector<float> vertices;
 	std::vector<unsigned int> indices;
 	std::vector<float> colors;
+	std::vector<float> texCoords;
 	unsigned int VertexBufferObject, VertexArrayObject, IndexBufferArray, ColorBufferArray;
 };
 

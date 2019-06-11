@@ -6,7 +6,7 @@ Shape::Shape() {
 }
 
 Shape::Shape(const Shape &shape) {
-	Shape(shape.getVertices(), shape.getIndices());
+	Shape(shape.getVertices(), shape.getIndices(), shape.getTexCoords());
 }
 
 Shape::Shape(std::vector<glm::vec3> _vertices, std::vector<glm::ivec3> _indices, std::vector<glm::vec2> _texCoords) {
@@ -23,10 +23,18 @@ void Shape::addIndex(glm::ivec3 index) {
 	indices.emplace_back(index);
 }
 
+void Shape::addTexCoord(glm::vec2 texCoord) {
+	texCoords.emplace_back(texCoord);
+}
+
 std::vector<glm::vec3> Shape::getVertices() const{
 	return vertices;
 }
 
 std::vector<glm::ivec3> Shape::getIndices() const {
 	return indices;
+}
+
+std::vector<glm::vec2> Shape::getTexCoords() const {
+	return texCoords;
 }

@@ -94,14 +94,14 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(SolutionDir)RowdenRender\CLibs\include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)RowdenRender\CLibs\Libs;C:\Users\alrowden\source\repos\RowdenRender\RowdenRender\CLibs\Libs;$(LibraryPath)</LibraryPath>
-    <SourcePath>$(SolutionDir)RowdenRender\CLibs\src;$(SourcePath)</SourcePath>
+    <IncludePath>$(USERPROFILE)\Documents\CLibs\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(USERPROFILE)\Documents\CLibs\Libs\Release;$(LibraryPath)</LibraryPath>
+    <SourcePath>$(USERPROFILE)\Documents\CLibs\src;$(SourcePath)</SourcePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>$(SolutionDir)\RowdenRender\CLibs\include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\RowdenRender\CLibs\libs;$(LibraryPath)</LibraryPath>
-    <SourcePath>$(SolutionDir)\RowdenRender\CLibs\src;$(SourcePath)</SourcePath>
+    <LibraryPath>$(USERPROFILE)\Documents\CLibs\Libs\Debug;$(LibraryPath)</LibraryPath>
+    <SourcePath>$(USERPROFILE)\Documents\CLibs\src;$(SourcePath)</SourcePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
