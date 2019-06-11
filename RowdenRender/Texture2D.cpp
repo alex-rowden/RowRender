@@ -1,5 +1,35 @@
 #include "Texture2D.h"
 
+Texture2D::Texture2D(const char * filename) {
+	unsigned char * data = loadTextureData(filename);
+	if (!data) {
+		std::cerr << "Failed to load texture at :" << filename << std::endl;
+		return;
+	}
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	GLint imageFormat;
+	switch (numChannels) {
+	case 1:
+		imageFormat = GL_R;
+		break;
+	case 2:
+		imageFormat = GL_RG;
+		break;
+	case 3:
+		imageFormat = GL_RGB;
+		break;
+	case 4:
+		imageFormat = GL_RGBA;
+		break;
+	default:
+		return;
+	}
+	glTexImage2D(GL_TEXTURE_2D, 0, imageFormat, width, height, 0, imageFormat, GL_UNSIGNED_BYTE, data);
+	glGenerateMipmap(GL_TEXTURE_2D);
+	stbi_image_free(data);
+}
+
 void Texture2D::setBorderColor(glm::vec4 color) {
 	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, &color[0]);
 }
@@ -21,5 +51,9 @@ void Texture2D::setTexMinMagFilter(GLint min, GLint mag) {
 
 void Texture2D::setTexMinMagFilter(GLint filter) {
 	setTexMinMagFilter(filter, filter);
+}
+
+unsigned char* Texture2D::loadTextureData(const char *filename) {
+	return stbi_load(filename, &width, &height, &numChannels, 0);
 }
 

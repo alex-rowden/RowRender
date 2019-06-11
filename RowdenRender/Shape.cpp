@@ -3,6 +3,7 @@
 Shape::Shape() {
 	vertices = std::vector<glm::vec3>();
 	indices = std::vector<glm::ivec3>();
+	texCoords = std::vector<glm::vec2>();
 }
 
 Shape::Shape(const Shape &shape) {
