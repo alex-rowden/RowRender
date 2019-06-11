@@ -99,13 +99,13 @@ int main() {
 	mesh.SetData();
 	
 	Texture2D texture = Texture2D("\Content\\Textures\\brick_wall.jpg");
-	glm::mat4 transformation;
+	glm::mat4 transformation = glm::mat4(1.0f);
 	transformation = glm::rotate(transformation, glm::radians(90.0f), glm::vec3(0, 0, 1));
 	transformation = glm::scale(transformation, glm::vec3(.5, .5, .5));
 
 	while (!glfwWindowShouldClose(w.window)) //main render loop
 	{
-		sp.SetUniform4f("transform", transformation);
+		sp.SetUniform4fv("transform", transformation);
 		float timeValue = glfwGetTime();
 		float greenVal = (sin(timeValue) / 2.0) + .5;
 		//texture.Bind();
