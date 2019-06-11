@@ -22,6 +22,10 @@ public:
 	void SetUniform3ui(const char* uniform_name, glm::uvec3 vec);
 	void SetUniform2ui(const char* uniform_name, glm::uvec2 vec);
 	void SetUniform1ui(const char* uniform_name, unsigned int val);
+
+	void SetUniform4fv(const char* uniform_name, glm::mat4 mat, GLint transpose = GL_FALSE);
+	void SetUniform3fv(const char* uniform_name, glm::mat3 mat, GLint transpose = GL_FALSE);
+	void SetUniform2fv(const char* uniform_name, glm::mat2 mat, GLint transpose = GL_FALSE);
 private:
 	unsigned int vertexShader, fragmentShader, shaderProgram;
 	void importShaderFile(Shaders shader, std::string *ShaderString);

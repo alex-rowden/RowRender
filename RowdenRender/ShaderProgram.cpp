@@ -81,6 +81,23 @@ void ShaderProgram::SetUniform1ui(const char* name, unsigned int val) {
 	glUniform1ui(location, val);
 }
 
+void ShaderProgram::SetUniform4fv(const char* name, glm::mat4 mat, GLint transpose) {
+	int location = glGetUniformLocation(shaderProgram, name);
+	glUseProgram(shaderProgram);
+	glUniformMatrix4fv(location, 1, transpose, glm::value_ptr(mat));
+}
+void ShaderProgram::SetUniform3fv(const char* name, glm::mat3 mat, GLint transpose) {
+	int location = glGetUniformLocation(shaderProgram, name);
+	glUseProgram(shaderProgram);
+	glUniformMatrix3fv(location, 1, transpose, glm::value_ptr(mat));
+}
+void ShaderProgram::SetUniform2fv(const char* name, glm::mat2 mat, GLint transpose) {
+	int location = glGetUniformLocation(shaderProgram, name);
+	glUseProgram(shaderProgram);
+	glUniformMatrix2fv(location, 1, transpose, glm::value_ptr(mat));
+}
+
+
 void ShaderProgram::program_error_check() {
 	int success;
 	glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
