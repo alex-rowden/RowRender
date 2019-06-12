@@ -97,7 +97,7 @@ void Mesh::SetData(GLenum usage) {
 
 	
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexBufferArray);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), &indices[0], usage);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), usage);
 
 	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferObject);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);

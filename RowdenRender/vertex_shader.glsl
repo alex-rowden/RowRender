@@ -6,10 +6,11 @@ layout(location = 2) in vec2 aTexCoord;
 out vec4 ourColor;
 out vec2 TexCoord;
 
-uniform mat4 transform;
+uniform mat4 model;
+uniform mat4 camera;
 
 void main() {
-	gl_Position = transform * vec4(aPos, 1);
+	gl_Position = camera * model * vec4(aPos, 1);
 	ourColor = aColor;
 	TexCoord = aTexCoord;
 }

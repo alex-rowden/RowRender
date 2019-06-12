@@ -4,6 +4,7 @@
 #include "Mesh.h"
 #include "ShaderProgram.h"
 #include "Texture2D.h"
+#include "Camera.h"
 #include <fstream>
 int counter = 0;
 //any old render function
@@ -12,7 +13,7 @@ void render(Mesh mesh) {
 	if (counter > 100)
 		counter -= 100;
 	glClearColor(counter/100.0f, counter / 100.0f, counter / 100.0f, 1.0);
-	glClear(GL_COLOR_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	mesh.Render();
 }
 
@@ -66,46 +67,41 @@ int main() {
 	}
 	// During init, enable debug output
 	glEnable(GL_DEBUG_OUTPUT);
+	glEnable(GL_DEPTH_TEST);
+	
 	glDebugMessageCallback(MessageCallback, 0);
 
 	w.SetFramebuferSizeCallback();
 
-	Shape quad = Shape();
-	quad.addVertex(glm::vec3(.5, .5, 0));
-	quad.addVertex(glm::vec3(.5, -.5, 0));
-	quad.addVertex(glm::vec3(-.5, -.5, 0));
-	quad.addVertex(glm::vec3(-.5, .5, 0));
+	Shape cube = Shape(Shape::PREMADE::CUBE);
+	
 
-	quad.addIndex(glm::ivec3(0, 1, 3));
-	quad.addIndex(glm::ivec3(1, 2, 3));
-
-	quad.addTexCoord(glm::vec2(1, 1));
-	quad.addTexCoord(glm::vec2(1, 0));
-	quad.addTexCoord(glm::vec2(0, 0));
-	quad.addTexCoord(glm::vec2(0, 1));
-
-	Mesh mesh = Mesh(&quad);
+	Mesh mesh = Mesh(&cube);
 
 
 	ShaderProgram sp = ShaderProgram({ShaderProgram::Shaders::FRAGMENT, ShaderProgram::Shaders::VERTEX});
 
-	std::vector<glm::vec4> colors;
-	colors.emplace_back(1, 0, 0, 1);
-	colors.emplace_back(0, 1, 0, 1);
-	colors.emplace_back(0, 0, 1, 1);
-	colors.emplace_back(0, 0, 0, 1);
-	mesh.SetColors(colors);
+	
 
 	mesh.SetData();
 	
 	Texture2D texture = Texture2D("\Content\\Textures\\brick_wall.jpg");
+	texture.setTexParameterWrap(GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT);
 	glm::mat4 transformation = glm::mat4(1.0f);
-	transformation = glm::rotate(transformation, glm::radians(90.0f), glm::vec3(0, 0, 1));
-	transformation = glm::scale(transformation, glm::vec3(.5, .5, .5));
+	
+	Camera camera = Camera(glm::vec3(0, 0, -3), glm::vec3(0, 0, 0));
+
+	glm::mat4 projection;
+	projection = glm::perspective(glm::radians(45.0f), 800/600.0f, 0.1f, 100.0f);
 
 	while (!glfwWindowShouldClose(w.window)) //main render loop
 	{
-		sp.SetUniform4fv("transform", transformation);
+		transformation = glm::mat4(1.0f);
+		transformation = glm::translate(transformation, glm::vec3(0, 0, -3));
+		transformation = glm::rotate(transformation, glm::radians(10 * (float)glfwGetTime()), glm::vec3(.5f, 1.0f,0));
+		transformation = glm::scale(transformation, glm::vec3(.5, .5, .5));
+		sp.SetUniform4fv("model", transformation);
+		sp.SetUniform4fv("camera", projection);
 		float timeValue = glfwGetTime();
 		float greenVal = (sin(timeValue) / 2.0) + .5;
 		//texture.Bind();
