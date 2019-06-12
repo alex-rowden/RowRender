@@ -24,7 +24,13 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 }
 
 void standard_mouse_callback(GLFWwindow* window, double xpos, double ypos) {
-	Window *win = static_cast<Window *>(glfwGetWindowUserPointer(window));
+	Window *win = static_cast<Window *>(glfwGetWindowUserPointer(window)); 
+	if (win->firstMouse) // this bool variable is initially set to true
+	{
+		win->lastX = xpos;
+		win->lastY = ypos;
+		win->firstMouse = false;
+	}
 	float xoffset = xpos - win->lastX;
 	float yoffset = win->lastY - ypos; // reversed since y-coordinates range from bottom to top
 	win->lastX = xpos;
@@ -48,7 +54,7 @@ void standard_mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 	front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
 	front.y = sin(glm::radians(pitch));
 	front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-	win->camera->setDirection(glm::normalize(-front));
+	win->camera->setDirection(glm::normalize(front));
 }
 
 void Window::standardInputProcessor(GLFWwindow* window) { //Go to processInputFunction, no extra steps needed

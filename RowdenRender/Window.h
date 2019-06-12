@@ -18,6 +18,7 @@ public:
 	GLFWwindow* getWindow();
 	float lastX = 400, lastY = 300;
 	Camera* camera;
+	bool firstMouse = true;
 private:
 	float lastTime = 0;
 

@@ -11,6 +11,7 @@ public:
 	void moveRight(float amount);
 	void setDirection(glm::vec3 dir);
 	float pitch, yaw;
+	
 private:
 	glm::vec3 position;
 	glm::vec3 direction;
