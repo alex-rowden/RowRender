@@ -1,10 +1,12 @@
 #pragma once
+#include "RowRender.h"
+
 #include "Window.h"
 #include "Shape.h"
 #include "Mesh.h"
 #include "ShaderProgram.h"
 #include "Texture2D.h"
-#include "Camera.h"
+
 #include <fstream>
 int counter = 0;
 //any old render function
@@ -48,17 +50,7 @@ void MessageCallback(GLenum source,
 int main() {
 	glfwInit();
 	glfwSetErrorCallback(error_callback);
-	Window w;
-	w.SetVersion(3, 3);
-	
-
-	bool window_made = w.makeWindow(800, 600, "helloClass");
-
-	if (!window_made) {
-		std::cout << "Failed to create window" << std::endl;
-		glfwTerminate();
-		return -1;
-	}
+	Window w = Window("Better Window");
 	
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) //load GLAD
 	{
@@ -85,28 +77,28 @@ int main() {
 
 	mesh.SetData();
 	
-	Texture2D texture = Texture2D("\Content\\Textures\\brick_wall.jpg");
+	Texture2D texture = Texture2D("Content\\Textures\\brick_wall.jpg");
 	texture.setTexParameterWrap(GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT);
 	glm::mat4 transformation = glm::mat4(1.0f);
 	
 	Camera camera = Camera(glm::vec3(0, 0, -3), glm::vec3(0, 0, 0));
-
+	w.SetCamera(&camera);
 	glm::mat4 projection;
 	projection = glm::perspective(glm::radians(45.0f), 800/600.0f, 0.1f, 100.0f);
 
-	while (!glfwWindowShouldClose(w.window)) //main render loop
+	while (!glfwWindowShouldClose(w.getWindow())) //main render loop
 	{
 		transformation = glm::mat4(1.0f);
-		transformation = glm::translate(transformation, glm::vec3(0, 0, -3));
+		//transformation = glm::translate(transformation, glm::vec3(0, 0, -3));
 		transformation = glm::rotate(transformation, glm::radians(10 * (float)glfwGetTime()), glm::vec3(.5f, 1.0f,0));
 		transformation = glm::scale(transformation, glm::vec3(.5, .5, .5));
 		sp.SetUniform4fv("model", transformation);
-		sp.SetUniform4fv("camera", projection);
+		sp.SetUniform4fv("camera", projection * camera.getView());
 		float timeValue = glfwGetTime();
 		float greenVal = (sin(timeValue) / 2.0) + .5;
 		//texture.Bind();
 		render(mesh);
-		w.ProcessFrame();
+		w.ProcessFrame(&camera);
 	}
 	glfwTerminate(); //Shut it down!
 

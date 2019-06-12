@@ -5,6 +5,12 @@ Camera::Camera(glm::vec3 _position, glm::vec3 target, glm::vec3 _up) {
 	position = _position;
 	direction = glm::normalize(position - target);
 	right = glm::normalize(glm::cross(up, direction));
+	pitch = -asin(-direction.y);
+	yaw = atan2(direction.x, direction.z);
+}
+
+void Camera::setDirection(glm::vec3 dir) {
+	direction = dir;
 }
 
 glm::mat4 Camera::getView() {

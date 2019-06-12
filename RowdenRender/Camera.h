@@ -9,6 +9,8 @@ public:
 	void moveForward(float amount);
 	void moveUp(float amount);
 	void moveRight(float amount);
+	void setDirection(glm::vec3 dir);
+	float pitch, yaw;
 private:
 	glm::vec3 position;
 	glm::vec3 direction;
