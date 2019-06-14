@@ -54,7 +54,7 @@ void standard_mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 	front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
 	front.y = sin(glm::radians(pitch));
 	front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-	win->camera->setDirection(glm::normalize(-front));
+	win->camera->setDirection(glm::normalize(front));
 }
 
 void Window::standardInputProcessor(GLFWwindow* window) { //Go to processInputFunction, no extra steps needed
