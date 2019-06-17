@@ -1,12 +1,14 @@
 #include "Camera.h"
 
-Camera::Camera(glm::vec3 _position, glm::vec3 target, glm::vec3 _up) {
+Camera::Camera(glm::vec3 _position, glm::vec3 target, float _fov, float _aspect, glm::vec3 _up) {
 	up = _up;
 	position = _position;
 	direction = glm::normalize(position - target);
 	right = glm::normalize(glm::cross(up, direction));
 	pitch = asin(-direction.y);
 	yaw = atan2(direction.x, direction.z);
+	aspect = _aspect;
+	fov = _fov;
 }
 
 void Camera::setDirection(glm::vec3 dir) {
@@ -14,7 +16,7 @@ void Camera::setDirection(glm::vec3 dir) {
 }
 
 glm::mat4 Camera::getView() {
-	return glm::lookAt(position, position - direction, up);
+	return glm::perspective(fov, aspect, .1f, 100.0f) * glm::lookAt(position, position - direction, up);
 }
 
 glm::vec3 Camera::getPosition() {

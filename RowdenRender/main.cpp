@@ -81,7 +81,7 @@ int main() {
 	texture.setTexParameterWrap(GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT);
 	glm::mat4 transformation = glm::mat4(1.0f);
 	
-	Camera camera = Camera(glm::vec3(0, 0, -3), glm::vec3(0, 0, 0));
+	Camera camera = Camera(glm::vec3(0, 0, -3), glm::vec3(0, 0, 0), 45.0f, 800/600.0f);
 	w.SetCamera(&camera);
 	glm::mat4 projection;
 	projection = glm::perspective(glm::radians(45.0f), 800/600.0f, 0.1f, 100.0f);
@@ -93,7 +93,7 @@ int main() {
 		transformation = glm::rotate(transformation, glm::radians(10 * (float)glfwGetTime()), glm::vec3(.5f, 1.0f,0));
 		transformation = glm::scale(transformation, glm::vec3(.5, .5, .5));
 		sp.SetUniform4fv("model", transformation);
-		sp.SetUniform4fv("camera", projection * camera.getView());
+		sp.SetUniform4fv("camera", camera.getView());
 		float timeValue = glfwGetTime();
 		float greenVal = (sin(timeValue) / 2.0) + .5;
 		//texture.Bind();
