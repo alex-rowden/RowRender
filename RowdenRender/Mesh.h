@@ -1,5 +1,6 @@
 #pragma once
 #include "Shape.h"
+#include "Texture2D.h"
 
 class Mesh
 {
@@ -17,6 +18,7 @@ private:
 	std::vector<unsigned int> indices;
 	std::vector<float> colors;
 	std::vector<float> texCoords;
+	std::vector<Texture2D> textures;
 	unsigned int VertexBufferObject, VertexArrayObject, IndexBufferArray, ColorBufferArray, TexCoordBuffer;
 };
 

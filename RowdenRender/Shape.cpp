@@ -104,6 +104,10 @@ void Shape::addVertex(glm::vec3 vertex) {
 	vertices.emplace_back(vertex);
 }
 
+void Shape::addNormal(glm::vec3 normal) {
+	vertices.emplace_back(normal);
+}
+
 void Shape::addIndex(glm::ivec3 index) {
 	indices.emplace_back(index);
 }
@@ -114,6 +118,10 @@ void Shape::addTexCoord(glm::vec2 texCoord) {
 
 void Shape::addVertex(float x, float y, float z) {
 	addVertex(glm::vec3(x, y, z));
+}
+
+void Shape::addNormal(float x, float y, float z) {
+	addNormal(glm::vec3(x, y, z));
 }
 
 void Shape::addIndex(int x, int y, int z) {
@@ -134,6 +142,10 @@ std::vector<glm::ivec3> Shape::getIndices() const {
 
 std::vector<glm::vec2> Shape::getTexCoords() const {
 	return texCoords;
+}
+
+std::vector<glm::vec3> Shape::getNormals() const {
+	return normals;
 }
 
 void Shape::addUniqueIndices() {

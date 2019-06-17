@@ -19,6 +19,10 @@ Mesh::Mesh(std::vector<Shape *> shapes) {
 			indices.emplace_back(index.y);
 			indices.emplace_back(index.z);
 		}
+		for (auto texCoord : shape->getTexCoords()) {
+			texCoords.emplace_back(texCoord.x);
+			texCoords.emplace_back(texCoord.y);
+		}
 	}
 }
 Mesh::Mesh(Shape *shape) {
@@ -116,6 +120,25 @@ void Mesh::SetData(GLenum usage) {
 }
 
 void Mesh::Render() {
+
+	unsigned int diffuseNr = 1;
+	unsigned int specularNr = 1;
+	for (unsigned int i = 0; i < textures.size(); i++)
+	{
+		glActiveTexture(GL_TEXTURE0 + i); // activate proper texture unit before binding
+		// retrieve texture number (the N in diffuse_textureN)
+		std::string number;
+		std::string name = textures[i].name;
+		if (name == "texture_diffuse")
+			number = std::to_string(diffuseNr++);
+		else if (name == "texture_specular")
+			number = std::to_string(specularNr++);
+
+		//shader.setFloat(("material." + name + number).c_str(), i);
+		textures[i].Bind();
+	}
+	glActiveTexture(GL_TEXTURE0);
+
 	glBindVertexArray(VertexArrayObject);
 	glDrawElements(GL_TRIANGLES, indices.size() , GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);

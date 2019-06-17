@@ -1,6 +1,6 @@
 #pragma once
 #include "RowRender.h"
-
+#include <string>
 class Texture2D
 {
 public:
@@ -11,6 +11,7 @@ public:
 	void setTexMinMagFilter(GLint min, GLint mag);
 	void setTexMinMagFilter(GLint filter);
 	void Bind();
+	std::string name = "texture_diffuse";
 private:
 	unsigned int texture;
 	int height, width, numChannels;
