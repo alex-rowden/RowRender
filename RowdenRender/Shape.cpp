@@ -105,7 +105,7 @@ void Shape::addVertex(glm::vec3 vertex) {
 }
 
 void Shape::addNormal(glm::vec3 normal) {
-	vertices.emplace_back(normal);
+	normals.emplace_back(normal);
 }
 
 void Shape::addIndex(glm::ivec3 index) {
@@ -150,7 +150,7 @@ std::vector<glm::vec3> Shape::getNormals() const {
 
 void Shape::addUniqueIndices() {
 	for (int i = 0; i < vertices.size(); i+=4) {
-		indices.emplace_back(i, i+1, i+2);
-		indices.emplace_back(i + 2, i + 3, i);
+		//indices.emplace_back(i, i+1, i+2);
+		//indices.emplace_back(i + 2, i + 3, i);
 	}
 }

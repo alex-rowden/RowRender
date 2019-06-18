@@ -18,7 +18,7 @@ private:
 	std::vector<Texture2D*> loadMaterialTextures(aiMaterial* mat, aiTextureType type, std::string typeName);
 
 public:
-	Model(char* path) { loadModel(std::string(path)); }
+	Model(const char* path) { loadModel(std::string(path)); }
 	void Render(ShaderProgram* sp);
 };
 

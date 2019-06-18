@@ -3,6 +3,7 @@
 Mesh::Mesh() {
 	vertices = std::vector<float>();
 	indices = std::vector<unsigned int>();
+	texCoords = std::vector<float>();
 }
 
 
@@ -91,8 +92,8 @@ void Mesh::SetData(GLenum usage) {
 	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferObject);
 	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), (void*)vertices.data(), usage);
 
-	glBindBuffer(GL_ARRAY_BUFFER, ColorBufferArray);
-	glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof(float), (void*)colors.data(), usage);
+	//glBindBuffer(GL_ARRAY_BUFFER, ColorBufferArray);
+	//glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof(float), (void*)colors.data(), usage);
 
 	glBindBuffer(GL_ARRAY_BUFFER, TexCoordBuffer);
 	glBufferData(GL_ARRAY_BUFFER, texCoords.size() * sizeof(float), (void*)texCoords.data(), usage);
@@ -107,13 +108,13 @@ void Mesh::SetData(GLenum usage) {
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
 	glEnableVertexAttribArray(0);
 
-	glBindBuffer(GL_ARRAY_BUFFER, ColorBufferArray);
-	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void*)0);
-	glEnableVertexAttribArray(1);
+	//glBindBuffer(GL_ARRAY_BUFFER, ColorBufferArray);
+	//glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void*)0);
+	//glEnableVertexAttribArray(1);
 
 	glBindBuffer(GL_ARRAY_BUFFER, TexCoordBuffer);
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, (void*)0);
-	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, (void*)0);
+	glEnableVertexAttribArray(1);
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
