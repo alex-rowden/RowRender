@@ -18,6 +18,9 @@ void Model::loadModel(std::string path) {
 	directory = path.substr(0, path.find_last_of('\\'));
 
 	processNode(scene->mRootNode, scene);
+	for (auto mesh : meshes) {
+		mesh->SetData();
+	}
 }
 
 void Model::processNode(aiNode *node, const aiScene *scene) {
@@ -48,29 +51,33 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene) {
 			shape.addIndex(face.mIndices[j], face.mIndices[j+1], face.mIndices[j+2]);
 		}
 	}
-	std::vector<Texture2D*> textures;
+	Mesh* ret = new Mesh(&shape);
 	if (mesh->mMaterialIndex >= 0) {
 		if (mesh->mMaterialIndex >= 0)
 		{
 			aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
-			std::vector<Texture2D *> diffuseMaps = loadMaterialTextures(material,
+			std::vector<Texture2D> diffuseMaps = loadMaterialTextures(material,
 				aiTextureType_DIFFUSE, "texture_diffuse");
-			textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
-			std::vector<Texture2D *> specularMaps = loadMaterialTextures(material,
+			for (auto texture : diffuseMaps) {
+				ret->addTexture(texture);
+			}
+			std::vector<Texture2D> specularMaps = loadMaterialTextures(material,
 				aiTextureType_SPECULAR, "texture_specular");
-			textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
+			for (auto texture : specularMaps)
+				ret->addTexture(texture);
 		}
 	}
-	return new Mesh(&shape);
+
+	return ret;
 }
 
-std::vector<Texture2D *> Model::loadMaterialTextures(aiMaterial* mat, aiTextureType type, std::string typeName) {
-	std::vector<Texture2D*> textures;
+std::vector<Texture2D > Model::loadMaterialTextures(aiMaterial* mat, aiTextureType type, std::string typeName) {
+	std::vector<Texture2D> textures;
 	for (unsigned int i = 0; i < mat->GetTextureCount(type); i++) {
 		aiString str;
 		mat->GetTexture(type, i, &str);
 		Texture2D texture = Texture2D((directory + "\\" + std::string( str.C_Str())).c_str());
-		textures.emplace_back(&texture);
+		textures.emplace_back(texture);
 	}
 	return textures;
 }

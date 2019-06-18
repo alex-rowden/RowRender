@@ -120,6 +120,10 @@ void Mesh::SetData(GLenum usage) {
 	glBindVertexArray(0);
 }
 
+void Mesh::addTexture(Texture2D texture) {
+	textures.emplace_back(texture);
+}
+
 void Mesh::Render() {
 
 	unsigned int diffuseNr = 1;
@@ -138,9 +142,10 @@ void Mesh::Render() {
 		//shader.setFloat(("material." + name + number).c_str(), i);
 		textures[i].Bind();
 	}
-	glActiveTexture(GL_TEXTURE0);
-
+	
 	glBindVertexArray(VertexArrayObject);
 	glDrawElements(GL_TRIANGLES, indices.size() , GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
+
+	glActiveTexture(GL_TEXTURE0);
 }
