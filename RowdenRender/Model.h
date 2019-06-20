@@ -16,7 +16,7 @@ private:
 	void processNode(aiNode* node, const aiScene* scene);
 	Mesh *processMesh(aiMesh* mesh, const aiScene* scene);
 	std::vector<Texture2D> loadMaterialTextures(aiMaterial* mat, aiTextureType type, std::string typeName);
-
+	std::vector<Texture2D> loadEmbeddedTextures(const aiScene* scene, const std::string& path);
 public:
 	Model(const char* path) { loadModel(std::string(path)); }
 	void Render(ShaderProgram* sp);

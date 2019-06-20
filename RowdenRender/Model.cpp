@@ -67,8 +67,23 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene) {
 				ret->addTexture(texture);
 		}
 	}
-
+	for (auto texture : loadEmbeddedTextures(scene, directory)) {
+		ret->addTexture(texture);
+	}
 	return ret;
+}
+
+std::vector<Texture2D> Model::loadEmbeddedTextures(const aiScene* scene, const std::string& path) {
+	// Check if scene has textures.
+	std::vector<Texture2D> textures;
+	if (scene->HasTextures())
+	{
+		for (size_t ti = 0; ti < scene->mNumTextures; ti++)
+		{
+			textures.emplace_back(Texture2D(scene->mTextures[ti]));
+		}
+	}
+	return textures;
 }
 
 std::vector<Texture2D > Model::loadMaterialTextures(aiMaterial* mat, aiTextureType type, std::string typeName) {
@@ -76,8 +91,20 @@ std::vector<Texture2D > Model::loadMaterialTextures(aiMaterial* mat, aiTextureTy
 	for (unsigned int i = 0; i < mat->GetTextureCount(type); i++) {
 		aiString str;
 		mat->GetTexture(type, i, &str);
+		if (str.data[0] == '*') {
+			std::cout << "Embedded Texture" << std::endl;
+		}
 		Texture2D texture = Texture2D((directory + "\\" + std::string( str.C_Str())).c_str());
+		if (type == aiTextureType_SPECULAR)
+			texture.name = "texture_specular";
 		textures.emplace_back(texture);
 	}
+	if (textures.size() == 0) {
+		aiColor4D color(0, 0, 0, 0);
+		mat->Get(AI_MATKEY_COLOR_DIFFUSE, color);
+		textures.emplace_back(Texture2D(glm::vec4(color.r, color.g, color.b, color.a)));
+	}
+
+
 	return textures;
 }

@@ -61,7 +61,7 @@ void Window::standardInputProcessor(GLFWwindow* window) { //Go to processInputFu
 	float currentFrame = glfwGetTime();
 	float deltaTime = currentFrame - lastTime;
 	lastTime = currentFrame;
-	float speed = 2.5 * deltaTime;
+	float speed = .25 * deltaTime;
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
 		glfwSetWindowShouldClose(window, true);
 	}

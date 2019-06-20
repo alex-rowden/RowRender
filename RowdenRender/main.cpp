@@ -80,10 +80,10 @@ int main() {
 	//
 	//Texture2D texture = Texture2D("Content\\Textures\\brick_wall.jpg");
 	//texture.setTexParameterWrap(GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT);
-	Model model = Model("C:\\Users\\alrowden\\Documents\\3dsMax\\export\\crysis.obj");
+	Model model = Model("Content\\Models\\cube\\cube.obj");
 	glm::mat4 transformation = glm::mat4(1.0f);
 	
-	Camera camera = Camera(glm::vec3(0, 200, 400), glm::vec3(0, 0, 0), 45.0f, 800/600.0f);
+	Camera camera = Camera(glm::vec3(0, 1, 1), glm::vec3(0, 0, 0), 45.0f, 800/600.0f);
 	w.SetCamera(&camera);
 	glm::mat4 projection;
 	//projection = glm::perspective(glm::radians(45.0f), 800/600.0f, 0.1f, 1000.0f);

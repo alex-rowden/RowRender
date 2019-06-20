@@ -33,7 +33,60 @@ Texture2D::Texture2D(const char * filename) {
 	stbi_image_free(data);
 }
 
+Texture2D::Texture2D(aiTexture *texture) {
+	unsigned char* image_data = nullptr;
+	glGenTextures(1, &this->texture);
+	glBindTexture(GL_TEXTURE_2D, this->texture);
+
+	if (texture->mHeight == 0)
+	{
+		image_data = stbi_load_from_memory(reinterpret_cast<unsigned char*>(texture->pcData), texture->mWidth, &width, &height, &numChannels, 0);
+	}
+	else
+	{
+		image_data = stbi_load_from_memory(reinterpret_cast<unsigned char*>(texture->pcData), texture->mWidth * texture->mHeight, &width, &height, &numChannels, 0);
+	}
+
+	if (numChannels == 3)
+	{
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image_data);
+	}
+	else
+		if (numChannels == 4)
+		{
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+		}
+}
+
+void Texture2D::init_from_vector(std::vector<glm::vec4> *colors, int height, int width) {
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	this->height = height;
+	this->width = width;
+	this->numChannels = 4;
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_FLOAT, colors->data());
+}
+
+Texture2D::Texture2D(Texture2D::COLORS color) {
+	glm::vec4 c = glm::vec4(0);
+	switch (color) {
+		//cases for more colors
+	}
+	std::vector<glm::vec4> ret;
+	ret.emplace_back(c);
+	init_from_vector(&ret, 1, 1);
+}
+
+Texture2D::Texture2D(glm::vec4 color) {
+	std::vector<glm::vec4> *c = new std::vector<glm::vec4>();
+	c->emplace_back(color);
+	init_from_vector(c, 1, 1);
+}
+
+
 void Texture2D::setBorderColor(glm::vec4 color) {
+
 	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, &color[0]);
 }
 
@@ -63,4 +116,5 @@ unsigned char* Texture2D::loadTextureData(const char *filename) {
 void Texture2D::Bind() {
 	glBindTexture(GL_TEXTURE_2D, texture);
 }
+
 
