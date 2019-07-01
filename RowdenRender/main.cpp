@@ -12,7 +12,6 @@
 int counter = 0;
 //any old render function
 void render(Model mesh, ShaderProgram *sp) {
-	counter += 1;
 	if (counter > 100)
 		counter -= 100;
 	glClearColor(counter/100.0f, counter / 100.0f, counter / 100.0f, 1.0);
@@ -80,7 +79,7 @@ int main() {
 	//
 	//Texture2D texture = Texture2D("Content\\Textures\\brick_wall.jpg");
 	//texture.setTexParameterWrap(GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT);
-	Model model = Model("Content\\Models\\cube\\cube.obj");
+	Model model = Model("Content\\Models\\tree01.obj");
 	glm::mat4 transformation = glm::mat4(1.0f);
 	
 	Camera camera = Camera(glm::vec3(0, 1, 1), glm::vec3(0, 0, 0), 45.0f, 800/600.0f);
@@ -93,7 +92,7 @@ int main() {
 		transformation = glm::mat4(1.0f);
 		//transformation = glm::translate(transformation, glm::vec3(0, 0, -3));
 		//transformation = glm::rotate(transformation, glm::radians(10 * (float)glfwGetTime()), glm::vec3(.5f, 1.0f,0));
-		transformation = glm::scale(transformation, glm::vec3(.5, .5, .5));
+		transformation = glm::scale(transformation, glm::vec3(.05, .05, .05));
 		sp.SetUniform4fv("model", transformation);
 		sp.SetUniform4fv("camera", camera.getView());
 		//texture.Bind();
