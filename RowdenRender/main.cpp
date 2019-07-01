@@ -9,7 +9,7 @@
 #include "Model.h"
 
 #include <fstream>
-int counter = 0;
+int counter = 10;
 //any old render function
 void render(Model mesh, ShaderProgram *sp) {
 	if (counter > 100)
@@ -87,7 +87,7 @@ int main() {
 	w.SetCamera(&camera);
 	glm::mat4 projection;
 	//projection = glm::perspective(glm::radians(45.0f), 800/600.0f, 0.1f, 1000.0f);
-	glm::mat4 light_transform = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, -3));
+	glm::mat4 light_transform = glm::translate(glm::mat4(1.0f), glm::vec3(3, 3, 3));
 	while (!glfwWindowShouldClose(w.getWindow())) //main render loop
 	{
 		transformation = glm::mat4(1.0f);
@@ -99,6 +99,7 @@ int main() {
 		sp.SetUniform3f("lightColor", glm::vec3(1, 0, 1));
 		light_sp.SetUniform4fv("model", transformation * light_transform);
 		light_sp.SetUniform4fv("camera", camera.getView());
+		sp.SetUniform3f("lightPos", glm::vec3(3, 3, 3));
 		//texture.Bind();
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		render(model, &sp);

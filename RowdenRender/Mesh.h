@@ -21,8 +21,9 @@ private:
 	std::vector<float> vertices;
 	std::vector<unsigned int> indices;
 	std::vector<float> colors;
+	std::vector<float> normals;
 	std::vector<float> texCoords;
 	std::vector<Texture2D> textures;
-	unsigned int VertexBufferObject, VertexArrayObject, IndexBufferArray, ColorBufferArray, TexCoordBuffer;
+	unsigned int VertexBufferObject, VertexArrayObject, IndexBufferArray, NormalBuffer, TexCoordBuffer;
 };
 

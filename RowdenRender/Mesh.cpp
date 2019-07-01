@@ -24,6 +24,11 @@ Mesh::Mesh(std::vector<Shape *> shapes) {
 			texCoords.emplace_back(texCoord.x);
 			texCoords.emplace_back(texCoord.y);
 		}
+		for (auto normal : shape->getNormals()) {
+			normals.emplace_back(normal.x);
+			normals.emplace_back(normal.y);
+			normals.emplace_back(normal.z);
+		}
 	}
 }
 Mesh::Mesh(Shape *shape) {
@@ -41,6 +46,11 @@ Mesh::Mesh(Shape *shape) {
 	for (auto texCoord : shape->getTexCoords()) {
 		texCoords.emplace_back(texCoord.x);
 		texCoords.emplace_back(texCoord.y);
+	}
+	for (auto normal : shape->getNormals()) {
+		normals.emplace_back(normal.x);
+		normals.emplace_back(normal.y);
+		normals.emplace_back(normal.z);
 	}
 }
 
@@ -80,10 +90,11 @@ void Mesh::SetColors(std::vector<glm::vec4> _colors) {
 	}
 }
 
+
 void Mesh::SetData(GLenum usage) {
 	glGenVertexArrays(1, &VertexArrayObject);
 	glGenBuffers(1, &VertexBufferObject);
-	glGenBuffers(1, &ColorBufferArray);
+	glGenBuffers(1, &NormalBuffer);
 	glGenBuffers(1, &IndexBufferArray);
 	glGenBuffers(1, &TexCoordBuffer);
 
@@ -92,8 +103,8 @@ void Mesh::SetData(GLenum usage) {
 	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferObject);
 	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), (void*)vertices.data(), usage);
 
-	//glBindBuffer(GL_ARRAY_BUFFER, ColorBufferArray);
-	//glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof(float), (void*)colors.data(), usage);
+	glBindBuffer(GL_ARRAY_BUFFER, NormalBuffer);
+	glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(float), (void*)normals.data(), usage);
 
 	glBindBuffer(GL_ARRAY_BUFFER, TexCoordBuffer);
 	glBufferData(GL_ARRAY_BUFFER, texCoords.size() * sizeof(float), (void*)texCoords.data(), usage);
@@ -115,6 +126,10 @@ void Mesh::SetData(GLenum usage) {
 	glBindBuffer(GL_ARRAY_BUFFER, TexCoordBuffer);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, (void*)0);
 	glEnableVertexAttribArray(1);
+
+	glBindBuffer(GL_ARRAY_BUFFER, NormalBuffer);
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
+	glEnableVertexAttribArray(2);
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
