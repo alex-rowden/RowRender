@@ -1,14 +1,85 @@
 #include "Window.h"
 
+Window::Window(const char *name) {
+	SetVersion(3, 3);
+
+	bool window_made = makeWindow(800, 600, name);
+	glfwSetWindowUserPointer(window, this);
+	if (!window_made) {
+		std::cout << "Failed to create window" << std::endl;
+		glfwTerminate();
+		exit(-1);
+		return;
+	}
+}
+
+GLFWwindow* Window::getWindow() {
+	return window;
+}
+
 //Call in order to resize the window
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
 	glViewport(0, 0, width, height);
 }
 
-void standardInputProcessor(GLFWwindow* window) { //Go to processInputFunction, no extra steps needed
+void standard_mouse_callback(GLFWwindow* window, double xpos, double ypos) {
+	Window *win = static_cast<Window *>(glfwGetWindowUserPointer(window)); 
+	if (win->firstMouse) // this bool variable is initially set to true
+	{
+		win->lastX = xpos;
+		win->lastY = ypos;
+		win->firstMouse = false;
+	}
+	float xoffset = xpos - win->lastX;
+	float yoffset = win->lastY - ypos; // reversed since y-coordinates range from bottom to top
+	win->lastX = xpos;
+	win->lastY = ypos;
+
+	float sensitivity = 0.05f;
+	xoffset *= sensitivity;
+	yoffset *= sensitivity;
+
+	win->camera->yaw += xoffset;
+	win->camera->pitch += yoffset;
+	float pitch = win->camera->pitch;
+	float yaw = win->camera->yaw;
+
+	if (pitch > 89.0f)
+		win->camera->pitch = 89.0f;
+	if (pitch < -89.0f)
+		win->camera->pitch = -89.0f;
+
+	glm::vec3 front;
+	front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+	front.y = sin(glm::radians(pitch));
+	front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+	win->camera->setDirection(glm::normalize(front));
+}
+
+void Window::standardInputProcessor(GLFWwindow* window) { //Go to processInputFunction, no extra steps needed
+	float currentFrame = glfwGetTime();
+	float deltaTime = currentFrame - lastTime;
+	lastTime = currentFrame;
+	float speed = .25 * deltaTime;
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
 		glfwSetWindowShouldClose(window, true);
+	}
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+		camera->moveForward(speed);
+	}
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+		camera->moveForward(-speed);
+	}
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+		camera->moveRight(speed);
+	}
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+		camera->moveRight(-speed);
+	}if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
+		camera->moveUp(speed);
+	}if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
+		camera->moveUp(-speed);
 	}
 }
 
@@ -40,6 +111,12 @@ void Window::SetViewportSize(int width, int height) {
 	glViewport(0, 0, width, height); //Set viewport to full window size
 }
 
+void Window::SetCamera(Camera* _camera) {
+	camera = _camera;
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	glfwSetCursorPosCallback(window, standard_mouse_callback);
+}
+
 //Process each input frame, by default uses standard input processor
 void Window::ProcessFrame(bool useStandard) {
 	standardInputProcessor(window); //get keypresses etc.
@@ -50,6 +127,6 @@ void Window::ProcessFrame(bool useStandard) {
 //allow custom input processing function, standard process by default not used
 void Window::ProcessFrame(void (*processInputFunc)(GLFWwindow *), bool useStandard) { 
 	processInputFunc(window);
-	ProcessFrame();
+	ProcessFrame(camera);
 }
 

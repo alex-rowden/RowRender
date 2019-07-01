@@ -3,6 +3,7 @@
 Mesh::Mesh() {
 	vertices = std::vector<float>();
 	indices = std::vector<unsigned int>();
+	texCoords = std::vector<float>();
 }
 
 
@@ -18,6 +19,10 @@ Mesh::Mesh(std::vector<Shape *> shapes) {
 			indices.emplace_back(index.x);
 			indices.emplace_back(index.y);
 			indices.emplace_back(index.z);
+		}
+		for (auto texCoord : shape->getTexCoords()) {
+			texCoords.emplace_back(texCoord.x);
+			texCoords.emplace_back(texCoord.y);
 		}
 	}
 }
@@ -87,8 +92,8 @@ void Mesh::SetData(GLenum usage) {
 	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferObject);
 	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), (void*)vertices.data(), usage);
 
-	glBindBuffer(GL_ARRAY_BUFFER, ColorBufferArray);
-	glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof(float), (void*)colors.data(), usage);
+	//glBindBuffer(GL_ARRAY_BUFFER, ColorBufferArray);
+	//glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof(float), (void*)colors.data(), usage);
 
 	glBindBuffer(GL_ARRAY_BUFFER, TexCoordBuffer);
 	glBufferData(GL_ARRAY_BUFFER, texCoords.size() * sizeof(float), (void*)texCoords.data(), usage);
@@ -97,26 +102,50 @@ void Mesh::SetData(GLenum usage) {
 
 	
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexBufferArray);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), &indices[0], usage);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), usage);
 
 	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferObject);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
 	glEnableVertexAttribArray(0);
 
-	glBindBuffer(GL_ARRAY_BUFFER, ColorBufferArray);
-	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void*)0);
-	glEnableVertexAttribArray(1);
+	//glBindBuffer(GL_ARRAY_BUFFER, ColorBufferArray);
+	//glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void*)0);
+	//glEnableVertexAttribArray(1);
 
 	glBindBuffer(GL_ARRAY_BUFFER, TexCoordBuffer);
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, (void*)0);
-	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, (void*)0);
+	glEnableVertexAttribArray(1);
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 }
 
+void Mesh::addTexture(Texture2D texture) {
+	textures.emplace_back(texture);
+}
+
 void Mesh::Render() {
+
+	unsigned int diffuseNr = 1;
+	unsigned int specularNr = 1;
+	for (unsigned int i = 0; i < textures.size(); i++)
+	{
+		glActiveTexture(GL_TEXTURE0 + i); // activate proper texture unit before binding
+		// retrieve texture number (the N in diffuse_textureN)
+		std::string number;
+		std::string name = textures[i].name;
+		if (name == "texture_diffuse")
+			number = std::to_string(diffuseNr++);
+		else if (name == "texture_specular")
+			number = std::to_string(specularNr++);
+
+		//shader.setFloat(("material." + name + number).c_str(), i);
+		textures[i].Bind();
+	}
+	
 	glBindVertexArray(VertexArrayObject);
 	glDrawElements(GL_TRIANGLES, indices.size() , GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
+
+	glActiveTexture(GL_TEXTURE0);
 }
