@@ -15,7 +15,7 @@ void render(Model mesh, ShaderProgram *sp) {
 	if (counter > 100)
 		counter -= 100;
 	glClearColor(counter/100.0f, counter / 100.0f, counter / 100.0f, 1.0);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	
 	mesh.Render(sp);
 }
 
@@ -72,21 +72,22 @@ int main() {
 
 
 	ShaderProgram sp = ShaderProgram({ShaderProgram::Shaders::FRAGMENT, ShaderProgram::Shaders::VERTEX});
-
+	ShaderProgram light_sp = ShaderProgram({ShaderProgram::Shaders::LIGHT_FRAG, ShaderProgram::Shaders::LIGHT_VERT});
 	
 
 	//mesh.SetData();
 	//
 	//Texture2D texture = Texture2D("Content\\Textures\\brick_wall.jpg");
 	//texture.setTexParameterWrap(GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT);
-	Model model = Model("Content\\Models\\tree01.obj");
+	Model model = Model("Content\\Models\\cube\\cube.obj");
+	Model light = Model("Content\\Models\\cube\\cube.obj");
 	glm::mat4 transformation = glm::mat4(1.0f);
 	
 	Camera camera = Camera(glm::vec3(0, 1, 1), glm::vec3(0, 0, 0), 45.0f, 800/600.0f);
 	w.SetCamera(&camera);
 	glm::mat4 projection;
 	//projection = glm::perspective(glm::radians(45.0f), 800/600.0f, 0.1f, 1000.0f);
-
+	glm::mat4 light_transform = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, -3));
 	while (!glfwWindowShouldClose(w.getWindow())) //main render loop
 	{
 		transformation = glm::mat4(1.0f);
@@ -95,8 +96,13 @@ int main() {
 		transformation = glm::scale(transformation, glm::vec3(.05, .05, .05));
 		sp.SetUniform4fv("model", transformation);
 		sp.SetUniform4fv("camera", camera.getView());
+		sp.SetUniform3f("lightColor", glm::vec3(1, 0, 1));
+		light_sp.SetUniform4fv("model", transformation * light_transform);
+		light_sp.SetUniform4fv("camera", camera.getView());
 		//texture.Bind();
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		render(model, &sp);
+		render(light, &light_sp);
 		w.ProcessFrame(&camera);
 	}
 	glfwTerminate(); //Shut it down!

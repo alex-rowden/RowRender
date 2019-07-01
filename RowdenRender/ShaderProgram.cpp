@@ -6,15 +6,21 @@ ShaderProgram::ShaderProgram(std::vector<Shaders> shaders) {
 		SetupShader(shader);
 		switch (shader) {
 		case Shaders::VERTEX:
+		case Shaders::LIGHT_VERT:
 			glAttachShader(shaderProgram, vertexShader);
 			break;
 		case Shaders::FRAGMENT:
+		case Shaders::LIGHT_FRAG:
 			glAttachShader(shaderProgram, fragmentShader);
 			break;
 		}
 	}
 	glLinkProgram(shaderProgram);
 	program_error_check();
+	glUseProgram(shaderProgram);
+}
+
+void ShaderProgram::Use() {
 	glUseProgram(shaderProgram);
 }
 
@@ -118,6 +124,12 @@ void ShaderProgram::importShaderFile(Shaders shader, std::string *ShaderString) 
 	case Shaders::FRAGMENT:
 		filename = "fragment_shader.glsl";
 		break;
+	case Shaders::LIGHT_FRAG:
+		filename = "light_frag.glsl";
+		break;
+	case Shaders::LIGHT_VERT:
+		filename = "light_vert.glsl";
+		break;
 	default:
 		throw "Not a valid shader";
 	}
@@ -152,6 +164,14 @@ void ShaderProgram::shader_error_check(Shaders shader) {
 		shader_name = "FRAGMENT";
 		shader_adr = &fragmentShader;
 		break;
+	case Shaders::LIGHT_VERT:
+		shader_name = "LIGHT_VERT";
+		shader_adr = &vertexShader;
+		break;
+	case Shaders::LIGHT_FRAG:
+		shader_name = "LIGHT_FRAG";
+		shader_adr = &fragmentShader;
+		break;
 	default:
 		return;
 	}
@@ -181,6 +201,17 @@ void ShaderProgram::SetupShader(Shaders shader) {
 		glShaderSource(fragmentShader, 1, &shader_source, NULL);
 		glCompileShader(fragmentShader);
 		break;
+	case Shaders::LIGHT_FRAG:
+		fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+		glShaderSource(fragmentShader, 1, &shader_source, NULL);
+		glCompileShader(fragmentShader);
+		break;
+	case Shaders::LIGHT_VERT:
+		vertexShader = glCreateShader(GL_VERTEX_SHADER);
+		glShaderSource(vertexShader, 1, &shader_source, NULL);
+		glCompileShader(vertexShader);
+		break;
 	}
+	
 	shader_error_check(shader);
 }

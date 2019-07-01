@@ -1,6 +1,7 @@
 #include "Model.h"
 
 void Model::Render(ShaderProgram *sp) {
+	sp->Use();
 	for (auto mesh : meshes) {
 		mesh->Render();
 	}

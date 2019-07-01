@@ -42,6 +42,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="fragment_shader.glsl" />
+    <None Include="light_frag.glsl" />
+    <None Include="light_vert.glsl" />
     <None Include="vertex_shader.glsl">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
     </None>

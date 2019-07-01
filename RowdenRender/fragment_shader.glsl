@@ -30,7 +30,9 @@ uniform sampler2D texture_specular8;
 uniform sampler2D texture_specular9;
 uniform sampler2D texture_specular10;
 
+uniform vec3 lightColor;
+
 void main()
 {
-	FragColor = texture(texture_diffuse1, TexCoord);
+	FragColor = texture(texture_diffuse1, TexCoord) * vec4(lightColor, 1);
 }

@@ -4,9 +4,11 @@
 class ShaderProgram
 {
 public:
-	enum class Shaders { VERTEX, FRAGMENT };
+	enum class Shaders { VERTEX, FRAGMENT, LIGHT_VERT, LIGHT_FRAG };
 	void SetupShader(Shaders shader);
 	ShaderProgram(std::vector<Shaders> shaders);
+
+	void Use();
 
 	void SetUniform4f(const char *uniform_name, glm::vec4 vec);
 	void SetUniform3f(const char* uniform_name, glm::vec3 vec);
