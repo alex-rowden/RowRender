@@ -93,12 +93,15 @@ int main() {
 		transformation = glm::mat4(1.0f);
 		//transformation = glm::translate(transformation, glm::vec3(0, 0, -3));
 		//transformation = glm::rotate(transformation, glm::radians(10 * (float)glfwGetTime()), glm::vec3(.5f, 1.0f,0));
-		transformation = glm::scale(transformation, glm::vec3(.05, .05, .05));
+		transformation = glm::scale(transformation, glm::vec3(.5, .5, .05));
 		sp.SetUniform4fv("model", transformation);
+		sp.SetUniform3fv("normalMatrix", glm::mat3(glm::transpose(glm::inverse(transformation * camera.getView()))));
 		sp.SetUniform4fv("camera", camera.getView());
+		sp.SetUniform4fv("projection", camera.getProjection());
 		sp.SetUniform3f("lightColor", glm::vec3(1, 0, 1));
-		light_sp.SetUniform4fv("model", transformation * light_transform);
-		light_sp.SetUniform4fv("camera", camera.getView());
+		sp.SetUniform3f("viewPos", camera.getPosition());
+		light_sp.SetUniform4fv("model",  light_transform);
+		light_sp.SetUniform4fv("camera", camera.getProjection() * camera.getView());
 		sp.SetUniform3f("lightPos", glm::vec3(3, 3, 3));
 		//texture.Bind();
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

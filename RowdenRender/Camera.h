@@ -6,6 +6,7 @@ public:
 	Camera(glm::vec3 position, glm::vec3 target, float fov, float aspect, glm::vec3 up = glm::vec3(0,1,0));
 	glm::mat4 getView();
 	glm::vec3 getPosition();
+	glm::mat4 getProjection();
 	void moveForward(float amount);
 	void moveUp(float amount);
 	void moveRight(float amount);
