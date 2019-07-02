@@ -16,7 +16,11 @@ void Camera::setDirection(glm::vec3 dir) {
 }
 
 glm::mat4 Camera::getView() {
-	return glm::perspective(fov, aspect, .1f, 1000.0f) * glm::lookAt(position, position - direction, up);
+	return glm::lookAt(position, position - direction, up);
+}
+
+glm::mat4 Camera::getProjection() {
+	return glm::perspective(fov, aspect, .1f, 1000.0f);
 }
 
 glm::vec3 Camera::getPosition() {

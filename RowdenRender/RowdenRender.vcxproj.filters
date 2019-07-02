@@ -82,5 +82,11 @@
     <None Include="fragment_shader.glsl">
       <Filter>Source Files\Shaders</Filter>
     </None>
+    <None Include="light_frag.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="light_vert.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>
