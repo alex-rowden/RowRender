@@ -45,6 +45,146 @@ void MessageCallback(GLenum source,
 		type, severity, message);
 }
 
+void LoadCampusModel(Model *completeCampus) {
+	
+	if (true) {
+		completeCampus = new Model();
+		int campusRunningIndex = 0;
+		for (int i = 1; i <= 999; i++)
+		{
+			std::string value = std::to_string(i);
+			if (value.length() == 1)
+				value = "00" + value;
+			else if (value.length() == 2)
+				value = "0" + value;
+
+			KroEngine::Model3D* building = new KroEngine::Model3D();
+			bool loadedBuilding = building->LoadMesh(
+				"Content/Models/Buildings/ID_" + value + ".dae");
+			if (!loadedBuilding)
+			{
+				Debugger::Instance()->WriteLine("ERROR: Failed to load building");
+				continue;
+			}
+
+			TiXmlDocument* buildingKML;
+			std::string file = "Content/Models/Buildings/ID_" + value + ".kml";
+			buildingKML = new TiXmlDocument(file.c_str());
+			bool configLoaded = buildingKML->LoadFile();
+			if (!configLoaded)
+			{
+				std::cerr << "Could not load file: '" << file << "' " << buildingKML->ErrorDesc() << std::endl;
+				continue;
+			}
+			TiXmlHandle buildingKMLHandle(buildingKML);
+
+			TiXmlElement* buildingXML =
+				buildingKMLHandle.FirstChild("kml").FirstChild("Document").FirstChild("Placemark").FirstChild("Model").ToElement();
+			TiXmlElement* locationXML = buildingXML->FirstChildElement("Location");
+			TiXmlElement* longitude = locationXML->FirstChildElement("longitude");
+			TiXmlElement* latitude = locationXML->FirstChildElement("latitude");
+
+			std::string lonText = longitude->GetText();
+			std::string latText = latitude->GetText();
+			float lon = std::atof(lonText.c_str());
+			float lat = std::atof(latText.c_str());
+
+			//std::cout << lonText << " " << latText << std::endl;
+
+			TiXmlElement* scaleXML = buildingXML->FirstChildElement("Scale");
+			TiXmlElement* scaleX = scaleXML->FirstChildElement("x");
+			TiXmlElement* scaleY = scaleXML->FirstChildElement("y");
+			TiXmlElement* scaleZ = scaleXML->FirstChildElement("z");
+
+			float sx = std::atof(scaleX->GetText());
+			float sy = std::atof(scaleY->GetText());
+			float sz = std::atof(scaleZ->GetText());
+
+			//KroEngine::WorldObject* buildingObj = new KroEngine::WorldObject();
+			//buildingObj->SetModel(building);
+			//buildingObj->SetPosition(glm::vec3(lon, 0, lat));
+			////buildingObj->SetRotation(glm::toQuat(glm::rotate((float)DEG2RAD(-90.0f), glm::vec3(1, 0, 0))));
+			//buildingObj->SetScale(glm::vec3(sx, sy, sz) * 0.5f);
+			lon += 76.936594579149414130370132625103f;
+			lat -= 38.990750300955419049842021195218f;
+			float scale = .0085;
+			glm::mat4 transform =
+				glm::translate(glm::vec3(-lon * 3000.0, 0, lat * 3000.0f)) *
+				//glm::rotate((float)DEG2RAD(-90.0f), glm::vec3(0, 0, 1)) *
+				glm::rotate((float)DEG2RAD(-90.0f), glm::vec3(1, 0, 0)) *
+				//glm::rotate((float)DEG2RAD(90.0f), glm::vec3(0, 1, 0)) *
+				glm::scale(glm::vec3(-scale, -scale, scale));
+
+			std::vector<Mesh3D*> parts = building->GetParts();
+			for (Mesh3D* part : parts)
+			{
+				std::vector<float> verts = part->GetVerticies();
+				if (verts.size() == 0)
+					continue;
+				std::vector<unsigned int> indices = part->GetIndices();
+				std::vector<float> normals = part->GetNormals();
+				std::vector<float> tangents = part->GetTangents();
+				std::vector<float> texCoords = part->GetTexCoords();
+
+				for (int v = 0; v < verts.size(); v += 3)
+				{
+					completeCampus->AddVertex(
+						glm::vec3(transform * glm::vec4(
+							verts.at(v),
+							verts.at(v + 1),
+							verts.at(v + 2),
+							1)
+						)
+					);
+					completeCampus->AddNormal(
+						glm::normalize(
+							glm::vec3(glm::vec4(
+								normals.at(v),
+								normals.at(v + 1),
+								normals.at(v + 2),
+								1)
+							)
+						)
+					);
+
+					completeCampus->AddTangent(
+						glm::normalize(
+							glm::vec3(glm::vec4(
+								tangents.at(v),
+								tangents.at(v + 1),
+								tangents.at(v + 2),
+								1)
+							)
+						)
+					);
+
+					completeCampus->AddColor(glm::vec4(1, 1, 1, 1));
+				}
+				for (int v = 0; v < texCoords.size(); v += 2) {
+					completeCampus->AddTexCoord(
+						glm::vec2(
+							texCoords.at(v),
+							texCoords.at(v + 1)
+						)
+					);
+				}
+
+				for (int in = 0; in < indices.size(); in += 3)
+				{
+					completeCampus->AddTriangle(
+						in + campusRunningIndex,
+						in + 1 + campusRunningIndex,
+						in + 2 + campusRunningIndex);
+				}
+
+				campusRunningIndex += indices.size();
+			}
+			delete building;
+			//campusBuildings.emplace_back(buildingObj);
+
+
+		}
+}
 
 
 int main() {
