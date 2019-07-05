@@ -13,12 +13,18 @@ public:
 	void SetUniformColor(glm::vec4 color);
 	void SetColors(std::vector<glm::vec4> colors);
 	void SetData(GLenum usage = GL_STATIC_DRAW);
+	void setTexture(Texture2D tex, int index);
 	void SetAsLight() { is_light = true; }
 	void Render();
 	bool isLight() { return is_light; }
+	std::vector<float> getVerticies() { return verticies; }
+	std::vector<float> getNormals() { return normals;}
+	std::vector<float> getTexCoords() { return texCoords;}
+	std::vector<Texture2D> getTextures() { return textures; };
+	std::vector<unsigned int> getIndices() { return indices; }
 private:
 	bool is_light = false;
-	std::vector<float> vertices;
+	std::vector<float> verticies;
 	std::vector<unsigned int> indices;
 	std::vector<float> colors;
 	std::vector<float> normals;

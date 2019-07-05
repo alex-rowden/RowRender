@@ -69,7 +69,7 @@ void Texture2D::init_from_vector(std::vector<glm::vec4> *colors, int height, int
 }
 
 Texture2D::Texture2D(Texture2D::COLORS color) {
-	glm::vec4 c = glm::vec4(0);
+	glm::vec4 c = glm::vec4(1);
 	switch (color) {
 		//cases for more colors
 	}
