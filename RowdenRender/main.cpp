@@ -1,6 +1,6 @@
 #pragma once
 #include "RowRender.h"
-
+#include "WifiData.h"
 #include "Window.h"
 #include "Shape.h"
 #include "Mesh.h"
@@ -11,6 +11,7 @@
 
 #include <fstream>
 int counter = 10;
+float increment = 0;
 //any old render function
 void render(Model mesh, ShaderProgram *sp) {
 	if (counter > 100)
@@ -47,6 +48,44 @@ void MessageCallback(GLenum source,
 	fprintf(stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
 		(type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""),
 		type, severity, message);
+}
+
+glm::vec3 getHeatMapColor(float value)
+
+{
+
+	const int NUM_COLORS = 5;
+
+	static float color[NUM_COLORS][3] = { { 0,0,1 },{ 0,1,1 },{ 0,1,0 },{ 1,1,0 },{ 1,0,0 } };
+
+	// A static array of 4 colors:  (blue,   green,  yellow,  red) using {r,g,b} for each.    
+	int idx1;        // |-- Our desired color will be between these two indexes in "color".
+
+	int idx2;        // |
+
+	float fractBetween = 0;  // Fraction between "idx1" and "idx2" where our value is.    
+	if (value <= 0) { idx1 = idx2 = 0; }    // accounts for an input <=0
+	else if (value >= 1) { idx1 = idx2 = NUM_COLORS - 1; }    // accounts for an input >=1
+	else
+	{
+
+		value = value * (NUM_COLORS - 1);        // Will multiply value by 3.
+
+		idx1 = floor(value);                  // Our desired color will be after this index.
+
+		idx2 = idx1 + 1;                        // ... and before this index (inclusive).
+
+		fractBetween = value - float(idx1);    // Distance between the two indexes (0-1).
+
+	}
+
+	glm::vec3 ret;
+	ret.r = (color[idx2][0] - color[idx1][0]) * fractBetween + color[idx1][0];
+	ret.g = (color[idx2][1] - color[idx1][1]) * fractBetween + color[idx1][1];
+	ret.b = (color[idx2][2] - color[idx1][2]) * fractBetween + color[idx1][2];
+
+	return ret;
+
 }
 
 void LoadCampusModel(Model *completeCampus) {
@@ -442,9 +481,81 @@ int main() {
 	light.setModel();
 	Model campusMap = Model("Content\\Models\\cube\\cube.obj");
 	campusMap.setModel();
-	campusMap.getMeshes().at(0)->setTexture(texture, 0);
+	//campusMap.getMeshes().at(0)->setTexture(texture, 0);
 	glm::mat4 transformation =  glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
+
+	WifiData wifi;
+
+	wifi.loadCSV("./Content/Data/EricWifi-2-4-19.csv");
+	wifi.loadCSV("Content/Data/AlexWifi-2-4-19.csv");
+	wifi.loadCSV("Content/Data/EricWifi-2-4-19(2).csv");
+	wifi.loadCSV("Content/Data/AlexWifi-2-4-19(2).csv");
+	wifi.loadCSV("Content/Data/EricWifi-2-5-19.csv");
+	wifi.loadCSV("Content/Data/AlexWifi-2-5-19.csv");
+	wifi.loadCSV("Content/Data/EricWifi-2-6-19.csv");
+	wifi.loadCSV("Content/Data/AlexWifi-2-6-19.csv");
+	wifi.loadCSV("Content/Data/EricWifi-2-7-19.csv");
+	wifi.loadCSV("Content/Data/AlexWifi-2-26-19.csv");
+	wifi.loadCSV("Content/Data/EricWifi-2-26-19.csv");
+	wifi.loadCSV("Content/Data/AlexWifi-2-27-19.csv");
+	wifi.loadCSV("Content/Data/EricWifi-2-27-19.csv");
+	wifi.loadCSV("Content/Data/EricWifi-2-27-19(2).csv");
 	
+	wifi.Finalize(.001);
+	wifi.ComputeIDIntensities("umd");
+
+	float ** intensities = wifi.GetIDIntensities("umd");
+
+	float maxIntensity = 0;
+
+	int num_cells = 1;
+	std::vector<glm::vec4> pixels;
+	std::vector<float> use_intensities;
+	pixels.resize(wifi.numLonCells * wifi.numLatCells * num_cells);
+	use_intensities.resize(wifi.numLonCells * wifi.numLatCells * num_cells);
+
+	for (int i = 0; i < wifi.numLonCells; i++)
+	{
+		for (int j = 0; j < wifi.numLatCells; j++)
+		{
+			float intensity = intensities[i][j];
+			if (intensity > maxIntensity)
+				maxIntensity = intensity;
+		}
+	}
+
+	int curr_height = (num_cells - 1) / 2.0;
+	for (int h = 0; h < num_cells; h++) {
+		for (int i = 0; i < wifi.numLonCells; i++)
+		{
+			for (int j = 0; j < wifi.numLatCells; j++)
+			{
+				float intensity = intensities[i][j] / maxIntensity;
+				intensity = intensity - (increment * fabs(h - curr_height));
+				//std::cout << increment * fabs(h - curr_height) << std::endl;
+				if (intensity <= 0.0f)
+				{
+					pixels.at(j + wifi.numLatCells * i + wifi.numLatCells * wifi.numLonCells * h) = (glm::vec4(0, 0, 0, 0));
+					use_intensities.at(j + wifi.numLatCells * i + wifi.numLatCells * wifi.numLonCells * h) = 0;
+					//pixels.emplace_back(glm::vec4(0.5, 0.5, 0.5, 0.0));
+				}
+				else
+				{
+					glm::vec4 color = glm::vec4(getHeatMapColor(intensity), 1);
+					//glm::vec4 color = glm::vec4(0, 0, 1, 1) * (1.0f - intensity) +
+					//	glm::vec4(1, 0, 0, 1) * intensity;
+					pixels.at(j + wifi.numLatCells * i + wifi.numLatCells * wifi.numLonCells * h) = (color);
+					use_intensities.at(j + wifi.numLatCells * i + wifi.numLatCells * wifi.numLonCells * h) = intensity;
+					//pixels.emplace_back(color);
+				}
+			}
+		}
+	}
+
+	Texture2D wifi_intensities = Texture2D(&pixels, wifi.numLatCells, wifi.numLonCells);
+	campusMap.getMeshes().at(0)->setTexture(wifi_intensities, 0);
+	//campusMap.getMeshes().at(0)->setTexture(wifi_intensities, 1);
+
 	Camera camera = Camera(glm::vec3(0, 10, 10), glm::vec3(0, 0, 0), 45.0f, 800/600.0f);
 	w.SetCamera(&camera);
 	glm::mat4 projection;
@@ -471,8 +582,8 @@ int main() {
 		
 		//texture.Bind();
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		render(model, &sp);
-		render(light, &light_sp);
+		//render(model, &sp);
+		//render(light, &light_sp);
 		campusTransform = glm::scale(glm::mat4(1), w.scale);
 		campusTransform = glm::translate(campusTransform, w.translate);
 		sp.SetUniform4fv("model", campusTransform);

@@ -2,7 +2,7 @@
 #include "RowRender.h"
 #include <map>
 #include <set>
-#include "delaunator.hpp"
+
 class WifiData
 {
 public: 
@@ -25,15 +25,16 @@ private:
 	float area(int x1, int y1, int x2, int y2, int x3, int y3);
 	bool isInside(int x1, int y1, int x2, int y2, int x3, int y3, int x, int y);
 
-	float minLat = std::numeric_limits<float>::min();
-	float minLon = std::numeric_limits<float>::min();
-	float maxLat = std::numeric_limits<float>::max();
-	float maxLon = std::numeric_limits<float>::max();
+	float minLat = std::numeric_limits<float>::max();
+	float minLon = std::numeric_limits<float>::max();
+	float maxLat = std::numeric_limits<float>::lowest();
+	float maxLon = std::numeric_limits<float>::lowest();
 public:
+	WifiData() {};
 	void Finalize(float latLonDist);
 	void ComputeIDIntensities(std::string netID);
 	bool loadCSV(const char*);
-	float **GetIDIntensities(std::string, std::string);
+	float **GetIDIntensities(std::string, std::string mac = "");
 	glm::vec2 getLatVec() { return glm::vec2(minLat, maxLat); }
 	glm::vec2 getLonVec() { return glm::vec2(minLon, maxLon); }
 	float longitudeRange, latitudeRange;

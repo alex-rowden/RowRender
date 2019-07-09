@@ -58,6 +58,16 @@ Texture2D::Texture2D(aiTexture *texture) {
 		}
 }
 
+Texture2D::Texture2D(std::vector<glm::vec4> *colors, int height, int width) {
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	this->height = height;
+	this->width = width;
+	numChannels = 4;
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_FLOAT, colors->data());
+}
+
 void Texture2D::init_from_vector(std::vector<glm::vec4> *colors, int height, int width) {
 	glGenTextures(1, &texture);
 	glBindTexture(GL_TEXTURE_2D, texture);

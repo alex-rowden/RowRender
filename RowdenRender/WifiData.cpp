@@ -1,5 +1,9 @@
 #include "WifiData.h"
+#include <iostream>
+#include <string>
 #include <fstream>
+#include "delaunator.hpp"
+
 bool WifiData::loadCSV(const char* str) {
 	std::ifstream inputFile(str);
 	std::string line;
@@ -104,6 +108,7 @@ void WifiData::Finalize(float latLonDist)
 {
 	longitudeRange = maxLon - minLon;
 	latitudeRange = maxLat - minLat;
+	std::cout << maxLon << ", " << minLon << std::endl;
 
 	numLonCells = ceil(longitudeRange / latLonDist);
 	numLatCells = ceil(latitudeRange / latLonDist);
@@ -215,8 +220,8 @@ void WifiData::ComputeIDIntensities(std::string netID)
 	}
 
 	//triangulation happens here
-	try
-	{
+#if(true)
+	try{
 		delaunator::Delaunator d(coords);
 
 		//Get triangles
@@ -300,10 +305,10 @@ void WifiData::ComputeIDIntensities(std::string netID)
 	catch (std::exception e)
 	{
 
-		//std::cout << "ERROR " << std::endl;
+		std::cout << "Delauney Error " << std::endl;
 	}
 
-
+#endif
 	netIDToIntensities.insert(std::make_pair(netID, intensities));
 
 }

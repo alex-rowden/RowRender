@@ -83,9 +83,6 @@
     <ClInclude Include="WifiData.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="delaunator.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="vertex_shader.glsl">
