@@ -66,6 +66,7 @@ Texture2D::Texture2D(std::vector<glm::vec4> *colors, int height, int width) {
 	numChannels = 4;
 
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_FLOAT, colors->data());
+	glGenerateMipmap(GL_TEXTURE_2D);
 }
 
 void Texture2D::init_from_vector(std::vector<glm::vec4> *colors, int height, int width) {

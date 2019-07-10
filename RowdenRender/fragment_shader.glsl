@@ -38,6 +38,7 @@ uniform vec3 viewPos;
 
 void main()
 {
+
 	float ambientStrength = .1;
 	float specularStrength = .5;
 	int shininess = 32;

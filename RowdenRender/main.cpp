@@ -11,7 +11,7 @@
 
 #include <fstream>
 int counter = 10;
-float increment = 0;
+float increment = 0.1;
 //any old render function
 void render(Model mesh, ShaderProgram *sp) {
 	if (counter > 100)
@@ -442,6 +442,113 @@ void LoadCampusModel(Model *completeCampus) {
 	}
 }
 
+int get3DIndex(int i, int j, int k, int x_dim, int y_dim, int num_cells) {
+	if (i >= x_dim || j >= y_dim || k >= num_cells) {
+		return -1;
+	}
+	return i + j * x_dim + k * x_dim * y_dim;
+}
+
+float getIntensity(std::vector<float> intensities, int max_index, int index) {
+	if (index > max_index) {
+		return 0;
+	}
+	else if (index < 0) {
+		return 2;
+	}
+	return intensities.at(index);
+}
+
+glm::vec3 calcNormal(glm::vec3 v0, glm::vec3 v1, glm::vec3 v2)
+{
+	glm::vec3 edge0 = v1 - v0;
+	glm::vec3 edge1 = v2 - v0;
+
+	return glm::normalize(cross(edge0, edge1));
+}
+glm::vec3 vertexInterp(float isolevel, glm::vec3 p0, glm::vec3 p1, float f0, float f1)
+{
+	if (abs(f1 - f0) < std::numeric_limits<float>::epsilon()) {
+		return p0;
+	}
+	float t = (isolevel - f0) / (f1 - f0);
+	return glm::lerp(p0, p1, t);
+}
+
+void makeVolumetricShape(Shape* shape, std::vector<float> intensities, WifiData wifiData, int num_cells, float isoVal) {
+	int numLonCells = wifiData.numLonCells;
+	int numLatCells = wifiData.numLatCells;
+	int index = 0;
+	int threads = 1024;
+	int h = 1024 / 4;
+	int w = 1024 / 4;
+
+	for (int h = 0; h < num_cells; h++) {
+		for (int i = 0; i < numLonCells; i++) {
+			for (int j = 0; j < numLatCells; j++) {
+				float field[8];
+
+				field[0] = getIntensity(intensities, numLonCells * numLatCells * num_cells, get3DIndex(i, j, h, numLatCells, numLonCells, num_cells));
+				field[1] = getIntensity(intensities, numLonCells * numLatCells * num_cells, get3DIndex(i + 1, j, h, numLatCells, numLonCells, num_cells));
+				field[2] = getIntensity(intensities, numLonCells * numLatCells * num_cells, get3DIndex(i + 1, j + 1, h, numLatCells, numLonCells, num_cells));
+				field[3] = getIntensity(intensities, numLonCells * numLatCells * num_cells, get3DIndex(i, j + 1, h, numLatCells, numLonCells, num_cells));
+				field[4] = getIntensity(intensities, numLonCells * numLatCells * num_cells, get3DIndex(i, j, h + 1, numLatCells, numLonCells, num_cells));
+				field[5] = getIntensity(intensities, numLonCells * numLatCells * num_cells, get3DIndex(i + 1, j, h + 1, numLatCells, numLonCells, num_cells));
+				field[6] = getIntensity(intensities, numLonCells * numLatCells * num_cells, get3DIndex(i + 1, j + 1, h + 1, numLatCells, numLonCells, num_cells));
+				field[7] = getIntensity(intensities, numLonCells * numLatCells * num_cells, get3DIndex(i, j + 1, h + 1, numLatCells, numLonCells, num_cells));
+
+
+				unsigned int cube_index = 0;
+				for (int bit = 0; bit < 8; bit++) {
+					cube_index += unsigned int(field[bit] < isoVal) << bit;
+				}
+				glm::vec3 v[8];
+				v[0] = glm::vec3(i, j, h);
+				v[1] = glm::vec3(i + 1, j, h);
+				v[2] = glm::vec3(i + 1, j + 1, h);
+				v[3] = glm::vec3(i, j + 1, h);
+				v[4] = glm::vec3(i, j, h + 1);
+				v[5] = glm::vec3(i + 1, j, h + 1);
+				v[6] = glm::vec3(i + 1, j + 1, h + 1);
+				v[7] = glm::vec3(i, j + 1, h + 1);
+
+				glm::vec3 vertlist[12];
+				vertlist[0] = vertexInterp(isoVal, v[0], v[1], field[0], field[1]);
+				vertlist[1] = vertexInterp(isoVal, v[1], v[2], field[1], field[2]);
+				vertlist[2] = vertexInterp(isoVal, v[2], v[3], field[2], field[3]);
+				vertlist[3] = vertexInterp(isoVal, v[3], v[0], field[3], field[0]);
+
+				vertlist[4] = vertexInterp(isoVal, v[4], v[5], field[4], field[5]);
+				vertlist[5] = vertexInterp(isoVal, v[5], v[6], field[5], field[6]);
+				vertlist[6] = vertexInterp(isoVal, v[6], v[7], field[6], field[7]);
+				vertlist[7] = vertexInterp(isoVal, v[7], v[4], field[7], field[4]);
+
+				vertlist[8] = vertexInterp(isoVal, v[0], v[4], field[0], field[4]);
+				vertlist[9] = vertexInterp(isoVal, v[1], v[5], field[1], field[5]);
+				vertlist[10] = vertexInterp(isoVal, v[2], v[6], field[2], field[6]);
+				vertlist[11] = vertexInterp(isoVal, v[3], v[7], field[3], field[7]);
+
+				int num_verts = wifiData.numVertsTable[cube_index];
+				for (int i = 0; i < num_verts; i+=3)
+				{
+					glm::vec3 v[3];
+					v[0] = vertlist[wifiData.triTable[cube_index][i]];
+					v[1] = vertlist[wifiData.triTable[cube_index][i + 1]];
+					v[2] = vertlist[wifiData.triTable[cube_index][i + 2]];
+					shape->addVertex(v[0]);
+					shape->addVertex(v[1]);
+					shape->addVertex(v[2]);
+					shape->addNormal(calcNormal(v[0], v[1], v[2]));
+					shape->addNormal(calcNormal(v[0], v[1], v[2]));
+					shape->addNormal(calcNormal(v[0], v[1], v[2]));
+					shape->addIndex(index, index + 1, index + 2);
+
+					index += 3;
+				}
+			}
+		}
+	}
+}
 
 int main() {
 	glfwInit();
@@ -456,7 +563,8 @@ int main() {
 	// During init, enable debug output
 	glEnable(GL_DEBUG_OUTPUT);
 	glEnable(GL_DEPTH_TEST);
-	
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glDebugMessageCallback(MessageCallback, 0);
 
 	w.SetFramebuferSizeCallback();
@@ -508,7 +616,7 @@ int main() {
 
 	float maxIntensity = 0;
 
-	int num_cells = 1;
+	int num_cells = 10;
 	std::vector<glm::vec4> pixels;
 	std::vector<float> use_intensities;
 	pixels.resize(wifi.numLonCells * wifi.numLatCells * num_cells);
@@ -541,7 +649,7 @@ int main() {
 				}
 				else
 				{
-					glm::vec4 color = glm::vec4(getHeatMapColor(intensity), 1);
+					glm::vec4 color = glm::vec4(getHeatMapColor(intensity), intensity);
 					//glm::vec4 color = glm::vec4(0, 0, 1, 1) * (1.0f - intensity) +
 					//	glm::vec4(1, 0, 0, 1) * intensity;
 					pixels.at(j + wifi.numLatCells * i + wifi.numLatCells * wifi.numLonCells * h) = (color);
@@ -551,8 +659,13 @@ int main() {
 			}
 		}
 	}
+	Shape myShape;
+	makeVolumetricShape(&myShape, use_intensities, wifi, num_cells, .2);
 
-	Texture2D wifi_intensities = Texture2D(&pixels, wifi.numLatCells, wifi.numLonCells);
+	Mesh volume = Mesh(&myShape);
+	volume.SetData();
+	campusMap.addMesh(&volume);
+	Texture2D wifi_intensities = Texture2D(&pixels, wifi.numLonCells, wifi.numLatCells);
 	campusMap.getMeshes().at(0)->setTexture(wifi_intensities, 0);
 	//campusMap.getMeshes().at(0)->setTexture(wifi_intensities, 1);
 
@@ -589,6 +702,7 @@ int main() {
 		sp.SetUniform4fv("model", campusTransform);
 		sp.SetUniform3fv("normalMatrix", glm::mat3(glm::transpose(glm::inverse(campusTransform * camera.getView()))));
 		render(campusMap, &sp);
+		
 		w.ProcessFrame(&camera);
 	}
 	glfwTerminate(); //Shut it down!
