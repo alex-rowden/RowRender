@@ -663,11 +663,12 @@ int main() {
 	makeVolumetricShape(&myShape, use_intensities, wifi, num_cells, .2);
 
 	Mesh volume = Mesh(&myShape);
-	volume.SetData();
-	campusMap.addMesh(&volume);
+
+	Model vol = Model();
+	vol.addMesh(&volume);
+	vol.setModel();
 	Texture2D wifi_intensities = Texture2D(&pixels, wifi.numLonCells, wifi.numLatCells);
 	campusMap.getMeshes().at(0)->setTexture(wifi_intensities, 0);
-	//campusMap.getMeshes().at(0)->setTexture(wifi_intensities, 1);
 
 	Camera camera = Camera(glm::vec3(0, 10, 10), glm::vec3(0, 0, 0), 45.0f, 800/600.0f);
 	w.SetCamera(&camera);
@@ -701,8 +702,8 @@ int main() {
 		campusTransform = glm::translate(campusTransform, w.translate);
 		sp.SetUniform4fv("model", campusTransform);
 		sp.SetUniform3fv("normalMatrix", glm::mat3(glm::transpose(glm::inverse(campusTransform * camera.getView()))));
-		render(campusMap, &sp);
-		
+		//render(campusMap, &sp);
+		render(vol, &sp);
 		w.ProcessFrame(&camera);
 	}
 	glfwTerminate(); //Shut it down!

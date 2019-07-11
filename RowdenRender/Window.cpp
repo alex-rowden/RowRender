@@ -145,6 +145,7 @@ void Window::SetCamera(Camera* _camera) {
 
 //Process each input frame, by default uses standard input processor
 void Window::ProcessFrame(bool useStandard) {
+	glfwMakeContextCurrent(window); //focus on the new window
 	standardInputProcessor(window); //get keypresses etc.
 	glfwSwapBuffers(window); //dual buffer swap
 	glfwPollEvents();//get polled events
