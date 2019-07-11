@@ -11,7 +11,7 @@
 
 #include <fstream>
 int counter = 10;
-float increment = 0.1;
+float increment = 0.05;
 //any old render function
 void render(Model mesh, ShaderProgram *sp) {
 	if (counter > 100)
@@ -454,7 +454,7 @@ float getIntensity(std::vector<float> intensities, int max_index, int index) {
 		return 0;
 	}
 	else if (index < 0) {
-		return 2;
+		return -1;
 	}
 	return intensities.at(index);
 }
@@ -473,6 +473,84 @@ glm::vec3 vertexInterp(float isolevel, glm::vec3 p0, glm::vec3 p1, float f0, flo
 	}
 	float t = (isolevel - f0) / (f1 - f0);
 	return glm::lerp(p0, p1, t);
+}
+
+void makeVolumetricShapeGPU(Shape* shape, std::vector<float> intensities, WifiData wifiData, int num_cells, float isoVal) {
+	int numLonCells = wifiData.numLonCells;
+	int numLatCells = wifiData.numLatCells;
+	int index = 0;
+	int threads = 1024;
+	int h = 1024 / 4;
+	int w = 1024 / 4;
+
+	for (int h = 0; h < num_cells; h++) {
+		for (int i = 0; i < numLonCells; i++) {
+			for (int j = 0; j < numLatCells; j++) {
+				float field[8];
+
+				field[0] = getIntensity(intensities, numLonCells * numLatCells * num_cells, get3DIndex(i, j, h, numLatCells, numLonCells, num_cells));
+				field[1] = getIntensity(intensities, numLonCells * numLatCells * num_cells, get3DIndex(i + 1, j, h, numLatCells, numLonCells, num_cells));
+				field[2] = getIntensity(intensities, numLonCells * numLatCells * num_cells, get3DIndex(i + 1, j + 1, h, numLatCells, numLonCells, num_cells));
+				field[3] = getIntensity(intensities, numLonCells * numLatCells * num_cells, get3DIndex(i, j + 1, h, numLatCells, numLonCells, num_cells));
+				field[4] = getIntensity(intensities, numLonCells * numLatCells * num_cells, get3DIndex(i, j, h + 1, numLatCells, numLonCells, num_cells));
+				field[5] = getIntensity(intensities, numLonCells * numLatCells * num_cells, get3DIndex(i + 1, j, h + 1, numLatCells, numLonCells, num_cells));
+				field[6] = getIntensity(intensities, numLonCells * numLatCells * num_cells, get3DIndex(i + 1, j + 1, h + 1, numLatCells, numLonCells, num_cells));
+				field[7] = getIntensity(intensities, numLonCells * numLatCells * num_cells, get3DIndex(i, j + 1, h + 1, numLatCells, numLonCells, num_cells));
+
+
+				unsigned int cube_index = 0;
+				for (int bit = 0; bit < 8; bit++) {
+					cube_index += unsigned int(field[bit] < isoVal) << bit;
+				}
+				glm::vec3 v[8];
+				v[0] = glm::vec3(i, j, h);
+				v[1] = glm::vec3(i + 1, j, h);
+				v[2] = glm::vec3(i + 1, j + 1, h);
+				v[3] = glm::vec3(i, j + 1, h);
+				v[4] = glm::vec3(i, j, h + 1);
+				v[5] = glm::vec3(i + 1, j, h + 1);
+				v[6] = glm::vec3(i + 1, j + 1, h + 1);
+				v[7] = glm::vec3(i, j + 1, h + 1);
+
+				glm::vec3 vertlist[12];
+				vertlist[0] = vertexInterp(isoVal, v[0], v[1], field[0], field[1]);
+				vertlist[1] = vertexInterp(isoVal, v[1], v[2], field[1], field[2]);
+				vertlist[2] = vertexInterp(isoVal, v[2], v[3], field[2], field[3]);
+				vertlist[3] = vertexInterp(isoVal, v[3], v[0], field[3], field[0]);
+
+				vertlist[4] = vertexInterp(isoVal, v[4], v[5], field[4], field[5]);
+				vertlist[5] = vertexInterp(isoVal, v[5], v[6], field[5], field[6]);
+				vertlist[6] = vertexInterp(isoVal, v[6], v[7], field[6], field[7]);
+				vertlist[7] = vertexInterp(isoVal, v[7], v[4], field[7], field[4]);
+
+				vertlist[8] = vertexInterp(isoVal, v[0], v[4], field[0], field[4]);
+				vertlist[9] = vertexInterp(isoVal, v[1], v[5], field[1], field[5]);
+				vertlist[10] = vertexInterp(isoVal, v[2], v[6], field[2], field[6]);
+				vertlist[11] = vertexInterp(isoVal, v[3], v[7], field[3], field[7]);
+
+				int num_verts = wifiData.numVertsTable[cube_index];
+				for (int i = 0; i < num_verts; i += 3)
+				{
+					glm::vec3 v[3];
+					v[0] = vertlist[wifiData.triTable[cube_index][i]];
+					v[1] = vertlist[wifiData.triTable[cube_index][i + 1]];
+					v[2] = vertlist[wifiData.triTable[cube_index][i + 2]];
+					shape->addVertex(v[0]);
+					shape->addVertex(v[1]);
+					shape->addVertex(v[2]);
+					shape->addTexCoord(glm::vec2(0, 0));
+					shape->addTexCoord(glm::vec2(1, 0));
+					shape->addTexCoord(glm::vec2(0, 1));
+					shape->addNormal(calcNormal(v[0], v[1], v[2]));
+					shape->addNormal(calcNormal(v[0], v[1], v[2]));
+					shape->addNormal(calcNormal(v[0], v[1], v[2]));
+					shape->addIndex(index, index + 1, index + 2);
+
+					index += 3;
+				}
+			}
+		}
+	}
 }
 
 void makeVolumetricShape(Shape* shape, std::vector<float> intensities, WifiData wifiData, int num_cells, float isoVal) {
@@ -594,7 +672,7 @@ int main() {
 
 	WifiData wifi;
 
-	wifi.loadCSV("./Content/Data/EricWifi-2-4-19.csv");
+	wifi.loadCSV("Content/Data/EricWifi-2-4-19.csv");
 	wifi.loadCSV("Content/Data/AlexWifi-2-4-19.csv");
 	wifi.loadCSV("Content/Data/EricWifi-2-4-19(2).csv");
 	wifi.loadCSV("Content/Data/AlexWifi-2-4-19(2).csv");
@@ -609,14 +687,14 @@ int main() {
 	wifi.loadCSV("Content/Data/EricWifi-2-27-19.csv");
 	wifi.loadCSV("Content/Data/EricWifi-2-27-19(2).csv");
 	
-	wifi.Finalize(.001);
+	wifi.Finalize(.0005f);
 	wifi.ComputeIDIntensities("umd");
 
 	float ** intensities = wifi.GetIDIntensities("umd");
 
 	float maxIntensity = 0;
 
-	int num_cells = 10;
+	int num_cells = 50;
 	std::vector<glm::vec4> pixels;
 	std::vector<float> use_intensities;
 	pixels.resize(wifi.numLonCells * wifi.numLatCells * num_cells);
@@ -660,8 +738,16 @@ int main() {
 		}
 	}
 	Shape myShape;
-	makeVolumetricShape(&myShape, use_intensities, wifi, num_cells, .2);
+	makeVolumetricShapeGPU(&myShape, use_intensities, wifi, num_cells, .65f);
+#if(false)
+	std::fstream out = std::fstream("wifi_data.raw", std::ios::binary|std::ios::out);
 
+	for (int i = 0; i < use_intensities.size(); i++) {
+		UINT8 test = (UINT8)(use_intensities.at(i) * 255);
+		out << test;
+	}
+	out.close();
+#endif	
 	Mesh volume = Mesh(&myShape);
 
 	Model vol = Model();
@@ -698,7 +784,7 @@ int main() {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		//render(model, &sp);
 		//render(light, &light_sp);
-		campusTransform = glm::scale(glm::mat4(1), w.scale);
+		campusTransform = glm::scale(glm::mat4(1), glm::vec3(.1f * glm::vec3(1, 1, .5)));
 		campusTransform = glm::translate(campusTransform, w.translate);
 		sp.SetUniform4fv("model", campusTransform);
 		sp.SetUniform3fv("normalMatrix", glm::mat3(glm::transpose(glm::inverse(campusTransform * camera.getView()))));
