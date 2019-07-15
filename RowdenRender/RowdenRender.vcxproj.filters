@@ -16,6 +16,9 @@
     <Filter Include="Source Files\Shaders">
       <UniqueIdentifier>{9ee327e3-5ed8-4731-a4ef-666c6a0c8e67}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Cuda Code">
+      <UniqueIdentifier>{919c852a-c0df-4ef6-afb7-33203e3ea208}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -83,6 +86,12 @@
     <ClInclude Include="WifiData.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="tutorial.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="common.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="vertex_shader.glsl">
@@ -96,6 +105,15 @@
     </None>
     <None Include="light_vert.glsl">
       <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="box.cu">
+      <Filter>Source Files\Cuda Code</Filter>
+    </None>
+    <None Include="parallelogram.cu">
+      <Filter>Source Files\Cuda Code</Filter>
+    </None>
+    <None Include="tutorial.cu">
+      <Filter>Source Files\Cuda Code</Filter>
     </None>
   </ItemGroup>
 </Project>

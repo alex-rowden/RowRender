@@ -125,6 +125,8 @@ void Window::SetVersion(float version) {
 
 bool Window::makeWindow(int height, int width, std::string title) {
 	window = glfwCreateWindow(height, width, title.c_str(), NULL, NULL);
+	this->width = width;
+	this->height = height;
 	if (window == NULL) {
 		
 		return false;

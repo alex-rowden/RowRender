@@ -8,10 +8,164 @@
 #include "Texture2D.h"
 #include "Model.h"
 #include <tinyxml2.h>
-
+#include <optixu/optixpp_namespace.h>
+#include <optixu/optixu_math_stream_namespace.h>
+#include <sutil/sutil.h>
+#include <random>
 #include <fstream>
 int counter = 10;
 float increment = 0.05;
+
+
+void createGeometry(optix::Context& context) {
+	const char* ptx = sutil::getPtxStringDirect("RowdenRender", "box.cu");
+	optix::Program box_bounds = context->createProgramFromPTXString(ptx, "box_bounds");
+	optix::Program box_intersect = context->createProgramFromPTXString(ptx, "box_intersect");
+
+	// Create box
+	optix::Geometry box = context->createGeometry();
+	box->setPrimitiveCount(1u);
+	box->setBoundingBoxProgram(box_bounds);
+	box->setIntersectionProgram(box_intersect);
+	box["boxmin"]->setFloat(-2.0f, 0.0f, -2.0f);
+	box["boxmax"]->setFloat(2.0f, 7.0f, 2.0f);
+
+	// Floor geometry
+	optix::Geometry parallelogram = context->createGeometry();
+	parallelogram->setPrimitiveCount(1u);
+	ptx = sutil::getPtxStringDirect("RowdenRenderer", "parallelogram.cu");
+	parallelogram->setBoundingBoxProgram(context->createProgramFromPTXString(ptx, "bounds"));
+	parallelogram->setIntersectionProgram(context->createProgramFromPTXString(ptx, "intersect"));
+	glm::vec3 anchor = glm::vec3(-64.0f, 0.01f, -64.0f);
+	glm::vec3 v1 = glm::vec3(128.0f, 0.0f, 0.0f);
+	glm::vec3 v2 = glm::vec3(0.0f, 0.0f, 128.0f);
+	glm::vec3 normal = glm::cross(v2, v1);
+	normal = normalize(normal);
+	float d = dot(normal, anchor);
+	v1 *= 1.0f / dot(v1, v1);
+	v2 *= 1.0f / dot(v2, v2);
+	glm::vec4 plane = glm::vec4(normal, d);
+	parallelogram["plane"]->setFloat(plane.x, plane.y, plane.z, plane.w);
+	parallelogram["v1"]->setFloat(plane.x, plane.y, plane.z);
+	parallelogram["v2"]->setFloat(plane.x, plane.y, plane.z);
+	parallelogram["anchor"]->setFloat(anchor.x, anchor.y, anchor.z);
+
+	ptx = sutil::getPtxStringDirect("RowdenRender", "tutorial.cu");
+	optix::Material box_matl = context->createMaterial();
+	optix::Program box_ch = context->createProgramFromPTXString(ptx, "closest_hit_radiance");
+	box_matl->setClosestHitProgram(0, box_ch);
+	
+	box_matl["Ka"]->setFloat(0.3f, 0.3f, 0.3f);
+	box_matl["Kd"]->setFloat(0.6f, 0.7f, 0.8f);
+	box_matl["Ks"]->setFloat(0.8f, 0.9f, 0.8f);
+	box_matl["phong_exp"]->setFloat(88);
+	box_matl["reflectivity_n"]->setFloat(0.2f, 0.2f, 0.2f);
+
+	//Set floor material
+	optix::Material floor_matl = context->createMaterial();
+	optix::Program floor_ch = context->createProgramFromPTXString(ptx, "closest_hit_radiance");
+	floor_matl->setClosestHitProgram(0, floor_ch);
+	
+	floor_matl["Ka"]->setFloat(0.3f, 0.3f, 0.1f);
+	floor_matl["Kd"]->setFloat(194 / 255.f * .6f, 186 / 255.f * .6f, 151 / 255.f * .6f);
+	floor_matl["Ks"]->setFloat(0.4f, 0.4f, 0.4f);
+	floor_matl["reflectivity"]->setFloat(0.1f, 0.1f, 0.1f);
+	floor_matl["reflectivity_n"]->setFloat(0.05f, 0.05f, 0.05f);
+	floor_matl["phong_exp"]->setFloat(88);
+	floor_matl["tile_v0"]->setFloat(0.25f, 0, .15f);
+	floor_matl["tile_v1"]->setFloat(-.15f, 0, 0.25f);
+	floor_matl["crack_color"]->setFloat(0.1f, 0.1f, 0.1f);
+	floor_matl["crack_width"]->setFloat(0.02f);
+
+	// Create GIs for each piece of geometry
+	std::vector<optix::GeometryInstance> gis;
+	gis.push_back(context->createGeometryInstance(box, &box_matl, &box_matl + 1));
+	gis.push_back(context->createGeometryInstance(parallelogram, &floor_matl, &floor_matl + 1));
+
+	// Place all in group
+	optix::GeometryGroup geometrygroup = context->createGeometryGroup();
+	geometrygroup->setChildCount(static_cast<unsigned int>(gis.size()));
+	geometrygroup->setChild(0, gis[0]);
+	geometrygroup->setChild(1, gis[1]);
+	
+	geometrygroup->setAcceleration(context->createAcceleration("Trbvh"));
+	//geometrygroup->setAcceleration( context->createAcceleration("NoAccel") );
+
+	context["top_object"]->set(geometrygroup);
+	context["top_shadower"]->set(geometrygroup);
+}
+
+void createContext(optix::Context&context, Window&w) {
+	context = optix::Context::create();
+	context->setRayTypeCount(2);
+	context->setEntryPointCount(1);
+	context->setStackSize(4640);
+	context->setMaxTraceDepth(5);
+	context["max_depth"]->setInt(100);
+	context["scene_epsilon"]->setFloat(1.e-4f);
+	context["importance_cutoff"]->setFloat(.01f);
+	context["ambiennt_light_color"]->setFloat(.31f, .33f, .28f);
+
+	GLuint vbo = 0;
+	glGenBuffers(1, &vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBufferData(GL_ARRAY_BUFFER, 4 * w.width * w.height, 0, GL_STREAM_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	std::string kernel = "tutorial.cu";
+	
+	const char* ptx = sutil::getPtxStringDirect("RowdenRender", kernel.c_str());
+	
+	//set output
+	optix::Buffer buffer = sutil::createOutputBuffer(context, RT_FORMAT_UNSIGNED_BYTE4, w.width, w.height, false);
+	context["output_buffer"]->set(buffer);
+	context->setRayGenerationProgram(0, context->createProgramFromPTXString(ptx, "pinhole_camera"));
+
+	// Exception program
+	optix::Program exception_program = context->createProgramFromPTXString(ptx, "exception");
+	context->setExceptionProgram(0, exception_program);
+	context["bad_color"]->setFloat(1.0f, 0.0f, 1.0f);
+
+	// Miss program
+	const std::string miss_name = "miss";
+	context->setMissProgram(0, context->createProgramFromPTXString(ptx, miss_name));
+	const glm::vec3 default_color = glm::vec3(1.0f, 1.0f, 1.0f);
+	//const std::string texpath = texture_path + "/" + std::string("CedarCity.hdr");
+	//context["envmap"]->setTextureSampler(sutil::loadTexture(context, texpath, default_color));
+	context["bg_color"]->setFloat(0.34f, 0.55f, 0.85f);
+
+	// 3D solid noise buffer, 1 float channel, all entries in the range [0.0, 1.0].
+
+	const int tex_width = 64;
+	const int tex_height = 64;
+	const int tex_depth = 64;
+	optix::Buffer noiseBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT, tex_width, tex_height, tex_depth);
+	float* tex_data = (float*)noiseBuffer->map();
+
+	// Random noise in range [0, 1]
+	for (int i = tex_width * tex_height * tex_depth; i > 0; i--) {
+		// One channel 3D noise in [0.0, 1.0] range.
+		*tex_data++ = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+	}
+	noiseBuffer->unmap();
+
+
+	// Noise texture sampler
+	optix::TextureSampler noiseSampler = context->createTextureSampler();
+
+	noiseSampler->setWrapMode(0, RT_WRAP_REPEAT);
+	noiseSampler->setWrapMode(1, RT_WRAP_REPEAT);
+	noiseSampler->setFilteringModes(RT_FILTER_LINEAR, RT_FILTER_LINEAR, RT_FILTER_NONE);
+	noiseSampler->setIndexingMode(RT_TEXTURE_INDEX_NORMALIZED_COORDINATES);
+	noiseSampler->setReadMode(RT_TEXTURE_READ_NORMALIZED_FLOAT);
+	noiseSampler->setMaxAnisotropy(1.0f);
+	noiseSampler->setMipLevelCount(1);
+	noiseSampler->setArraySize(1);
+	noiseSampler->setBuffer(0, 0, noiseBuffer);
+
+	context["noise_texture"]->setTextureSampler(noiseSampler);
+}
+
 //any old render function
 void render(Model mesh, ShaderProgram *sp) {
 	if (counter > 100)
@@ -738,7 +892,7 @@ int main() {
 		}
 	}
 	Shape myShape;
-	makeVolumetricShapeGPU(&myShape, use_intensities, wifi, num_cells, .65f);
+	//makeVolumetricShapeGPU(&myShape, use_intensities, wifi, num_cells, .65f);
 #if(false)
 	std::fstream out = std::fstream("wifi_data.raw", std::ios::binary|std::ios::out);
 
@@ -748,6 +902,43 @@ int main() {
 	}
 	out.close();
 #endif	
+
+	optix::Context context;
+	createContext(context, w);
+	createGeometry(context);
+
+	optix::float3  camera_eye = optix::make_float3(7.0f, 9.2f, -6.0f);
+	optix::float3 camera_lookat = optix::make_float3(0.0f, 4.0f, 0.0f);
+	optix::float3 camera_up = optix::make_float3(0.0f, 1.0f, 0.0f);
+
+	optix::Matrix4x4 camera_rotate = optix::Matrix4x4::identity();
+
+	struct BasicLight
+	{
+#if defined(__cplusplus)
+		typedef optix::float3 float3;
+#endif
+		float3 pos;
+		float3 color;
+		int    casts_shadow;
+		int    padding;      // make this structure 32 bytes -- powers of two are your friend!
+	};
+	BasicLight lights[] = {
+	   { optix::make_float3(-5.0f, 60.0f, -16.0f), optix::make_float3(1.0f, 1.0f, 1.0f), 1 }
+	};
+
+	optix::Buffer light_buffer = context->createBuffer(RT_BUFFER_INPUT);
+	light_buffer->setFormat(RT_FORMAT_USER);
+	light_buffer->setElementSize(sizeof(BasicLight));
+	light_buffer->setSize(sizeof(lights) / sizeof(lights[0]));
+	memcpy(light_buffer->map(), lights, sizeof(lights));
+	light_buffer->unmap();
+
+	context["lights"]->set(light_buffer);
+
+	context->launch(0, w.width, w.height);
+	sutil::displayBufferPPM("out.ppm", context["output_buffer"]->getBuffer());
+
 	Mesh volume = Mesh(&myShape);
 
 	Model vol = Model();
@@ -789,8 +980,8 @@ int main() {
 		sp.SetUniform4fv("model", campusTransform);
 		sp.SetUniform3fv("normalMatrix", glm::mat3(glm::transpose(glm::inverse(campusTransform * camera.getView()))));
 		//render(campusMap, &sp);
-		render(vol, &sp);
-		w.ProcessFrame(&camera);
+		//render(vol, &sp);
+		//w.ProcessFrame(&camera);
 	}
 	glfwTerminate(); //Shut it down!
 

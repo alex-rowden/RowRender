@@ -34,19 +34,24 @@
   <ItemGroup>
     <ClInclude Include="..\..\..\..\Documents\CLibs\Simple OpenGL Image Library\src\SOIL.h" />
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="common.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="Model.h" />
     <ClInclude Include="RowRender.h" />
     <ClInclude Include="ShaderProgram.h" />
     <ClInclude Include="Shape.h" />
     <ClInclude Include="Texture2D.h" />
+    <ClInclude Include="tutorial.h" />
     <ClInclude Include="WifiData.h" />
     <ClInclude Include="Window.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="box.cu" />
     <None Include="fragment_shader.glsl" />
     <None Include="light_frag.glsl" />
     <None Include="light_vert.glsl" />
+    <None Include="parallelogram.cu" />
+    <None Include="tutorial.cu" />
     <None Include="vertex_shader.glsl">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
     </None>
@@ -104,15 +109,15 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(USERPROFILE)\Documents\CLibs\include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(USERPROFILE)\Documents\CLibs\Libs\Release;$(LibraryPath)</LibraryPath>
-    <SourcePath>$(USERPROFILE)\Documents\CLibs\src;$(SourcePath)</SourcePath>
+    <IncludePath>$(USERPROFILE)\Documents\CLibs\include;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.1\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(USERPROFILE)\Documents\CLibs\Libs\Release;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.1\lib;$(LibraryPath)</LibraryPath>
+    <SourcePath>$(USERPROFILE)\Documents\CLibs\src;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.1\src;C:\Users\alrowden\Documents\CLibs\sutil;$(SourcePath)</SourcePath>
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(USERPROFILE)\Documents\CLibs\include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(USERPROFILE)\Documents\CLibs\Libs\Debug;$(LibraryPath)</LibraryPath>
-    <SourcePath>$(USERPROFILE)\Documents\CLibs\src;$(SourcePath)</SourcePath>
+    <IncludePath>$(USERPROFILE)\Documents\CLibs\include;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.1\include;C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\SDK;C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(USERPROFILE)\Documents\CLibs\Libs\Debug;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.1\lib\x64;$(LibraryPath)</LibraryPath>
+    <SourcePath>$(USERPROFILE)\Documents\CLibs\src;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.1\src;C:\Users\alrowden\Documents\CLibs\sutil;$(SourcePath)</SourcePath>
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -132,11 +137,11 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>glfw3.lib;opengl32.lib;glm_static.lib;libSOIL.a;assimp-vc140-mt.lib;tinyxml2d.lib;sutil_sdk.lib;optix.6.0.0.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>glfw3.lib;opengl32.lib;glm_static.lib;libSOIL.a;assimp-vc140-mt.lib;tinyxml2d.lib;optix.6.0.0.lib;sutil_sdk.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -162,7 +167,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NOMAXMIN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

@@ -22,7 +22,7 @@ public:
 	glm::vec3 scale = glm::vec3(1);
 	glm::vec3 translate = glm::vec3(0);
 	bool pressed = false;
-	int i, j = 0;
+	int i, j, width, height = 0;
 private:
 	float lastTime = 0;
 
