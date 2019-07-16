@@ -38,7 +38,8 @@ uniform vec3 viewPos;
 
 void main()
 {
-	float ambientStrength = .1;
+
+	float ambientStrength = .3;
 	float specularStrength = .5;
 	int shininess = 32;
 	vec3 ambient = ambientStrength * lightColor;
@@ -51,5 +52,5 @@ void main()
 	float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
 	vec3 specular = specularStrength * spec * lightColor;
 	FragColor = texture(texture_diffuse1, TexCoord) * vec4(ambient + diffuse + specular, 1);
-	
+	//FragColor = vec4(ambient + diffuse + specular, 1);
 }

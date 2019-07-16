@@ -1,7 +1,7 @@
 #include "Mesh.h"
 
 Mesh::Mesh() {
-	vertices = std::vector<float>();
+	verticies = std::vector<float>();
 	indices = std::vector<unsigned int>();
 	texCoords = std::vector<float>();
 }
@@ -11,9 +11,9 @@ Mesh::Mesh(std::vector<Shape *> shapes) {
 	Mesh();
 	for (auto shape : shapes) {
 		for (auto vertex : shape->getVertices()) {
-			vertices.emplace_back(vertex.x);
-			vertices.emplace_back(vertex.y);
-			vertices.emplace_back(vertex.z);
+			verticies.emplace_back(vertex.x);
+			verticies.emplace_back(vertex.y);
+			verticies.emplace_back(vertex.z);
 		}
 		for (auto index : shape->getIndices()) {
 			indices.emplace_back(index.x);
@@ -34,9 +34,9 @@ Mesh::Mesh(std::vector<Shape *> shapes) {
 Mesh::Mesh(Shape *shape) {
 	Mesh();
 	for (auto vertex : shape->getVertices()) {
-		vertices.emplace_back(vertex.x);
-		vertices.emplace_back(vertex.y);
-		vertices.emplace_back(vertex.z);
+		verticies.emplace_back(vertex.x);
+		verticies.emplace_back(vertex.y);
+		verticies.emplace_back(vertex.z);
 	}
 	for (auto index : shape->getIndices()) {
 		indices.emplace_back(index.x);
@@ -57,9 +57,9 @@ Mesh::Mesh(Shape *shape) {
 Mesh::Mesh(std::vector<glm::vec3> _vertices, std::vector<glm::ivec3> _indices) {
 	Mesh();
 	for (auto vertex : _vertices) {
-		vertices.emplace_back(vertex.x);
-		vertices.emplace_back(vertex.y);
-		vertices.emplace_back(vertex.z);
+		verticies.emplace_back(vertex.x);
+		verticies.emplace_back(vertex.y);
+		verticies.emplace_back(vertex.z);
 	}
 	for (auto index : _indices) {
 		indices.emplace_back(index.x);
@@ -69,7 +69,7 @@ Mesh::Mesh(std::vector<glm::vec3> _vertices, std::vector<glm::ivec3> _indices) {
 }
 
 void Mesh::SetUniformColor(glm::vec4 color) {
-	for (int i = 0; i < vertices.size(); i += 4) {
+	for (int i = 0; i < verticies.size(); i += 4) {
 		colors.emplace_back(color.r);
 		colors.emplace_back(color.g);
 		colors.emplace_back(color.b);
@@ -78,8 +78,8 @@ void Mesh::SetUniformColor(glm::vec4 color) {
 }
 
 void Mesh::SetColors(std::vector<glm::vec4> _colors) {
-	if (_colors.size() < vertices.size() / 3) {
-		std::cout << _colors.size() << " colors allocated to " << vertices.size() / 3 << " vertices." << std::endl;
+	if (_colors.size() < verticies.size() / 3) {
+		std::cout << _colors.size() << " colors allocated to " << verticies.size() / 3 << " vertices." << std::endl;
 	}
 
 	for (auto color : _colors) {
@@ -101,7 +101,7 @@ void Mesh::SetData(GLenum usage) {
 	glBindVertexArray(VertexArrayObject);
 
 	glBindBuffer(GL_ARRAY_BUFFER, VertexBufferObject);
-	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), (void*)vertices.data(), usage);
+	glBufferData(GL_ARRAY_BUFFER, verticies.size() * sizeof(float), (void*)verticies.data(), usage);
 
 	glBindBuffer(GL_ARRAY_BUFFER, NormalBuffer);
 	glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(float), (void*)normals.data(), usage);
@@ -139,10 +139,17 @@ void Mesh::addTexture(Texture2D texture) {
 	textures.emplace_back(texture);
 }
 
+void Mesh::setTexture(Texture2D texture, int index) {
+	textures[index] = texture;
+}
+
 void Mesh::Render() {
 
 	unsigned int diffuseNr = 1;
 	unsigned int specularNr = 1;
+	if (textures.size() == 0) {
+		textures.emplace_back(Texture2D(Texture2D::COLORS::WHITE));
+	}
 	for (unsigned int i = 0; i < textures.size(); i++)
 	{
 		glActiveTexture(GL_TEXTURE0 + i); // activate proper texture unit before binding
@@ -159,7 +166,9 @@ void Mesh::Render() {
 	}
 	
 	glBindVertexArray(VertexArrayObject);
+	
 	glDrawElements(GL_TRIANGLES, indices.size() , GL_UNSIGNED_INT, 0);
+	
 	glBindVertexArray(0);
 
 	glActiveTexture(GL_TEXTURE0);

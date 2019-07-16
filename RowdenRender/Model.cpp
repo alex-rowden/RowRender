@@ -7,6 +7,15 @@ void Model::Render(ShaderProgram *sp) {
 	}
 }
 
+void Model::addMesh(Mesh* mesh) {
+	meshes.emplace_back(mesh);
+}
+void Model::addModel(Model* model) {
+	for (auto mesh : model->getMeshes()) {
+		meshes.emplace_back(mesh);
+	}
+}
+
 void Model::loadModel(std::string path) {
 	Assimp::Importer importer;
 	const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals);
@@ -19,6 +28,9 @@ void Model::loadModel(std::string path) {
 	directory = path.substr(0, path.find_last_of('\\'));
 
 	processNode(scene->mRootNode, scene);
+}
+
+void Model::setModel() {
 	for (auto mesh : meshes) {
 		mesh->SetData();
 	}
@@ -46,7 +58,7 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene) {
 			shape.addTexCoord(glm::vec2(0, 0));
 		}
 	}
-	for (unsigned int i = 0; i < mesh->mNumFaces; i++) {
+	for (unsigned int i = 0; i < mesh->mNumFaces; i+=1) {
 		aiFace face = mesh->mFaces[i];
 		for (unsigned int j = 0; j < face.mNumIndices; j+=3) {
 			shape.addIndex(face.mIndices[j], face.mIndices[j+1], face.mIndices[j+2]);

@@ -18,7 +18,13 @@ private:
 	std::vector<Texture2D> loadMaterialTextures(aiMaterial* mat, aiTextureType type, std::string typeName);
 	std::vector<Texture2D> loadEmbeddedTextures(const aiScene* scene, const std::string& path);
 public:
-	Model(const char* path) { loadModel(std::string(path)); }
+	Model(const char* path) { loadModel(std::string(path)); };
+	Model(std::string string) { loadModel(string); }
+	Model() {};
 	void Render(ShaderProgram* sp);
+	void addMesh(Mesh *mesh);
+	void addModel(Model* model);
+	void setModel();
+	std::vector<Mesh*> getMeshes() { return meshes; }
 };
 

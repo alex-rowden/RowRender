@@ -3,6 +3,10 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
+Texture2D::Texture2D() {
+	glGenTextures(1, &texture);
+}
+
 Texture2D::Texture2D(const char * filename) {
 	unsigned char * data = loadTextureData(filename);
 	if (!data) {
@@ -58,6 +62,17 @@ Texture2D::Texture2D(aiTexture *texture) {
 		}
 }
 
+Texture2D::Texture2D(std::vector<glm::vec4> *colors, int height, int width) {
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	this->height = height;
+	this->width = width;
+	numChannels = 4;
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_FLOAT, colors->data());
+	glGenerateMipmap(GL_TEXTURE_2D);
+}
+
 void Texture2D::init_from_vector(std::vector<glm::vec4> *colors, int height, int width) {
 	glGenTextures(1, &texture);
 	glBindTexture(GL_TEXTURE_2D, texture);
@@ -69,7 +84,7 @@ void Texture2D::init_from_vector(std::vector<glm::vec4> *colors, int height, int
 }
 
 Texture2D::Texture2D(Texture2D::COLORS color) {
-	glm::vec4 c = glm::vec4(0);
+	glm::vec4 c = glm::vec4(1);
 	switch (color) {
 		//cases for more colors
 	}

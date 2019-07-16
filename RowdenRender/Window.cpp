@@ -61,7 +61,10 @@ void Window::standardInputProcessor(GLFWwindow* window) { //Go to processInputFu
 	float currentFrame = glfwGetTime();
 	float deltaTime = currentFrame - lastTime;
 	lastTime = currentFrame;
-	float speed = .25 * deltaTime;
+	float speed = .5 * deltaTime;
+	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+		speed *= 2;
+	}
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
 		glfwSetWindowShouldClose(window, true);
 	}
@@ -80,6 +83,29 @@ void Window::standardInputProcessor(GLFWwindow* window) { //Go to processInputFu
 		camera->moveUp(speed);
 	}if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
 		camera->moveUp(-speed);
+	}if (glfwGetKey(window, GLFW_KEY_KP_ADD) == GLFW_PRESS) {
+		if(j == 0)
+			scale[i] += .01;
+		else {
+			translate[i] += .01;
+		}
+	}if (glfwGetKey(window, GLFW_KEY_KP_SUBTRACT) == GLFW_PRESS) {
+		if(j == 0)
+			scale[i] -= .01;
+		else {
+			translate[i] -= .01;
+		}
+	}if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS && !pressed) {
+		pressed = true;
+		i += 1;
+		i %= 3;
+	}else if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS && !pressed) {
+		pressed = true;
+		j += 1;
+		j %= 2;
+	}
+	else {
+		pressed = false;
 	}
 }
 
@@ -99,6 +125,8 @@ void Window::SetVersion(float version) {
 
 bool Window::makeWindow(int height, int width, std::string title) {
 	window = glfwCreateWindow(height, width, title.c_str(), NULL, NULL);
+	this->width = width;
+	this->height = height;
 	if (window == NULL) {
 		
 		return false;
@@ -119,6 +147,7 @@ void Window::SetCamera(Camera* _camera) {
 
 //Process each input frame, by default uses standard input processor
 void Window::ProcessFrame(bool useStandard) {
+	glfwMakeContextCurrent(window); //focus on the new window
 	standardInputProcessor(window); //get keypresses etc.
 	glfwSwapBuffers(window); //dual buffer swap
 	glfwPollEvents();//get polled events

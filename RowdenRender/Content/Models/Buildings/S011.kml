@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" xmlns:atom="http://www.w3.org/2005/Atom">
+  <Document>
+    <name>S011.dae</name>
+    <Placemark>
+      <name>S011.dae</name>
+      <Model id="model_1">
+        <Location>
+          <longitude>-76.942624028658428869675844907761</longitude>
+          <latitude>38.995675166581065695936558768153</latitude>
+          <altitude>0</altitude>
+        </Location>
+        <Orientation>
+        </Orientation>
+        <Scale>
+          <x>0.30480060960121924118482183985179</x>
+          <y>0.30480060960121924118482183985179</y>
+          <z>0.30480060960121924118482183985179</z>
+        </Scale>
+        <Link>
+          <href>./S011.dae</href>
+        </Link>
+      </Model>
+    </Placemark>
+  </Document>
+</kml>

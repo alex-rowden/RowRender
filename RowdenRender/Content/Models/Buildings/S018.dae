@@ -1,0 +1,1220 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1">
+	<asset>
+		<created>2019-03-14T10:09:55Z</created>
+		<modified>2019-03-14T10:09:55Z</modified>
+		<up_axis>Z_UP</up_axis>
+	</asset>
+	<library_geometries>
+		<geometry id="S018.dae16">
+			<mesh>
+				<source id="S018.dae16-positions">
+					<float_array id="S018.dae16-positions-array" count="9">16.1196 -4.31491 0 -7.44093 14.8259 0 8.03476 -14.8259 0</float_array>
+					<technique_common>
+						<accessor count="3" source="#S018.dae16-positions-array" stride="3">
+							<param name="X" type="float"/>
+							<param name="Y" type="float"/>
+							<param name="Z" type="float"/>
+						</accessor>
+					</technique_common>
+				</source>
+				<source id="S018.dae16-normals">
+					<float_array id="S018.dae16-normals-array" count="3">0 0 -1</float_array>
+					<technique_common>
+						<accessor count="1" source="#S018.dae16-normals-array" stride="3">
+							<param name="X" type="float"/>
+							<param name="Y" type="float"/>
+							<param name="Z" type="float"/>
+						</accessor>
+					</technique_common>
+				</source>
+				<vertices id="S018.dae16-vertices">
+					<input semantic="POSITION" source="#S018.dae16-positions"/>
+				</vertices>
+				<triangles count="1" material="S018.dae16material">
+					<input offset="0" semantic="VERTEX" source="#S018.dae16-vertices"/>
+					<input offset="1" semantic="NORMAL" source="#S018.dae16-normals"/>
+					<p>1 0 0 0 2 0</p>
+				</triangles>
+			</mesh>
+		</geometry>
+		<geometry id="S018.dae17">
+			<mesh>
+				<source id="S018.dae17-positions">
+					<float_array id="S018.dae17-positions-array" count="9">8.03476 -14.8259 0 -7.44093 14.8259 0 -16.1196 4.3268 0</float_array>
+					<technique_common>
+						<accessor count="3" source="#S018.dae17-positions-array" stride="3">
+							<param name="X" type="float"/>
+							<param name="Y" type="float"/>
+							<param name="Z" type="float"/>
+						</accessor>
+					</technique_common>
+				</source>
+				<source id="S018.dae17-normals">
+					<float_array id="S018.dae17-normals-array" count="3">0 0 -1</float_array>
+					<technique_common>
+						<accessor count="1" source="#S018.dae17-normals-array" stride="3">
+							<param name="X" type="float"/>
+							<param name="Y" type="float"/>
+							<param name="Z" type="float"/>
+						</accessor>
+					</technique_common>
+				</source>
+				<vertices id="S018.dae17-vertices">
+					<input semantic="POSITION" source="#S018.dae17-positions"/>
+				</vertices>
+				<triangles count="1" material="S018.dae17material">
+					<input offset="0" semantic="VERTEX" source="#S018.dae17-vertices"/>
+					<input offset="1" semantic="NORMAL" source="#S018.dae17-normals"/>
+					<p>1 0 0 0 2 0</p>
+				</triangles>
+			</mesh>
+		</geometry>
+		<geometry id="S018.dae18">
+			<mesh>
+				<source id="S018.dae18-positions">
+					<float_array id="S018.dae18-positions-array" count="9">-7.44093 14.8259 9.62 -7.44093 14.8259 0 16.1196 -4.31491 0</float_array>
+					<technique_common>
+						<accessor count="3" source="#S018.dae18-positions-array" stride="3">
+							<param name="X" type="float"/>
+							<param name="Y" type="float"/>
+							<param name="Z" type="float"/>
+						</accessor>
+					</technique_common>
+				</source>
+				<source id="S018.dae18-normals">
+					<float_array id="S018.dae18-normals-array" count="3">0.632813 0.773438 0</float_array>
+					<technique_common>
+						<accessor count="1" source="#S018.dae18-normals-array" stride="3">
+							<param name="X" type="float"/>
+							<param name="Y" type="float"/>
+							<param name="Z" type="float"/>
+						</accessor>
+					</technique_common>
+				</source>
+				<vertices id="S018.dae18-vertices">
+					<input semantic="POSITION" source="#S018.dae18-positions"/>
+				</vertices>
+				<triangles count="1" material="S018.dae18material">
+					<input offset="0" semantic="VERTEX" source="#S018.dae18-vertices"/>
+					<input offset="1" semantic="NORMAL" source="#S018.dae18-normals"/>
+					<p>1 0 0 0 2 0</p>
+				</triangles>
+			</mesh>
+		</geometry>
+		<geometry id="S018.dae19">
+			<mesh>
+				<source id="S018.dae19-positions">
+					<float_array id="S018.dae19-positions-array" count="9">-7.44093 14.8259 9.62 16.1196 -4.31491 0 16.1196 -4.31491 9.62</float_array>
+					<technique_common>
+						<accessor count="3" source="#S018.dae19-positions-array" stride="3">
+							<param name="X" type="float"/>
+							<param name="Y" type="float"/>
+							<param name="Z" type="float"/>
+						</accessor>
+					</technique_common>
+				</source>
+				<source id="S018.dae19-normals">
+					<float_array id="S018.dae19-normals-array" count="3">0.632813 0.773438 0</float_array>
+					<technique_common>
+						<accessor count="1" source="#S018.dae19-normals-array" stride="3">
+							<param name="X" type="float"/>
+							<param name="Y" type="float"/>
+							<param name="Z" type="float"/>
+						</accessor>
+					</technique_common>
+				</source>
+				<vertices id="S018.dae19-vertices">
+					<input semantic="POSITION" source="#S018.dae19-positions"/>
+				</vertices>
+				<triangles count="1" material="S018.dae19material">
+					<input offset="0" semantic="VERTEX" source="#S018.dae19-vertices"/>
+					<input offset="1" semantic="NORMAL" source="#S018.dae19-normals"/>
+					<p>1 0 0 0 2 0</p>
+				</triangles>
+			</mesh>
+		</geometry>
+		<geometry id="S018.dae20">
+			<mesh>
+				<source id="S018.dae20-positions">
+					<float_array id="S018.dae20-positions-array" count="9">-7.44093 14.8259 0 -16.1196 4.3268 9.62 -16.1196 4.3268 0</float_array>
+					<technique_common>
+						<accessor count="3" source="#S018.dae20-positions-array" stride="3">
+							<param name="X" type="float"/>
+							<param name="Y" type="float"/>
+							<param name="Z" type="float"/>
+						</accessor>
+					</technique_common>
+				</source>
+				<source id="S018.dae20-normals">
+					<float_array id="S018.dae20-normals-array" count="3">-0.773438 0.640625 0</float_array>
+					<technique_common>
+						<accessor count="1" source="#S018.dae20-normals-array" stride="3">
+							<param name="X" type="float"/>
+							<param name="Y" type="float"/>
+							<param name="Z" type="float"/>
+						</accessor>
+					</technique_common>
+				</source>
+				<vertices id="S018.dae20-vertices">
+					<input semantic="POSITION" source="#S018.dae20-positions"/>
+				</vertices>
+				<triangles count="1" material="S018.dae20material">
+					<input offset="0" semantic="VERTEX" source="#S018.dae20-vertices"/>
+					<input offset="1" semantic="NORMAL" source="#S018.dae20-normals"/>
+					<p>1 0 0 0 2 0</p>
+				</triangles>
+			</mesh>
+		</geometry>
+		<geometry id="S018.dae21">
+			<mesh>
+				<source id="S018.dae21-positions">
+					<float_array id="S018.dae21-positions-array" count="9">-7.44093 14.8259 9.62 -16.1196 4.3268 9.62 -7.44093 14.8259 0</float_array>
+					<technique_common>
+						<accessor count="3" source="#S018.dae21-positions-array" stride="3">
+							<param name="X" type="float"/>
+							<param name="Y" type="float"/>
+							<param name="Z" type="float"/>
+						</accessor>
+					</technique_common>
+				</source>
+				<source id="S018.dae21-normals">
+					<float_array id="S018.dae21-normals-array" count="3">-0.773438 0.640625 0</float_array>
+					<technique_common>
+						<accessor count="1" source="#S018.dae21-normals-array" stride="3">
+							<param name="X" type="float"/>
+							<param name="Y" type="float"/>
+							<param name="Z" type="float"/>
+						</accessor>
+					</technique_common>
+				</source>
+				<vertices id="S018.dae21-vertices">
+					<input semantic="POSITION" source="#S018.dae21-positions"/>
+				</vertices>
+				<triangles count="1" material="S018.dae21material">
+					<input offset="0" semantic="VERTEX" source="#S018.dae21-vertices"/>
+					<input offset="1" semantic="NORMAL" source="#S018.dae21-normals"/>
+					<p>1 0 0 0 2 0</p>
+				</triangles>
+			</mesh>
+		</geometry>
+		<geometry id="S018.dae22">
+			<mesh>
+				<source id="S018.dae22-positions">
+					<float_array id="S018.dae22-positions-array" count="9">8.03476 -14.8259 9.62 8.03476 -14.8259 0 -16.1196 4.3268 0</float_array>
+					<technique_common>
+						<accessor count="3" source="#S018.dae22-positions-array" stride="3">
+							<param name="X" type="float"/>
+							<param name="Y" type="float"/>
+							<param name="Z" type="float"/>
+						</accessor>
+					</technique_common>
+				</source>
+				<source id="S018.dae22-normals">
+					<float_array id="S018.dae22-normals-array" count="3">-0.625 -0.78125 0</float_array>
+					<technique_common>
+						<accessor count="1" source="#S018.dae22-normals-array" stride="3">
+							<param name="X" type="float"/>
+							<param name="Y" type="float"/>
+							<param name="Z" type="float"/>
+						</accessor>
+					</technique_common>
+				</source>
+				<vertices id="S018.dae22-vertices">
+					<input semantic="POSITION" source="#S018.dae22-positions"/>
+				</vertices>
+				<triangles count="1" material="S018.dae22material">
+					<input offset="0" semantic="VERTEX" source="#S018.dae22-vertices"/>
+					<input offset="1" semantic="NORMAL" source="#S018.dae22-normals"/>
+					<p>1 0 0 0 2 0</p>
+				</triangles>
+			</mesh>
+		</geometry>
+		<geometry id="S018.dae23">
+			<mesh>
+				<source id="S018.dae23-positions">
+					<float_array id="S018.dae23-positions-array" count="9">8.03476 -14.8259 9.62 -16.1196 4.3268 0 -16.1196 4.3268 9.62</float_array>
+					<technique_common>
+						<accessor count="3" source="#S018.dae23-positions-array" stride="3">
+							<param name="X" type="float"/>
+							<param name="Y" type="float"/>
+							<param name="Z" type="float"/>
+						</accessor>
+					</technique_common>
+				</source>
+				<source id="S018.dae23-normals">
+					<float_array id="S018.dae23-normals-array" count="3">-0.625 -0.78125 0</float_array>
+					<technique_common>
+						<accessor count="1" source="#S018.dae23-normals-array" stride="3">
+							<param name="X" type="float"/>
+							<param name="Y" type="float"/>
+							<param name="Z" type="float"/>
+						</accessor>
+					</technique_common>
+				</source>
+				<vertices id="S018.dae23-vertices">
+					<input semantic="POSITION" source="#S018.dae23-positions"/>
+				</vertices>
+				<triangles count="1" material="S018.dae23material">
+					<input offset="0" semantic="VERTEX" source="#S018.dae23-vertices"/>
+					<input offset="1" semantic="NORMAL" source="#S018.dae23-normals"/>
+					<p>1 0 0 0 2 0</p>
+				</triangles>
+			</mesh>
+		</geometry>
+		<geometry id="S018.dae24">
+			<mesh>
+				<source id="S018.dae24-positions">
+					<float_array id="S018.dae24-positions-array" count="9">16.1196 -4.31491 0 8.03476 -14.8259 0 16.1196 -4.31491 9.62</float_array>
+					<technique_common>
+						<accessor count="3" source="#S018.dae24-positions-array" stride="3">
+							<param name="X" type="float"/>
+							<param name="Y" type="float"/>
+							<param name="Z" type="float"/>
+						</accessor>
+					</technique_common>
+				</source>
+				<source id="S018.dae24-normals">
+					<float_array id="S018.dae24-normals-array" count="3">0.789063 -0.609375 0</float_array>
+					<technique_common>
+						<accessor count="1" source="#S018.dae24-normals-array" stride="3">
+							<param name="X" type="float"/>
+							<param name="Y" type="float"/>
+							<param name="Z" type="float"/>
+						</accessor>
+					</technique_common>
+				</source>
+				<vertices id="S018.dae24-vertices">
+					<input semantic="POSITION" source="#S018.dae24-positions"/>
+				</vertices>
+				<triangles count="1" material="S018.dae24material">
+					<input offset="0" semantic="VERTEX" source="#S018.dae24-vertices"/>
+					<input offset="1" semantic="NORMAL" source="#S018.dae24-normals"/>
+					<p>1 0 0 0 2 0</p>
+				</triangles>
+			</mesh>
+		</geometry>
+		<geometry id="S018.dae25">
+			<mesh>
+				<source id="S018.dae25-positions">
+					<float_array id="S018.dae25-positions-array" count="9">16.1196 -4.31491 9.62 8.03476 -14.8259 0 8.03476 -14.8259 9.62</float_array>
+					<technique_common>
+						<accessor count="3" source="#S018.dae25-positions-array" stride="3">
+							<param name="X" type="float"/>
+							<param name="Y" type="float"/>
+							<param name="Z" type="float"/>
+						</accessor>
+					</technique_common>
+				</source>
+				<source id="S018.dae25-normals">
+					<float_array id="S018.dae25-normals-array" count="3">0.789063 -0.609375 0</float_array>
+					<technique_common>
+						<accessor count="1" source="#S018.dae25-normals-array" stride="3">
+							<param name="X" type="float"/>
+							<param name="Y" type="float"/>
+							<param name="Z" type="float"/>
+						</accessor>
+					</technique_common>
+				</source>
+				<vertices id="S018.dae25-vertices">
+					<input semantic="POSITION" source="#S018.dae25-positions"/>
+				</vertices>
+				<triangles count="1" material="S018.dae25material">
+					<input offset="0" semantic="VERTEX" source="#S018.dae25-vertices"/>
+					<input offset="1" semantic="NORMAL" source="#S018.dae25-normals"/>
+					<p>1 0 0 0 2 0</p>
+				</triangles>
+			</mesh>
+		</geometry>
+		<geometry id="S018.dae26">
+			<mesh>
+				<source id="S018.dae26-positions">
+					<float_array id="S018.dae26-positions-array" count="9">16.1196 -4.31491 9.62 -11.7798 9.57696 12.09 -7.44093 14.8259 9.62</float_array>
+					<technique_common>
+						<accessor count="3" source="#S018.dae26-positions-array" stride="3">
+							<param name="X" type="float"/>
+							<param name="Y" type="float"/>
+							<param name="Z" type="float"/>
+						</accessor>
+					</technique_common>
+				</source>
+				<source id="S018.dae26-normals">
+					<float_array id="S018.dae26-normals-array" count="3">0.21875 0.265625 0.9375</float_array>
+					<technique_common>
+						<accessor count="1" source="#S018.dae26-normals-array" stride="3">
+							<param name="X" type="float"/>
+							<param name="Y" type="float"/>
+							<param name="Z" type="float"/>
+						</accessor>
+					</technique_common>
+				</source>
+				<vertices id="S018.dae26-vertices">
+					<input semantic="POSITION" source="#S018.dae26-positions"/>
+				</vertices>
+				<triangles count="1" material="S018.dae26material">
+					<input offset="0" semantic="VERTEX" source="#S018.dae26-vertices"/>
+					<input offset="1" semantic="NORMAL" source="#S018.dae26-normals"/>
+					<p>1 0 0 0 2 0</p>
+				</triangles>
+			</mesh>
+		</geometry>
+		<geometry id="S018.dae27">
+			<mesh>
+				<source id="S018.dae27-positions">
+					<float_array id="S018.dae27-positions-array" count="9">16.1196 -4.31491 9.62 12.0767 -9.57122 12.0242 -11.7798 9.57696 12.09</float_array>
+					<technique_common>
+						<accessor count="3" source="#S018.dae27-positions-array" stride="3">
+							<param name="X" type="float"/>
+							<param name="Y" type="float"/>
+							<param name="Z" type="float"/>
+						</accessor>
+					</technique_common>
+				</source>
+				<source id="S018.dae27-normals">
+					<float_array id="S018.dae27-normals-array" count="3">0.21875 0.265625 0.9375</float_array>
+					<technique_common>
+						<accessor count="1" source="#S018.dae27-normals-array" stride="3">
+							<param name="X" type="float"/>
+							<param name="Y" type="float"/>
+							<param name="Z" type="float"/>
+						</accessor>
+					</technique_common>
+				</source>
+				<vertices id="S018.dae27-vertices">
+					<input semantic="POSITION" source="#S018.dae27-positions"/>
+				</vertices>
+				<triangles count="1" material="S018.dae27material">
+					<input offset="0" semantic="VERTEX" source="#S018.dae27-vertices"/>
+					<input offset="1" semantic="NORMAL" source="#S018.dae27-normals"/>
+					<p>1 0 0 0 2 0</p>
+				</triangles>
+			</mesh>
+		</geometry>
+		<geometry id="S018.dae28">
+			<mesh>
+				<source id="S018.dae28-positions">
+					<float_array id="S018.dae28-positions-array" count="9">-7.44093 14.8259 9.62 -11.7798 9.57696 12.09 -16.1196 4.3268 9.62</float_array>
+					<technique_common>
+						<accessor count="3" source="#S018.dae28-positions-array" stride="3">
+							<param name="X" type="float"/>
+							<param name="Y" type="float"/>
+							<param name="Z" type="float"/>
+						</accessor>
+					</technique_common>
+				</source>
+				<source id="S018.dae28-normals">
+					<float_array id="S018.dae28-normals-array" count="3">-0.773438 0.640625 0</float_array>
+					<technique_common>
+						<accessor count="1" source="#S018.dae28-normals-array" stride="3">
+							<param name="X" type="float"/>
+							<param name="Y" type="float"/>
+							<param name="Z" type="float"/>
+						</accessor>
+					</technique_common>
+				</source>
+				<vertices id="S018.dae28-vertices">
+					<input semantic="POSITION" source="#S018.dae28-positions"/>
+				</vertices>
+				<triangles count="1" material="S018.dae28material">
+					<input offset="0" semantic="VERTEX" source="#S018.dae28-vertices"/>
+					<input offset="1" semantic="NORMAL" source="#S018.dae28-normals"/>
+					<p>1 0 0 0 2 0</p>
+				</triangles>
+			</mesh>
+		</geometry>
+		<geometry id="S018.dae29">
+			<mesh>
+				<source id="S018.dae29-positions">
+					<float_array id="S018.dae29-positions-array" count="9">12.0767 -9.57122 12.0242 8.03476 -14.8259 9.62 -16.1196 4.3268 9.62</float_array>
+					<technique_common>
+						<accessor count="3" source="#S018.dae29-positions-array" stride="3">
+							<param name="X" type="float"/>
+							<param name="Y" type="float"/>
+							<param name="Z" type="float"/>
+						</accessor>
+					</technique_common>
+				</source>
+				<source id="S018.dae29-normals">
+					<float_array id="S018.dae29-normals-array" count="3">-0.210938 -0.265625 0.9375</float_array>
+					<technique_common>
+						<accessor count="1" source="#S018.dae29-normals-array" stride="3">
+							<param name="X" type="float"/>
+							<param name="Y" type="float"/>
+							<param name="Z" type="float"/>
+						</accessor>
+					</technique_common>
+				</source>
+				<vertices id="S018.dae29-vertices">
+					<input semantic="POSITION" source="#S018.dae29-positions"/>
+				</vertices>
+				<triangles count="1" material="S018.dae29material">
+					<input offset="0" semantic="VERTEX" source="#S018.dae29-vertices"/>
+					<input offset="1" semantic="NORMAL" source="#S018.dae29-normals"/>
+					<p>1 0 0 0 2 0</p>
+				</triangles>
+			</mesh>
+		</geometry>
+		<geometry id="S018.dae30">
+			<mesh>
+				<source id="S018.dae30-positions">
+					<float_array id="S018.dae30-positions-array" count="9">12.0767 -9.57122 12.0242 -16.1196 4.3268 9.62 -11.7798 9.57696 12.09</float_array>
+					<technique_common>
+						<accessor count="3" source="#S018.dae30-positions-array" stride="3">
+							<param name="X" type="float"/>
+							<param name="Y" type="float"/>
+							<param name="Z" type="float"/>
+						</accessor>
+					</technique_common>
+				</source>
+				<source id="S018.dae30-normals">
+					<float_array id="S018.dae30-normals-array" count="3">-0.210938 -0.265625 0.9375</float_array>
+					<technique_common>
+						<accessor count="1" source="#S018.dae30-normals-array" stride="3">
+							<param name="X" type="float"/>
+							<param name="Y" type="float"/>
+							<param name="Z" type="float"/>
+						</accessor>
+					</technique_common>
+				</source>
+				<vertices id="S018.dae30-vertices">
+					<input semantic="POSITION" source="#S018.dae30-positions"/>
+				</vertices>
+				<triangles count="1" material="S018.dae30material">
+					<input offset="0" semantic="VERTEX" source="#S018.dae30-vertices"/>
+					<input offset="1" semantic="NORMAL" source="#S018.dae30-normals"/>
+					<p>1 0 0 0 2 0</p>
+				</triangles>
+			</mesh>
+		</geometry>
+		<geometry id="S018.dae31">
+			<mesh>
+				<source id="S018.dae31-positions">
+					<float_array id="S018.dae31-positions-array" count="9">16.1196 -4.31491 9.62 8.03476 -14.8259 9.62 12.0767 -9.57122 12.0242</float_array>
+					<technique_common>
+						<accessor count="3" source="#S018.dae31-positions-array" stride="3">
+							<param name="X" type="float"/>
+							<param name="Y" type="float"/>
+							<param name="Z" type="float"/>
+						</accessor>
+					</technique_common>
+				</source>
+				<source id="S018.dae31-normals">
+					<float_array id="S018.dae31-normals-array" count="3">0.789063 -0.609375 0</float_array>
+					<technique_common>
+						<accessor count="1" source="#S018.dae31-normals-array" stride="3">
+							<param name="X" type="float"/>
+							<param name="Y" type="float"/>
+							<param name="Z" type="float"/>
+						</accessor>
+					</technique_common>
+				</source>
+				<vertices id="S018.dae31-vertices">
+					<input semantic="POSITION" source="#S018.dae31-positions"/>
+				</vertices>
+				<triangles count="1" material="S018.dae31material">
+					<input offset="0" semantic="VERTEX" source="#S018.dae31-vertices"/>
+					<input offset="1" semantic="NORMAL" source="#S018.dae31-normals"/>
+					<p>1 0 0 0 2 0</p>
+				</triangles>
+			</mesh>
+		</geometry>
+	</library_geometries>
+	<library_effects>
+		<effect id="S018.dae0effect">
+			<profile_COMMON>
+				<technique sid="common">
+					<phong>
+						<diffuse>
+							<color>1 1 1 1</color>
+						</diffuse>
+					</phong>
+				</technique>
+			</profile_COMMON>
+		</effect>
+	</library_effects>
+	<library_materials>
+		<material id="S018.dae0material">
+			<instance_effect url="#S018.dae0effect"/>
+		</material>
+	</library_materials>
+	<library_effects>
+		<effect id="S018.dae1effect">
+			<profile_COMMON>
+				<technique sid="common">
+					<phong>
+						<diffuse>
+							<color>1 1 1 1</color>
+						</diffuse>
+					</phong>
+				</technique>
+			</profile_COMMON>
+		</effect>
+	</library_effects>
+	<library_materials>
+		<material id="S018.dae1material">
+			<instance_effect url="#S018.dae1effect"/>
+		</material>
+	</library_materials>
+	<library_effects>
+		<effect id="S018.dae2effect">
+			<profile_COMMON>
+				<technique sid="common">
+					<phong>
+						<diffuse>
+							<color>1 1 1 1</color>
+						</diffuse>
+					</phong>
+				</technique>
+			</profile_COMMON>
+		</effect>
+	</library_effects>
+	<library_materials>
+		<material id="S018.dae2material">
+			<instance_effect url="#S018.dae2effect"/>
+		</material>
+	</library_materials>
+	<library_effects>
+		<effect id="S018.dae3effect">
+			<profile_COMMON>
+				<technique sid="common">
+					<phong>
+						<diffuse>
+							<color>1 1 1 1</color>
+						</diffuse>
+					</phong>
+				</technique>
+			</profile_COMMON>
+		</effect>
+	</library_effects>
+	<library_materials>
+		<material id="S018.dae3material">
+			<instance_effect url="#S018.dae3effect"/>
+		</material>
+	</library_materials>
+	<library_effects>
+		<effect id="S018.dae4effect">
+			<profile_COMMON>
+				<technique sid="common">
+					<phong>
+						<diffuse>
+							<color>1 1 1 1</color>
+						</diffuse>
+					</phong>
+				</technique>
+			</profile_COMMON>
+		</effect>
+	</library_effects>
+	<library_materials>
+		<material id="S018.dae4material">
+			<instance_effect url="#S018.dae4effect"/>
+		</material>
+	</library_materials>
+	<library_effects>
+		<effect id="S018.dae5effect">
+			<profile_COMMON>
+				<technique sid="common">
+					<phong>
+						<diffuse>
+							<color>1 1 1 1</color>
+						</diffuse>
+					</phong>
+				</technique>
+			</profile_COMMON>
+		</effect>
+	</library_effects>
+	<library_materials>
+		<material id="S018.dae5material">
+			<instance_effect url="#S018.dae5effect"/>
+		</material>
+	</library_materials>
+	<library_effects>
+		<effect id="S018.dae6effect">
+			<profile_COMMON>
+				<technique sid="common">
+					<phong>
+						<diffuse>
+							<color>1 1 1 1</color>
+						</diffuse>
+					</phong>
+				</technique>
+			</profile_COMMON>
+		</effect>
+	</library_effects>
+	<library_materials>
+		<material id="S018.dae6material">
+			<instance_effect url="#S018.dae6effect"/>
+		</material>
+	</library_materials>
+	<library_effects>
+		<effect id="S018.dae7effect">
+			<profile_COMMON>
+				<technique sid="common">
+					<phong>
+						<diffuse>
+							<color>1 1 1 1</color>
+						</diffuse>
+					</phong>
+				</technique>
+			</profile_COMMON>
+		</effect>
+	</library_effects>
+	<library_materials>
+		<material id="S018.dae7material">
+			<instance_effect url="#S018.dae7effect"/>
+		</material>
+	</library_materials>
+	<library_effects>
+		<effect id="S018.dae8effect">
+			<profile_COMMON>
+				<technique sid="common">
+					<phong>
+						<diffuse>
+							<color>1 1 1 1</color>
+						</diffuse>
+					</phong>
+				</technique>
+			</profile_COMMON>
+		</effect>
+	</library_effects>
+	<library_materials>
+		<material id="S018.dae8material">
+			<instance_effect url="#S018.dae8effect"/>
+		</material>
+	</library_materials>
+	<library_effects>
+		<effect id="S018.dae9effect">
+			<profile_COMMON>
+				<technique sid="common">
+					<phong>
+						<diffuse>
+							<color>1 1 1 1</color>
+						</diffuse>
+					</phong>
+				</technique>
+			</profile_COMMON>
+		</effect>
+	</library_effects>
+	<library_materials>
+		<material id="S018.dae9material">
+			<instance_effect url="#S018.dae9effect"/>
+		</material>
+	</library_materials>
+	<library_effects>
+		<effect id="S018.dae10effect">
+			<profile_COMMON>
+				<technique sid="common">
+					<phong>
+						<diffuse>
+							<color>1 1 1 1</color>
+						</diffuse>
+					</phong>
+				</technique>
+			</profile_COMMON>
+		</effect>
+	</library_effects>
+	<library_materials>
+		<material id="S018.dae10material">
+			<instance_effect url="#S018.dae10effect"/>
+		</material>
+	</library_materials>
+	<library_effects>
+		<effect id="S018.dae11effect">
+			<profile_COMMON>
+				<technique sid="common">
+					<phong>
+						<diffuse>
+							<color>1 1 1 1</color>
+						</diffuse>
+					</phong>
+				</technique>
+			</profile_COMMON>
+		</effect>
+	</library_effects>
+	<library_materials>
+		<material id="S018.dae11material">
+			<instance_effect url="#S018.dae11effect"/>
+		</material>
+	</library_materials>
+	<library_effects>
+		<effect id="S018.dae12effect">
+			<profile_COMMON>
+				<technique sid="common">
+					<phong>
+						<diffuse>
+							<color>1 1 1 1</color>
+						</diffuse>
+					</phong>
+				</technique>
+			</profile_COMMON>
+		</effect>
+	</library_effects>
+	<library_materials>
+		<material id="S018.dae12material">
+			<instance_effect url="#S018.dae12effect"/>
+		</material>
+	</library_materials>
+	<library_effects>
+		<effect id="S018.dae13effect">
+			<profile_COMMON>
+				<technique sid="common">
+					<phong>
+						<diffuse>
+							<color>1 1 1 1</color>
+						</diffuse>
+					</phong>
+				</technique>
+			</profile_COMMON>
+		</effect>
+	</library_effects>
+	<library_materials>
+		<material id="S018.dae13material">
+			<instance_effect url="#S018.dae13effect"/>
+		</material>
+	</library_materials>
+	<library_effects>
+		<effect id="S018.dae14effect">
+			<profile_COMMON>
+				<technique sid="common">
+					<phong>
+						<diffuse>
+							<color>1 1 1 1</color>
+						</diffuse>
+					</phong>
+				</technique>
+			</profile_COMMON>
+		</effect>
+	</library_effects>
+	<library_materials>
+		<material id="S018.dae14material">
+			<instance_effect url="#S018.dae14effect"/>
+		</material>
+	</library_materials>
+	<library_effects>
+		<effect id="S018.dae15effect">
+			<profile_COMMON>
+				<technique sid="common">
+					<phong>
+						<diffuse>
+							<color>1 1 1 1</color>
+						</diffuse>
+					</phong>
+				</technique>
+			</profile_COMMON>
+		</effect>
+	</library_effects>
+	<library_materials>
+		<material id="S018.dae15material">
+			<instance_effect url="#S018.dae15effect"/>
+		</material>
+	</library_materials>
+	<library_effects>
+		<effect id="S018.dae16effect">
+			<profile_COMMON>
+				<technique sid="common">
+					<phong>
+						<diffuse>
+							<color>1 1 1 1</color>
+						</diffuse>
+					</phong>
+				</technique>
+			</profile_COMMON>
+		</effect>
+	</library_effects>
+	<library_materials>
+		<material id="S018.dae16material">
+			<instance_effect url="#S018.dae16effect"/>
+		</material>
+	</library_materials>
+	<library_effects>
+		<effect id="S018.dae17effect">
+			<profile_COMMON>
+				<technique sid="common">
+					<phong>
+						<diffuse>
+							<color>1 1 1 1</color>
+						</diffuse>
+					</phong>
+				</technique>
+			</profile_COMMON>
+		</effect>
+	</library_effects>
+	<library_materials>
+		<material id="S018.dae17material">
+			<instance_effect url="#S018.dae17effect"/>
+		</material>
+	</library_materials>
+	<library_effects>
+		<effect id="S018.dae18effect">
+			<profile_COMMON>
+				<technique sid="common">
+					<phong>
+						<diffuse>
+							<color>1 1 1 1</color>
+						</diffuse>
+					</phong>
+				</technique>
+			</profile_COMMON>
+		</effect>
+	</library_effects>
+	<library_materials>
+		<material id="S018.dae18material">
+			<instance_effect url="#S018.dae18effect"/>
+		</material>
+	</library_materials>
+	<library_effects>
+		<effect id="S018.dae19effect">
+			<profile_COMMON>
+				<technique sid="common">
+					<phong>
+						<diffuse>
+							<color>1 1 1 1</color>
+						</diffuse>
+					</phong>
+				</technique>
+			</profile_COMMON>
+		</effect>
+	</library_effects>
+	<library_materials>
+		<material id="S018.dae19material">
+			<instance_effect url="#S018.dae19effect"/>
+		</material>
+	</library_materials>
+	<library_effects>
+		<effect id="S018.dae20effect">
+			<profile_COMMON>
+				<technique sid="common">
+					<phong>
+						<diffuse>
+							<color>1 1 1 1</color>
+						</diffuse>
+					</phong>
+				</technique>
+			</profile_COMMON>
+		</effect>
+	</library_effects>
+	<library_materials>
+		<material id="S018.dae20material">
+			<instance_effect url="#S018.dae20effect"/>
+		</material>
+	</library_materials>
+	<library_effects>
+		<effect id="S018.dae21effect">
+			<profile_COMMON>
+				<technique sid="common">
+					<phong>
+						<diffuse>
+							<color>1 1 1 1</color>
+						</diffuse>
+					</phong>
+				</technique>
+			</profile_COMMON>
+		</effect>
+	</library_effects>
+	<library_materials>
+		<material id="S018.dae21material">
+			<instance_effect url="#S018.dae21effect"/>
+		</material>
+	</library_materials>
+	<library_effects>
+		<effect id="S018.dae22effect">
+			<profile_COMMON>
+				<technique sid="common">
+					<phong>
+						<diffuse>
+							<color>1 1 1 1</color>
+						</diffuse>
+					</phong>
+				</technique>
+			</profile_COMMON>
+		</effect>
+	</library_effects>
+	<library_materials>
+		<material id="S018.dae22material">
+			<instance_effect url="#S018.dae22effect"/>
+		</material>
+	</library_materials>
+	<library_effects>
+		<effect id="S018.dae23effect">
+			<profile_COMMON>
+				<technique sid="common">
+					<phong>
+						<diffuse>
+							<color>1 1 1 1</color>
+						</diffuse>
+					</phong>
+				</technique>
+			</profile_COMMON>
+		</effect>
+	</library_effects>
+	<library_materials>
+		<material id="S018.dae23material">
+			<instance_effect url="#S018.dae23effect"/>
+		</material>
+	</library_materials>
+	<library_effects>
+		<effect id="S018.dae24effect">
+			<profile_COMMON>
+				<technique sid="common">
+					<phong>
+						<diffuse>
+							<color>1 1 1 1</color>
+						</diffuse>
+					</phong>
+				</technique>
+			</profile_COMMON>
+		</effect>
+	</library_effects>
+	<library_materials>
+		<material id="S018.dae24material">
+			<instance_effect url="#S018.dae24effect"/>
+		</material>
+	</library_materials>
+	<library_effects>
+		<effect id="S018.dae25effect">
+			<profile_COMMON>
+				<technique sid="common">
+					<phong>
+						<diffuse>
+							<color>1 1 1 1</color>
+						</diffuse>
+					</phong>
+				</technique>
+			</profile_COMMON>
+		</effect>
+	</library_effects>
+	<library_materials>
+		<material id="S018.dae25material">
+			<instance_effect url="#S018.dae25effect"/>
+		</material>
+	</library_materials>
+	<library_effects>
+		<effect id="S018.dae26effect">
+			<profile_COMMON>
+				<technique sid="common">
+					<phong>
+						<diffuse>
+							<color>1 1 1 1</color>
+						</diffuse>
+					</phong>
+				</technique>
+			</profile_COMMON>
+		</effect>
+	</library_effects>
+	<library_materials>
+		<material id="S018.dae26material">
+			<instance_effect url="#S018.dae26effect"/>
+		</material>
+	</library_materials>
+	<library_effects>
+		<effect id="S018.dae27effect">
+			<profile_COMMON>
+				<technique sid="common">
+					<phong>
+						<diffuse>
+							<color>1 1 1 1</color>
+						</diffuse>
+					</phong>
+				</technique>
+			</profile_COMMON>
+		</effect>
+	</library_effects>
+	<library_materials>
+		<material id="S018.dae27material">
+			<instance_effect url="#S018.dae27effect"/>
+		</material>
+	</library_materials>
+	<library_effects>
+		<effect id="S018.dae28effect">
+			<profile_COMMON>
+				<technique sid="common">
+					<phong>
+						<diffuse>
+							<color>1 1 1 1</color>
+						</diffuse>
+					</phong>
+				</technique>
+			</profile_COMMON>
+		</effect>
+	</library_effects>
+	<library_materials>
+		<material id="S018.dae28material">
+			<instance_effect url="#S018.dae28effect"/>
+		</material>
+	</library_materials>
+	<library_effects>
+		<effect id="S018.dae29effect">
+			<profile_COMMON>
+				<technique sid="common">
+					<phong>
+						<diffuse>
+							<color>1 1 1 1</color>
+						</diffuse>
+					</phong>
+				</technique>
+			</profile_COMMON>
+		</effect>
+	</library_effects>
+	<library_materials>
+		<material id="S018.dae29material">
+			<instance_effect url="#S018.dae29effect"/>
+		</material>
+	</library_materials>
+	<library_effects>
+		<effect id="S018.dae30effect">
+			<profile_COMMON>
+				<technique sid="common">
+					<phong>
+						<diffuse>
+							<color>1 1 1 1</color>
+						</diffuse>
+					</phong>
+				</technique>
+			</profile_COMMON>
+		</effect>
+	</library_effects>
+	<library_materials>
+		<material id="S018.dae30material">
+			<instance_effect url="#S018.dae30effect"/>
+		</material>
+	</library_materials>
+	<library_effects>
+		<effect id="S018.dae31effect">
+			<profile_COMMON>
+				<technique sid="common">
+					<phong>
+						<diffuse>
+							<color>1 1 1 1</color>
+						</diffuse>
+					</phong>
+				</technique>
+			</profile_COMMON>
+		</effect>
+	</library_effects>
+	<library_materials>
+		<material id="S018.dae31material">
+			<instance_effect url="#S018.dae31effect"/>
+		</material>
+	</library_materials>
+	<library_visual_scenes>
+		<visual_scene id="Multipatch-Converted-Scene">
+			<node id="S018.dae">
+				<translate>0 0 0</translate>
+				<instance_geometry url="#S018.dae16">
+					<bind_material>
+						<technique_common>
+							<instance_material symbol="S018.dae16material" target="#S018.dae16material"/>
+						</technique_common>
+					</bind_material>
+				</instance_geometry>
+				<instance_geometry url="#S018.dae17">
+					<bind_material>
+						<technique_common>
+							<instance_material symbol="S018.dae17material" target="#S018.dae17material"/>
+						</technique_common>
+					</bind_material>
+				</instance_geometry>
+				<instance_geometry url="#S018.dae18">
+					<bind_material>
+						<technique_common>
+							<instance_material symbol="S018.dae18material" target="#S018.dae18material"/>
+						</technique_common>
+					</bind_material>
+				</instance_geometry>
+				<instance_geometry url="#S018.dae19">
+					<bind_material>
+						<technique_common>
+							<instance_material symbol="S018.dae19material" target="#S018.dae19material"/>
+						</technique_common>
+					</bind_material>
+				</instance_geometry>
+				<instance_geometry url="#S018.dae20">
+					<bind_material>
+						<technique_common>
+							<instance_material symbol="S018.dae20material" target="#S018.dae20material"/>
+						</technique_common>
+					</bind_material>
+				</instance_geometry>
+				<instance_geometry url="#S018.dae21">
+					<bind_material>
+						<technique_common>
+							<instance_material symbol="S018.dae21material" target="#S018.dae21material"/>
+						</technique_common>
+					</bind_material>
+				</instance_geometry>
+				<instance_geometry url="#S018.dae22">
+					<bind_material>
+						<technique_common>
+							<instance_material symbol="S018.dae22material" target="#S018.dae22material"/>
+						</technique_common>
+					</bind_material>
+				</instance_geometry>
+				<instance_geometry url="#S018.dae23">
+					<bind_material>
+						<technique_common>
+							<instance_material symbol="S018.dae23material" target="#S018.dae23material"/>
+						</technique_common>
+					</bind_material>
+				</instance_geometry>
+				<instance_geometry url="#S018.dae24">
+					<bind_material>
+						<technique_common>
+							<instance_material symbol="S018.dae24material" target="#S018.dae24material"/>
+						</technique_common>
+					</bind_material>
+				</instance_geometry>
+				<instance_geometry url="#S018.dae25">
+					<bind_material>
+						<technique_common>
+							<instance_material symbol="S018.dae25material" target="#S018.dae25material"/>
+						</technique_common>
+					</bind_material>
+				</instance_geometry>
+				<instance_geometry url="#S018.dae26">
+					<bind_material>
+						<technique_common>
+							<instance_material symbol="S018.dae26material" target="#S018.dae26material"/>
+						</technique_common>
+					</bind_material>
+				</instance_geometry>
+				<instance_geometry url="#S018.dae27">
+					<bind_material>
+						<technique_common>
+							<instance_material symbol="S018.dae27material" target="#S018.dae27material"/>
+						</technique_common>
+					</bind_material>
+				</instance_geometry>
+				<instance_geometry url="#S018.dae28">
+					<bind_material>
+						<technique_common>
+							<instance_material symbol="S018.dae28material" target="#S018.dae28material"/>
+						</technique_common>
+					</bind_material>
+				</instance_geometry>
+				<instance_geometry url="#S018.dae29">
+					<bind_material>
+						<technique_common>
+							<instance_material symbol="S018.dae29material" target="#S018.dae29material"/>
+						</technique_common>
+					</bind_material>
+				</instance_geometry>
+				<instance_geometry url="#S018.dae30">
+					<bind_material>
+						<technique_common>
+							<instance_material symbol="S018.dae30material" target="#S018.dae30material"/>
+						</technique_common>
+					</bind_material>
+				</instance_geometry>
+				<instance_geometry url="#S018.dae31">
+					<bind_material>
+						<technique_common>
+							<instance_material symbol="S018.dae31material" target="#S018.dae31material"/>
+						</technique_common>
+					</bind_material>
+				</instance_geometry>
+			</node>
+		</visual_scene>
+	</library_visual_scenes>
+	<scene>
+		<instance_visual_scene url="#Multipatch-Converted-Scene"/>
+	</scene>
+</COLLADA>
