@@ -61,7 +61,7 @@ void Window::standardInputProcessor(GLFWwindow* window) { //Go to processInputFu
 	float currentFrame = glfwGetTime();
 	float deltaTime = currentFrame - lastTime;
 	lastTime = currentFrame;
-	float speed = .25 * deltaTime;
+	float speed = .5 * deltaTime;
 	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
 		speed *= 2;
 	}
@@ -125,6 +125,8 @@ void Window::SetVersion(float version) {
 
 bool Window::makeWindow(int height, int width, std::string title) {
 	window = glfwCreateWindow(height, width, title.c_str(), NULL, NULL);
+	this->width = width;
+	this->height = height;
 	if (window == NULL) {
 		
 		return false;
