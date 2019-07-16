@@ -3,6 +3,10 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
+Texture2D::Texture2D() {
+	glGenTextures(1, &texture);
+}
+
 Texture2D::Texture2D(const char * filename) {
 	unsigned char * data = loadTextureData(filename);
 	if (!data) {

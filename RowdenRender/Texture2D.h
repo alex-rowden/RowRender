@@ -6,6 +6,7 @@ class Texture2D
 {
 public:
 	enum class COLORS {WHITE};
+	Texture2D();
 	Texture2D(const char *filename);
 	Texture2D(aiTexture* tex);
 	Texture2D(Texture2D::COLORS color);
@@ -15,6 +16,7 @@ public:
 	void setBorderColor(glm::vec4 color);
 	void setTexParameterWrap(GLint s, GLint t);
 	void setTexParameterWrap(GLint wrap);
+	void setDims(int width, int height, int numChannels) { this->width = width; this->numChannels = numChannels; this->height = height; }
 	void setTexMinMagFilter(GLint min, GLint mag);
 	void setTexMinMagFilter(GLint filter);
 	void Bind();

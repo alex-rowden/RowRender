@@ -13,6 +13,8 @@
 #include <sutil/sutil.h>
 #include <random>
 #include <fstream>
+
+#define DEBUG true
 int counter = 10;
 float increment = 0.05;
 
@@ -97,35 +99,38 @@ void createGeometry(optix::Context& context) {
 
 void createContext(optix::Context&context, Window&w) {
 	context = optix::Context::create();
+	std::vector<int> devices;
+	devices.emplace_back(0);
+	//context->setDevices(devices.begin(), devices.end());
 	context->setRayTypeCount(2);
 	context->setEntryPointCount(1);
 	context->setStackSize(4640);
 	context->setMaxTraceDepth(5);
+	if (DEBUG) {
+		context->setPrintEnabled(true);
+		//m_context->setPrintLaunchIndex(256, 256);
+		context->setExceptionEnabled(RT_EXCEPTION_ALL, true);
+	}
 	context["max_depth"]->setInt(100);
 	context["scene_epsilon"]->setFloat(1.e-4f);
 	context["importance_cutoff"]->setFloat(.01f);
-	context["ambiennt_light_color"]->setFloat(.31f, .33f, .28f);
+	context["ambient_light_color"]->setFloat(.31f, .33f, .28f);
 
-	GLuint vbo = 0;
-	glGenBuffers(1, &vbo);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, 4 * w.width * w.height, 0, GL_STREAM_DRAW);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	
 
 	std::string kernel = "tutorial.cu";
 	
 	const char* ptx = sutil::getPtxStringDirect("RowdenRender", kernel.c_str());
 	
 	//set output
-	optix::Buffer buffer = sutil::createOutputBuffer(context, RT_FORMAT_UNSIGNED_BYTE4, w.width, w.height, false);
-	context["output_buffer"]->set(buffer);
+	//optix::Buffer buffer = sutil::createOutputBuffer(context, RT_FORMAT_UNSIGNED_BYTE4, w.width, w.height, false);
+	//context["output_buffer"]->set(buffer);
 	context->setRayGenerationProgram(0, context->createProgramFromPTXString(ptx, "pinhole_camera"));
 
 	// Exception program
 	optix::Program exception_program = context->createProgramFromPTXString(ptx, "exception");
 	context->setExceptionProgram(0, exception_program);
 	context["bad_color"]->setFloat(1.0f, 0.0f, 1.0f);
-
 	// Miss program
 	const std::string miss_name = "miss";
 	context->setMissProgram(0, context->createProgramFromPTXString(ptx, miss_name));
@@ -141,7 +146,6 @@ void createContext(optix::Context&context, Window&w) {
 	const int tex_depth = 64;
 	optix::Buffer noiseBuffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT, tex_width, tex_height, tex_depth);
 	float* tex_data = (float*)noiseBuffer->map();
-
 	// Random noise in range [0, 1]
 	for (int i = tex_width * tex_height * tex_depth; i > 0; i--) {
 		// One channel 3D noise in [0.0, 1.0] range.
@@ -782,6 +786,43 @@ void makeVolumetricShape(Shape* shape, std::vector<float> intensities, WifiData 
 	}
 }
 
+void updateCamera(Window&w, optix::Context&context, optix::float3 camera_eye, optix::float3 camera_lookat, optix::float3 camera_up, optix::Matrix4x4 camera_rotate)
+{
+	const float vfov = 60.0f;
+	const float aspect_ratio = static_cast<float>(w.width) /
+		static_cast<float>(w.height);
+
+	optix::float3 camera_u, camera_v, camera_w;
+	sutil::calculateCameraVariables(
+		camera_eye, camera_lookat, camera_up, vfov, aspect_ratio,
+		camera_u, camera_v, camera_w, true);
+
+	const optix::Matrix4x4 frame = optix::Matrix4x4::fromBasis(
+		normalize(camera_u),
+		normalize(camera_v),
+		normalize(-camera_w),
+		camera_lookat);
+	const optix::Matrix4x4 frame_inv = frame.inverse();
+	// Apply camera rotation twice to match old SDK behavior
+	const optix::Matrix4x4 trans = frame * camera_rotate * camera_rotate * frame_inv;
+
+	camera_eye = make_float3(trans * make_float4(camera_eye, 1.0f));
+	camera_lookat = make_float3(trans * make_float4(camera_lookat, 1.0f));
+	camera_up = make_float3(trans * make_float4(camera_up, 0.0f));
+
+	sutil::calculateCameraVariables(
+		camera_eye, camera_lookat, camera_up, vfov, aspect_ratio,
+		camera_u, camera_v, camera_w, true);
+
+	camera_rotate = optix::Matrix4x4::identity();
+
+	context["eye"]->setFloat(camera_eye);
+	context["U"]->setFloat(camera_u);
+	context["V"]->setFloat(camera_v);
+	context["W"]->setFloat(camera_w);
+}
+
+
 int main() {
 	glfwInit();
 	glfwSetErrorCallback(error_callback);
@@ -893,6 +934,52 @@ int main() {
 	}
 	Shape myShape;
 	//makeVolumetricShapeGPU(&myShape, use_intensities, wifi, num_cells, .65f);
+	unsigned int numberOfDevices = 0;
+	RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetDeviceCount(&numberOfDevices));
+	std::cout << "Number of Devices = " << numberOfDevices << std::endl << std::endl;
+
+	for (unsigned int i = 0; i < numberOfDevices; ++i)
+	{
+		char name[256];
+		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_NAME, sizeof(name), name));
+		std::cout << "Device " << i << ": " << name << std::endl;
+
+		int computeCapability[2] = { 0, 0 };
+		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY, sizeof(computeCapability), &computeCapability));
+		std::cout << "  Compute Support: " << computeCapability[0] << "." << computeCapability[1] << std::endl;
+
+		RTsize totalMemory = 0;
+		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_TOTAL_MEMORY, sizeof(totalMemory), &totalMemory));
+		std::cout << "  Total Memory: " << (unsigned long long) totalMemory << std::endl;
+
+		int clockRate = 0;
+		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_CLOCK_RATE, sizeof(clockRate), &clockRate));
+		std::cout << "  Clock Rate: " << clockRate << " kHz" << std::endl;
+
+		int maxThreadsPerBlock = 0;
+		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK, sizeof(maxThreadsPerBlock), &maxThreadsPerBlock));
+		std::cout << "  Max. Threads per Block: " << maxThreadsPerBlock << std::endl;
+
+		int smCount = 0;
+		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT, sizeof(smCount), &smCount));
+		std::cout << "  Streaming Multiprocessor Count: " << smCount << std::endl;
+
+		int executionTimeoutEnabled = 0;
+		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_EXECUTION_TIMEOUT_ENABLED, sizeof(executionTimeoutEnabled), &executionTimeoutEnabled));
+		std::cout << "  Execution Timeout Enabled: " << executionTimeoutEnabled << std::endl;
+
+		int maxHardwareTextureCount = 0;
+		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_MAX_HARDWARE_TEXTURE_COUNT, sizeof(maxHardwareTextureCount), &maxHardwareTextureCount));
+		std::cout << "  Max. Hardware Texture Count: " << maxHardwareTextureCount << std::endl;
+
+		int tccDriver = 0;
+		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_TCC_DRIVER, sizeof(tccDriver), &tccDriver));
+		std::cout << "  TCC Driver enabled: " << tccDriver << std::endl;
+
+		int cudaDeviceOrdinal = 0;
+		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_CUDA_DEVICE_ORDINAL, sizeof(cudaDeviceOrdinal), &cudaDeviceOrdinal));
+		std::cout << "  CUDA Device Ordinal: " << cudaDeviceOrdinal << std::endl << std::endl;
+  }
 #if(false)
 	std::fstream out = std::fstream("wifi_data.raw", std::ios::binary|std::ios::out);
 
@@ -903,8 +990,15 @@ int main() {
 	out.close();
 #endif	
 
+	GLuint output_buffer = 0;
+	glGenBuffers(1, &output_buffer);
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, output_buffer);
+	glBufferData(GL_PIXEL_UNPACK_BUFFER, 4 * w.width * w.height * sizeof(float), 0, GL_STREAM_READ);
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+
 	optix::Context context;
 	createContext(context, w);
+	
 	createGeometry(context);
 
 	optix::float3  camera_eye = optix::make_float3(7.0f, 9.2f, -6.0f);
@@ -912,6 +1006,7 @@ int main() {
 	optix::float3 camera_up = optix::make_float3(0.0f, 1.0f, 0.0f);
 
 	optix::Matrix4x4 camera_rotate = optix::Matrix4x4::identity();
+	updateCamera(w, context, camera_eye, camera_lookat, camera_up, camera_rotate);
 
 	struct BasicLight
 	{
@@ -933,11 +1028,18 @@ int main() {
 	light_buffer->setSize(sizeof(lights) / sizeof(lights[0]));
 	memcpy(light_buffer->map(), lights, sizeof(lights));
 	light_buffer->unmap();
-
+	
 	context["lights"]->set(light_buffer);
 
-	context->launch(0, w.width, w.height);
-	sutil::displayBufferPPM("out.ppm", context["output_buffer"]->getBuffer());
+	optix::Buffer  buffer_output = (true) ? context->createBufferFromGLBO(RT_BUFFER_OUTPUT, output_buffer)
+		: context->createBuffer(RT_BUFFER_OUTPUT);
+	buffer_output->setFormat(RT_FORMAT_FLOAT4); // RGBA32F
+	buffer_output->setSize(w.width, w.height);
+
+	context["output_buffer"]->set(buffer_output);
+
+	
+	//sutil::displayBufferPPM("out.ppm", context["output_buffer"]->getBuffer());
 
 	Mesh volume = Mesh(&myShape);
 
@@ -946,18 +1048,29 @@ int main() {
 	vol.setModel();
 	Texture2D wifi_intensities = Texture2D(&pixels, wifi.numLonCells, wifi.numLatCells);
 	campusMap.getMeshes().at(0)->setTexture(wifi_intensities, 0);
-
-	Camera camera = Camera(glm::vec3(0, 10, 10), glm::vec3(0, 0, 0), 45.0f, 800/600.0f);
+	Texture2D hdr_texture = Texture2D();
+	hdr_texture.setDims(w.width, w.height, 4);
+	//Camera camera = Camera(glm::vec3(0, 10, 10), glm::vec3(0, 0, 0), 45.0f, 800/600.0f);
+	Camera camera = Camera(glm::vec3(0, 0, -1), glm::vec3(0, 0, 0), 45.0f, 800/600.0f);
 	w.SetCamera(&camera);
 	glm::mat4 projection;
 	w.scale = glm::vec3(7.6151, .03, 6.21);
 	glm::mat4 campusTransform = glm::scale(glm::mat4(1), w.scale);
 	w.translate = glm::vec3(-.29, -.409, .1);
 	campusTransform = glm::translate(campusTransform, w.translate);
+	campusTransform = glm::mat4(0);
 	//projection = glm::perspective(glm::radians(45.0f), 800/600.0f, 0.1f, 1000.0f);
 	glm::mat4 light_transform = glm::translate(glm::mat4(1.0f), glm::vec3(3, 3, 3));
 	while (!glfwWindowShouldClose(w.getWindow())) //main render loop
 	{
+		
+		context->launch(0, w.width, w.height);
+		hdr_texture.Bind();
+		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, buffer_output->getGLBOId());
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, (GLsizei)w.width, (GLsizei)w.height, 0, GL_RGBA, GL_FLOAT, (void*)0); // RGBA32F from byte offset 0 in the pixel unpack buffer.
+		glGenerateMipmap(GL_TEXTURE_2D);
+		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+		campusMap.getMeshes().at(0)->setTexture(hdr_texture, 0);
 		//transformation = glm::translate(transformation, glm::vec3(0, 0, -3));
 		//transformation = glm::rotate(transformation, glm::radians(10 * (float)glfwGetTime()), glm::vec3(.5f, 1.0f,0));
 
@@ -979,9 +1092,9 @@ int main() {
 		campusTransform = glm::translate(campusTransform, w.translate);
 		sp.SetUniform4fv("model", campusTransform);
 		sp.SetUniform3fv("normalMatrix", glm::mat3(glm::transpose(glm::inverse(campusTransform * camera.getView()))));
-		//render(campusMap, &sp);
+		render(campusMap, &sp);
 		//render(vol, &sp);
-		//w.ProcessFrame(&camera);
+		w.ProcessFrame(&camera);
 	}
 	glfwTerminate(); //Shut it down!
 

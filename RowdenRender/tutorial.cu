@@ -47,7 +47,7 @@ rtDeclareVariable(float3, U, , );
 rtDeclareVariable(float3, V, , );
 rtDeclareVariable(float3, W, , );
 rtDeclareVariable(float3, bad_color, , );
-rtBuffer<uchar4, 2>              output_buffer;
+rtBuffer<float4, 2>              output_buffer;
 
 RT_PROGRAM void pinhole_camera()
 {
@@ -65,7 +65,7 @@ RT_PROGRAM void pinhole_camera()
 
 	rtTrace(top_object, ray, prd);
 
-	output_buffer[launch_index] = make_color(prd.result);
+	output_buffer[launch_index] = make_float4(prd.result, 1.0f);
 }
 
 //
@@ -92,5 +92,5 @@ RT_PROGRAM void closest_hit_radiance()
 //
 RT_PROGRAM void exception()
 {
-	output_buffer[launch_index] = make_color(bad_color);
+	output_buffer[launch_index] = make_float4(bad_color, 1.0f);
 }
