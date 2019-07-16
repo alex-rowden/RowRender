@@ -862,7 +862,7 @@ int main() {
 	light.setModel();
 	Model campusMap = Model("Content\\Models\\cube\\cube.obj");
 	campusMap.setModel();
-	//campusMap.getMeshes().at(0)->setTexture(texture, 0);
+	campusMap.getMeshes().at(0)->setTexture(texture, 0);
 	glm::mat4 transformation =  glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
 
 	WifiData wifi;
@@ -1047,16 +1047,16 @@ int main() {
 	vol.addMesh(&volume);
 	vol.setModel();
 	Texture2D wifi_intensities = Texture2D(&pixels, wifi.numLonCells, wifi.numLatCells);
-	campusMap.getMeshes().at(0)->setTexture(wifi_intensities, 0);
+	//campusMap.getMeshes().at(0)->setTexture(wifi_intensities, 0);
 	Texture2D hdr_texture = Texture2D();
 	hdr_texture.setDims(w.width, w.height, 4);
 	//Camera camera = Camera(glm::vec3(0, 10, 10), glm::vec3(0, 0, 0), 45.0f, 800/600.0f);
 	Camera camera = Camera(glm::vec3(0, 0, -1), glm::vec3(0, 0, 0), 45.0f, 800/600.0f);
 	w.SetCamera(&camera);
 	glm::mat4 projection;
-	w.scale = glm::vec3(7.6151, .03, 6.21);
+	w.scale = glm::vec3(14.475, .03, 12.41);
 	glm::mat4 campusTransform = glm::scale(glm::mat4(1), w.scale);
-	w.translate = glm::vec3(-.29, -.409, .1);
+	w.translate = glm::vec3(-.29, -1.3, .13);
 	campusTransform = glm::translate(campusTransform, w.translate);
 	campusTransform = glm::mat4(0);
 	//projection = glm::perspective(glm::radians(45.0f), 800/600.0f, 0.1f, 1000.0f);
@@ -1070,7 +1070,7 @@ int main() {
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, (GLsizei)w.width, (GLsizei)w.height, 0, GL_RGBA, GL_FLOAT, (void*)0); // RGBA32F from byte offset 0 in the pixel unpack buffer.
 		glGenerateMipmap(GL_TEXTURE_2D);
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
-		campusMap.getMeshes().at(0)->setTexture(hdr_texture, 0);
+		//campusMap.getMeshes().at(0)->setTexture(hdr_texture, 0);
 		//transformation = glm::translate(transformation, glm::vec3(0, 0, -3));
 		//transformation = glm::rotate(transformation, glm::radians(10 * (float)glfwGetTime()), glm::vec3(.5f, 1.0f,0));
 
@@ -1086,9 +1086,10 @@ int main() {
 		
 		//texture.Bind();
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		//render(model, &sp);
+		render(model, &sp);
 		//render(light, &light_sp);
-		campusTransform = glm::scale(glm::mat4(1), glm::vec3(.1f * glm::vec3(1, 1, .5)));
+		campusTransform = glm::scale(glm::mat4(1), glm::vec3(w.scale));
+		
 		campusTransform = glm::translate(campusTransform, w.translate);
 		sp.SetUniform4fv("model", campusTransform);
 		sp.SetUniform3fv("normalMatrix", glm::mat3(glm::transpose(glm::inverse(campusTransform * camera.getView()))));
