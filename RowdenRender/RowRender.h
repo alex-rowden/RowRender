@@ -11,4 +11,10 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm\gtx\compatibility.hpp>
 
+#define RT_CHECK_ERROR_NO_CONTEXT( func ) \
+  do { \
+    RTresult code = func; \
+    if (code != RT_SUCCESS) \
+      std::cerr << "ERROR: Function " << #func << std::endl; \
+  } while (0)
 
