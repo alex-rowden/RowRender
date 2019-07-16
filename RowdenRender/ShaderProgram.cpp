@@ -24,6 +24,24 @@ void ShaderProgram::Use() {
 	glUseProgram(shaderProgram);
 }
 
+void ShaderProgram::SetLights(Lights lights) {
+	for (int i = 0; i < lights.getPointLights().size(); i++) {
+		Lights::PointLight light = lights.getPointLights().at(i);
+		
+		std::string light_preamble = "pointLights[" + std::to_string(i) + "].";
+		SetUniform3f((light_preamble + "position").c_str(), light.position);
+
+		SetUniform1f((light_preamble + "constant").c_str(), light.constant);
+		SetUniform1f((light_preamble + "linear").c_str(), light.linear);
+		SetUniform1f((light_preamble + "quadratic").c_str(), light.quadratic);
+
+		SetUniform3f((light_preamble + "ambient").c_str(), light.ambient);
+		SetUniform3f((light_preamble + "diffuse").c_str(), light.diffuse);
+		SetUniform3f((light_preamble + "specular").c_str(), light.specular);
+
+	}
+}
+
 void ShaderProgram::SetUniform4f(const char *name, glm::vec4 vec) {
 	int location = glGetUniformLocation(shaderProgram, name);
 	glUseProgram(shaderProgram);

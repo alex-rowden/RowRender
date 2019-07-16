@@ -4,6 +4,7 @@
 #include "Window.h"
 #include "Shape.h"
 #include "Mesh.h"
+#include "Lights.h"
 #include "ShaderProgram.h"
 #include "Texture2D.h"
 #include "Model.h"
@@ -1018,15 +1019,15 @@ int main() {
 		int    casts_shadow;
 		int    padding;      // make this structure 32 bytes -- powers of two are your friend!
 	};
-	BasicLight lights[] = {
+	BasicLight basic_lights[] = {
 	   { optix::make_float3(-5.0f, 60.0f, -16.0f), optix::make_float3(1.0f, 1.0f, 1.0f), 1 }
 	};
 
 	optix::Buffer light_buffer = context->createBuffer(RT_BUFFER_INPUT);
 	light_buffer->setFormat(RT_FORMAT_USER);
 	light_buffer->setElementSize(sizeof(BasicLight));
-	light_buffer->setSize(sizeof(lights) / sizeof(lights[0]));
-	memcpy(light_buffer->map(), lights, sizeof(lights));
+	light_buffer->setSize(sizeof(basic_lights) / sizeof(basic_lights[0]));
+	memcpy(light_buffer->map(), basic_lights, sizeof(basic_lights));
 	light_buffer->unmap();
 	
 	context["lights"]->set(light_buffer);
@@ -1059,6 +1060,10 @@ int main() {
 	w.translate = glm::vec3(-.29, -1.3, .13);
 	campusTransform = glm::translate(campusTransform, w.translate);
 	campusTransform = glm::mat4(0);
+	Lights lights = Lights();
+	float toNorm = 1 / 255.0;
+	lights.addPointLight(glm::vec3(20, 15, 0), .1, .3, .003, toNorm * glm::vec3(255, 195, 0), toNorm * glm::vec3(255, 195, 0), toNorm * glm::vec3(255, 195, 0));
+	lights.addPointLight(glm::vec3(-20, 15, 0), .1, .2, .003, toNorm * glm::vec3(121, 102, 162), toNorm * glm::vec3(121, 102, 162), toNorm * glm::vec3(121, 102, 162));
 	//projection = glm::perspective(glm::radians(45.0f), 800/600.0f, 0.1f, 1000.0f);
 	glm::mat4 light_transform = glm::translate(glm::mat4(1.0f), glm::vec3(3, 3, 3));
 	while (!glfwWindowShouldClose(w.getWindow())) //main render loop
@@ -1078,11 +1083,10 @@ int main() {
 		sp.SetUniform3fv("normalMatrix", glm::mat3(glm::transpose(glm::inverse(transformation * camera.getView()))));
 		sp.SetUniform4fv("camera", camera.getView());
 		sp.SetUniform4fv("projection", camera.getProjection());
-		sp.SetUniform3f("lightColor", glm::vec3(1, 1, 1));
+		sp.SetLights(lights);
 		sp.SetUniform3f("viewPos", camera.getPosition());
 		light_sp.SetUniform4fv("model",  light_transform);
 		light_sp.SetUniform4fv("camera", camera.getProjection() * camera.getView());
-		sp.SetUniform3f("lightPos", glm::vec3(3, 3, 3));
 		
 		//texture.Bind();
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

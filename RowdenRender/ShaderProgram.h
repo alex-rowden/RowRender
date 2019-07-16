@@ -1,5 +1,6 @@
 #pragma once
 #include "RowRender.h"
+#include "Lights.h"
 #include <fstream>
 class ShaderProgram
 {
@@ -28,6 +29,8 @@ public:
 	void SetUniform4fv(const char* uniform_name, glm::mat4 mat, GLint transpose = GL_FALSE);
 	void SetUniform3fv(const char* uniform_name, glm::mat3 mat, GLint transpose = GL_FALSE);
 	void SetUniform2fv(const char* uniform_name, glm::mat2 mat, GLint transpose = GL_FALSE);
+
+	void SetLights(Lights lights);
 private:
 	unsigned int vertexShader, fragmentShader, shaderProgram;
 	void importShaderFile(Shaders shader, std::string *ShaderString);

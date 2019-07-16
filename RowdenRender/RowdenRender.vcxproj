@@ -22,6 +22,7 @@
     <ClCompile Include="..\..\..\..\Documents\CLibs\src\glad.c" />
     <ClCompile Include="..\..\..\..\Documents\CLibs\src\tinyxml2.cpp" />
     <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="Lights.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="Model.cpp" />
@@ -35,6 +36,7 @@
     <ClInclude Include="..\..\..\..\Documents\CLibs\Simple OpenGL Image Library\src\SOIL.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="common.h" />
+    <ClInclude Include="Lights.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="Model.h" />
     <ClInclude Include="RowRender.h" />
