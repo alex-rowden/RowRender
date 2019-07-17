@@ -65,7 +65,7 @@ RT_PROGRAM void pinhole_camera()
 
 	rtTrace(top_object, ray, prd);
 
-	output_buffer[launch_index] = make_float4(prd.result, 1.0f);
+	output_buffer[launch_index] = prd.result;
 }
 
 //
@@ -74,7 +74,7 @@ RT_PROGRAM void pinhole_camera()
 rtDeclareVariable(float3, bg_color, , );
 RT_PROGRAM void miss()
 {
-	prd_radiance.result = bg_color;
+	prd_radiance.result = make_float4(bg_color, 0.0f);
 }
 
 
@@ -83,7 +83,7 @@ RT_PROGRAM void miss()
 // 
 RT_PROGRAM void closest_hit_radiance()
 {
-	prd_radiance.result = normalize(rtTransformNormal(RT_OBJECT_TO_WORLD, shading_normal)) * 0.5f + 0.5f;
+	prd_radiance.result = make_float4(normalize(rtTransformNormal(RT_OBJECT_TO_WORLD, shading_normal)) * 0.5f + 0.5f, .8f);
 }
 
 
@@ -92,5 +92,5 @@ RT_PROGRAM void closest_hit_radiance()
 //
 RT_PROGRAM void exception()
 {
-	output_buffer[launch_index] = make_float4(bad_color, 1.0f);
+	output_buffer[launch_index] = make_float4(bad_color, 0.0f);
 }

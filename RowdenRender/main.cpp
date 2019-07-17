@@ -864,6 +864,8 @@ int main() {
 	Model campusMap = Model("Content\\Models\\cube\\cube.obj");
 	campusMap.setModel();
 	campusMap.getMeshes().at(0)->setTexture(texture, 0);
+	Model RayTraced = Model("Content\\Models\\cube\\cube.obj");
+	RayTraced.setModel();
 	glm::mat4 transformation =  glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
 
 	WifiData wifi;
@@ -1075,7 +1077,7 @@ int main() {
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, (GLsizei)w.width, (GLsizei)w.height, 0, GL_RGBA, GL_FLOAT, (void*)0); // RGBA32F from byte offset 0 in the pixel unpack buffer.
 		glGenerateMipmap(GL_TEXTURE_2D);
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
-		//campusMap.getMeshes().at(0)->setTexture(hdr_texture, 0);
+		RayTraced.getMeshes().at(0)->setTexture(hdr_texture, 0);
 		//transformation = glm::translate(transformation, glm::vec3(0, 0, -3));
 		//transformation = glm::rotate(transformation, glm::radians(10 * (float)glfwGetTime()), glm::vec3(.5f, 1.0f,0));
 
@@ -1094,10 +1096,13 @@ int main() {
 		
 		campusTransform = glm::translate(campusTransform, w.translate);
 		campus_map_sp.SetUniform4fv("model", campusTransform);
-		campus_map_sp.SetUniform3fv("normalMatrix", glm::mat3(glm::transpose(glm::inverse(campusTransform * camera.getView()))));
 		campus_map_sp.SetUniform4fv("camera", camera.getView());
 		campus_map_sp.SetUniform4fv("projection", camera.getProjection());
 		render(campusMap, &campus_map_sp);
+
+		glm::mat4 ray_traced_transform = glm::translate(glm::mat4(1), glm::vec3(0));
+		campus_map_sp.SetUniform4fv("model", glm::inverse(camera.getView()) * ray_traced_transform);
+		render(RayTraced, &campus_map_sp);
 		//render(vol, &sp);
 		w.ProcessFrame(&camera);
 	}
