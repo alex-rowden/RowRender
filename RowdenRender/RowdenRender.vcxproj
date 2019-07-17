@@ -50,6 +50,7 @@
   <ItemGroup>
     <None Include="box.cu" />
     <None Include="fragment_shader.glsl" />
+    <None Include="fragment_shader_no_light.glsl" />
     <None Include="light_frag.glsl" />
     <None Include="light_vert.glsl" />
     <None Include="parallelogram.cu" />
@@ -57,6 +58,7 @@
     <None Include="vertex_shader.glsl">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
     </None>
+    <None Include="vertex_shader_no_light.glsl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

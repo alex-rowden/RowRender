@@ -850,7 +850,7 @@ int main() {
 
 
 	ShaderProgram sp = ShaderProgram({ShaderProgram::Shaders::FRAGMENT, ShaderProgram::Shaders::VERTEX});
-	ShaderProgram light_sp = ShaderProgram({ShaderProgram::Shaders::LIGHT_FRAG, ShaderProgram::Shaders::LIGHT_VERT});
+	ShaderProgram campus_map_sp = ShaderProgram({ShaderProgram::Shaders::NO_LIGHT_FRAG, ShaderProgram::Shaders::NO_LIGHT_VERT});
 	
 
 	//mesh.SetData();
@@ -1085,8 +1085,6 @@ int main() {
 		sp.SetUniform4fv("projection", camera.getProjection());
 		sp.SetLights(lights);
 		sp.SetUniform3f("viewPos", camera.getPosition());
-		light_sp.SetUniform4fv("model",  light_transform);
-		light_sp.SetUniform4fv("camera", camera.getProjection() * camera.getView());
 		
 		//texture.Bind();
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -1095,9 +1093,11 @@ int main() {
 		campusTransform = glm::scale(glm::mat4(1), glm::vec3(w.scale));
 		
 		campusTransform = glm::translate(campusTransform, w.translate);
-		sp.SetUniform4fv("model", campusTransform);
-		sp.SetUniform3fv("normalMatrix", glm::mat3(glm::transpose(glm::inverse(campusTransform * camera.getView()))));
-		render(campusMap, &sp);
+		campus_map_sp.SetUniform4fv("model", campusTransform);
+		campus_map_sp.SetUniform3fv("normalMatrix", glm::mat3(glm::transpose(glm::inverse(campusTransform * camera.getView()))));
+		campus_map_sp.SetUniform4fv("camera", camera.getView());
+		campus_map_sp.SetUniform4fv("projection", camera.getProjection());
+		render(campusMap, &campus_map_sp);
 		//render(vol, &sp);
 		w.ProcessFrame(&camera);
 	}

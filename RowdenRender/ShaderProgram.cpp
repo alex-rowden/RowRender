@@ -7,14 +7,19 @@ ShaderProgram::ShaderProgram(std::vector<Shaders> shaders) {
 		switch (shader) {
 		case Shaders::VERTEX:
 		case Shaders::LIGHT_VERT:
+		case Shaders::NO_LIGHT_VERT:
 			glAttachShader(shaderProgram, vertexShader);
 			break;
 		case Shaders::FRAGMENT:
 		case Shaders::LIGHT_FRAG:
+		case Shaders::NO_LIGHT_FRAG:
 			glAttachShader(shaderProgram, fragmentShader);
 			break;
 		}
 	}
+	GLboolean is_program = glIsProgram(shaderProgram);
+	GLint numShaders;
+	glGetProgramiv(shaderProgram, GL_ATTACHED_SHADERS, &numShaders);
 	glLinkProgram(shaderProgram);
 	program_error_check();
 	glUseProgram(shaderProgram);
@@ -128,7 +133,7 @@ void ShaderProgram::program_error_check() {
 
 	if (!success) {
 		char infoLog[512];
-		glGetShaderInfoLog(shaderProgram, 512, NULL, infoLog);
+		glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
 		std::cout << "ERROR::SHADERPROGRAM::LINK_FAILED\n" << infoLog << std::endl;
 	}
 }
@@ -147,6 +152,12 @@ void ShaderProgram::importShaderFile(Shaders shader, std::string *ShaderString) 
 		break;
 	case Shaders::LIGHT_VERT:
 		filename = "light_vert.glsl";
+		break;
+	case Shaders::NO_LIGHT_FRAG:
+		filename = "fragment_shader_no_light.glsl";
+		break;
+	case Shaders::NO_LIGHT_VERT:
+		filename = "vertex_shader_no_light.glsl";
 		break;
 	default:
 		throw "Not a valid shader";
@@ -190,6 +201,12 @@ void ShaderProgram::shader_error_check(Shaders shader) {
 		shader_name = "LIGHT_FRAG";
 		shader_adr = &fragmentShader;
 		break;
+	case Shaders::NO_LIGHT_VERT:
+		shader_name = "NO_LIGHT_VERT";
+		shader_adr = &vertexShader;
+	case Shaders::NO_LIGHT_FRAG:
+		shader_name = "NO_LIHT_FRAG";
+		shader_adr = &fragmentShader;
 	default:
 		return;
 	}
@@ -229,7 +246,18 @@ void ShaderProgram::SetupShader(Shaders shader) {
 		glShaderSource(vertexShader, 1, &shader_source, NULL);
 		glCompileShader(vertexShader);
 		break;
+	case Shaders::NO_LIGHT_FRAG:
+		fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+		glShaderSource(fragmentShader, 1, &shader_source, NULL);
+		glCompileShader(fragmentShader);
+		break;
+	case Shaders::NO_LIGHT_VERT:
+		vertexShader = glCreateShader(GL_VERTEX_SHADER);
+		glShaderSource(vertexShader, 1, &shader_source, NULL);
+		glCompileShader(vertexShader);
+		break;
 	}
 	
+
 	shader_error_check(shader);
 }
