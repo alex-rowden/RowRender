@@ -3,7 +3,7 @@
 Camera::Camera(glm::vec3 _position, glm::vec3 target, float _fov, float _aspect, glm::vec3 _up) {
 	up = _up;
 	position = _position;
-	direction = glm::normalize(position - target);
+	direction = glm::normalize(target - position);
 	right = glm::normalize(glm::cross(up, direction));
 	pitch = asin(-direction.y);
 	yaw = atan2(direction.x, direction.z);

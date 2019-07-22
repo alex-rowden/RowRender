@@ -113,14 +113,14 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(USERPROFILE)\Documents\CLibs\include;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.1\include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(USERPROFILE)\Documents\CLibs\Libs\Release;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.1\lib;$(LibraryPath)</LibraryPath>
-    <SourcePath>$(USERPROFILE)\Documents\CLibs\src;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.1\src;C:\Users\alrowden\Documents\CLibs\sutil;$(SourcePath)</SourcePath>
+    <IncludePath>$(USERPROFILE)\Documents\CLibs\include;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.1\include;C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\include;C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\SDK\;$(IncludePath)</IncludePath>
+    <LibraryPath>$(USERPROFILE)\Documents\CLibs\Libs\Release;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.1\lib;C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\lib64;$(LibraryPath)</LibraryPath>
+    <SourcePath>$(USERPROFILE)\Documents\CLibs\src;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.1\src;C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\SDK;$(SourcePath)</SourcePath>
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>$(USERPROFILE)\Documents\CLibs\include;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.1\include;C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\SDK;C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(USERPROFILE)\Documents\CLibs\Libs\Debug;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.1\lib\x64;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(USERPROFILE)\Documents\CLibs\Libs\Debug;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.1\lib\x64;C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\lib64;$(LibraryPath)</LibraryPath>
     <SourcePath>$(USERPROFILE)\Documents\CLibs\src;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.1\src;C:\Users\alrowden\Documents\CLibs\sutil;$(SourcePath)</SourcePath>
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
   </PropertyGroup>
@@ -171,7 +171,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <PreprocessorDefinitions>NOMAXMIN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

@@ -33,12 +33,26 @@
 
 using namespace optix;
 
-rtDeclareVariable(float3, boxmin, , );
-rtDeclareVariable(float3, boxmax, , );
+rtBuffer<float4> voxel_buffer;
+rtBuffer<float> intensity_buffer;
+
+rtDeclareVariable(float, cutoff_to, , );
+rtDeclareVariable(float, cutoff_from, , );
 rtDeclareVariable(optix::Ray, ray, rtCurrentRay, );
-rtDeclareVariable(float3, texcoord, attribute texcoord, );
 rtDeclareVariable(float3, geometric_normal, attribute geometric_normal, );
 rtDeclareVariable(float3, shading_normal, attribute shading_normal, );
+rtDeclareVariable(float4, obj_color, attribute obj_color, );
+
+
+//
+// Box
+//
+static __device__ void make_box(const float4& input, float3& boxmin, float3& boxmax) {
+	float halfWidth = input.w / 2;
+	boxmin.x = input.x - halfWidth; boxmax.x = input.x + halfWidth;
+	boxmin.y = input.y - halfWidth; boxmax.y = input.y + halfWidth;
+	boxmin.z = input.z - halfWidth; boxmax.z = input.z + halfWidth;
+}
 
 static __device__ float3 boxnormal(float t, float3 t0, float3 t1)
 {
@@ -47,10 +61,26 @@ static __device__ float3 boxnormal(float t, float3 t0, float3 t1)
 	return pos - neg;
 }
 
-RT_PROGRAM void box_intersect(int)
+static __device__ float4 get_color(float value) {
+	if (value < .8) {
+		return make_float4(1, 0, 1, .2);
+	}
+	else {
+		return make_float4(0, 1, 0, .2);
+	}
+}
+
+RT_PROGRAM void box_intersect(int idx)
 {
+	if (intensity_buffer[idx] == 0) return;
+	else if (intensity_buffer[idx] < cutoff_from || intensity_buffer[idx] > cutoff_to) return;
+
+	float3 boxmin, boxmax;
+	make_box(voxel_buffer[idx], boxmin, boxmax);
+
 	float3 t0 = (boxmin - ray.origin) / ray.direction;
 	float3 t1 = (boxmax - ray.origin) / ray.direction;
+
 	float3 near = fminf(t0, t1);
 	float3 far = fmaxf(t0, t1);
 	float tmin = fmaxf(near);
@@ -59,14 +89,13 @@ RT_PROGRAM void box_intersect(int)
 	if (tmin <= tmax) {
 		bool check_second = true;
 		if (rtPotentialIntersection(tmin)) {
-			texcoord = make_float3(0.0f);
 			shading_normal = geometric_normal = boxnormal(tmin, t0, t1);
+			obj_color = get_color(intensity_buffer[idx]);
 			if (rtReportIntersection(0))
 				check_second = false;
 		}
 		if (check_second) {
 			if (rtPotentialIntersection(tmax)) {
-				texcoord = make_float3(0.0f);
 				shading_normal = geometric_normal = boxnormal(tmax, t0, t1);
 				rtReportIntersection(0);
 			}
@@ -74,8 +103,10 @@ RT_PROGRAM void box_intersect(int)
 	}
 }
 
-RT_PROGRAM void box_bounds(int, float result[6])
+RT_PROGRAM void box_bounds(int primIdx, float result[6])
 {
+	float3 boxmin, boxmax;
+	make_box(voxel_buffer[primIdx], boxmin, boxmax);
 	optix::Aabb* aabb = (optix::Aabb*)result;
 	aabb->set(boxmin, boxmax);
 }

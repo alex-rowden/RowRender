@@ -18,84 +18,68 @@
 #define DEBUG true
 int counter = 10;
 float increment = 0.05;
+float scale = 1.0;
 
 
-void createGeometry(optix::Context& context) {
-	const char* ptx = sutil::getPtxStringDirect("RowdenRender", "box.cu");
-	optix::Program box_bounds = context->createProgramFromPTXString(ptx, "box_bounds");
-	optix::Program box_intersect = context->createProgramFromPTXString(ptx, "box_intersect");
-
-	// Create box
-	optix::Geometry box = context->createGeometry();
-	box->setPrimitiveCount(1u);
-	box->setBoundingBoxProgram(box_bounds);
-	box->setIntersectionProgram(box_intersect);
-	box["boxmin"]->setFloat(-2.0f, 0.0f, -2.0f);
-	box["boxmax"]->setFloat(2.0f, 7.0f, 2.0f);
-
-	// Floor geometry
-	optix::Geometry parallelogram = context->createGeometry();
-	parallelogram->setPrimitiveCount(1u);
-	ptx = sutil::getPtxStringDirect("RowdenRenderer", "parallelogram.cu");
-	parallelogram->setBoundingBoxProgram(context->createProgramFromPTXString(ptx, "bounds"));
-	parallelogram->setIntersectionProgram(context->createProgramFromPTXString(ptx, "intersect"));
-	glm::vec3 anchor = glm::vec3(-64.0f, 0.01f, -64.0f);
-	glm::vec3 v1 = glm::vec3(128.0f, 0.0f, 0.0f);
-	glm::vec3 v2 = glm::vec3(0.0f, 0.0f, 128.0f);
-	glm::vec3 normal = glm::cross(v2, v1);
-	normal = normalize(normal);
-	float d = dot(normal, anchor);
-	v1 *= 1.0f / dot(v1, v1);
-	v2 *= 1.0f / dot(v2, v2);
-	glm::vec4 plane = glm::vec4(normal, d);
-	parallelogram["plane"]->setFloat(plane.x, plane.y, plane.z, plane.w);
-	parallelogram["v1"]->setFloat(plane.x, plane.y, plane.z);
-	parallelogram["v2"]->setFloat(plane.x, plane.y, plane.z);
-	parallelogram["anchor"]->setFloat(anchor.x, anchor.y, anchor.z);
-
-	ptx = sutil::getPtxStringDirect("RowdenRender", "tutorial.cu");
-	optix::Material box_matl = context->createMaterial();
-	optix::Program box_ch = context->createProgramFromPTXString(ptx, "closest_hit_radiance");
-	box_matl->setClosestHitProgram(0, box_ch);
+void createGeometry(optix::Context& context, glm::vec3 volume_size, glm::mat4 transform) {
+	try {
+		const char* ptx = sutil::getPtxStringDirect("RowdenRender", "box.cu");
 	
-	box_matl["Ka"]->setFloat(0.3f, 0.3f, 0.3f);
-	box_matl["Kd"]->setFloat(0.6f, 0.7f, 0.8f);
-	box_matl["Ks"]->setFloat(0.8f, 0.9f, 0.8f);
-	box_matl["phong_exp"]->setFloat(88);
-	box_matl["reflectivity_n"]->setFloat(0.2f, 0.2f, 0.2f);
-
-	//Set floor material
-	optix::Material floor_matl = context->createMaterial();
-	optix::Program floor_ch = context->createProgramFromPTXString(ptx, "closest_hit_radiance");
-	floor_matl->setClosestHitProgram(0, floor_ch);
+		optix::Program box_bounds = context->createProgramFromPTXString(ptx, "box_bounds");
+		optix::Program box_intersect = context->createProgramFromPTXString(ptx, "box_intersect");
 	
-	floor_matl["Ka"]->setFloat(0.3f, 0.3f, 0.1f);
-	floor_matl["Kd"]->setFloat(194 / 255.f * .6f, 186 / 255.f * .6f, 151 / 255.f * .6f);
-	floor_matl["Ks"]->setFloat(0.4f, 0.4f, 0.4f);
-	floor_matl["reflectivity"]->setFloat(0.1f, 0.1f, 0.1f);
-	floor_matl["reflectivity_n"]->setFloat(0.05f, 0.05f, 0.05f);
-	floor_matl["phong_exp"]->setFloat(88);
-	floor_matl["tile_v0"]->setFloat(0.25f, 0, .15f);
-	floor_matl["tile_v1"]->setFloat(-.15f, 0, 0.25f);
-	floor_matl["crack_color"]->setFloat(0.1f, 0.1f, 0.1f);
-	floor_matl["crack_width"]->setFloat(0.02f);
+		// Create box
+		optix::Geometry box = context->createGeometry();
+		box->setPrimitiveCount(1u);
+		box->setBoundingBoxProgram(box_bounds);
+		box->setIntersectionProgram(box_intersect);
 
-	// Create GIs for each piece of geometry
-	std::vector<optix::GeometryInstance> gis;
-	gis.push_back(context->createGeometryInstance(box, &box_matl, &box_matl + 1));
-	gis.push_back(context->createGeometryInstance(parallelogram, &floor_matl, &floor_matl + 1));
+		box["cutoff_from"]->setFloat(0);
+		box["cutoff_to"]->setFloat(1);
+		// Allocate voxels buffer and bind
+		optix::Buffer voxel_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT4, volume_size.x * volume_size.y * volume_size.z);
+		optix::float4* spheres = reinterpret_cast<optix::float4*>(voxel_buffer->map());
 
-	// Place all in group
-	optix::GeometryGroup geometrygroup = context->createGeometryGroup();
-	geometrygroup->setChildCount(static_cast<unsigned int>(gis.size()));
-	geometrygroup->setChild(0, gis[0]);
-	geometrygroup->setChild(1, gis[1]);
+		int halfW = volume_size.x / 2, halfH = volume_size.y / 2, halfD = volume_size.z / 2;
+		float max_dim = 1;
+		scale = fmax(volume_size.x, volume_size.y);
+		// Fill spheres buffer
+		unsigned int i = 0u;
+		for (int x = 0; x < volume_size.x; x++)
+			for (int y = 0; y < volume_size.y; y++)
+				for (int z = 0; z < volume_size.z; z++) {
+					glm::vec4 temp = (glm::vec4(static_cast<float>((x - halfW) / max_dim), static_cast<float>((y - halfH)/ max_dim), static_cast<float>((z - halfD) / max_dim), 1.f));
+					spheres[i++] = optix::make_float4(temp.x, temp.y, temp.z, temp.a);
+				}
+
+		voxel_buffer->unmap();
+
+		box->setPrimitiveCount(volume_size.x * volume_size.y * volume_size.z);
+
+		context["voxel_buffer"]->setBuffer(voxel_buffer);
+		
+		ptx = sutil::getPtxStringDirect("RowdenRender", "tutorial.cu");
+		optix::Material box_matl = context->createMaterial();
+		optix::Program box_ch = context->createProgramFromPTXString(ptx, "closest_hit_radiance");
+
+		box_matl->setClosestHitProgram(0, box_ch);
+
+		// Create GIs for each piece of geometry
+		std::vector<optix::GeometryInstance> gis;
+		gis.push_back(context->createGeometryInstance(box, &box_matl, &box_matl + 1));
+
+		// Place all in group
+		optix::GeometryGroup geometrygroup = context->createGeometryGroup(gis.begin(), gis.end());
 	
-	geometrygroup->setAcceleration(context->createAcceleration("Trbvh"));
-	//geometrygroup->setAcceleration( context->createAcceleration("NoAccel") );
+		geometrygroup->setAcceleration(context->createAcceleration("Trbvh"));
+		//geometrygroup->setAcceleration( context->createAcceleration("NoAccel") );
 
-	context["top_object"]->set(geometrygroup);
-	context["top_shadower"]->set(geometrygroup);
+		context["top_object"]->set(geometrygroup);
+		context["top_shadower"]->set(geometrygroup);
+	}
+	catch (optix::Exception e) {
+		std::cout << e.getErrorString() << std::endl;
+	}
 }
 
 void createContext(optix::Context&context, Window&w) {
@@ -173,6 +157,7 @@ void createContext(optix::Context&context, Window&w) {
 
 //any old render function
 void render(Model mesh, ShaderProgram *sp) {
+	counter = 90;
 	if (counter > 100)
 		counter -= 100;
 	glClearColor(counter/100.0f, counter / 100.0f, counter / 100.0f, 1.0);
@@ -552,7 +537,9 @@ void LoadCampusModel(Model *completeCampus) {
 		std::cout << "file stream didn't open. Panic" << std::endl;
 	}
 	size_t count, parts;
+	std::vector<glm::vec3> vertices = std::vector<glm::vec3>();
 	glm::vec3 vertex;
+	glm::vec3 min_bounds = glm::vec3(0), max_bounds = glm::vec3(0);
 	filestream.read((char*)& parts, sizeof(size_t));
 	Shape* buildings = new Shape();
 	for (size_t j = 0; j < parts; j++) {
@@ -561,7 +548,19 @@ void LoadCampusModel(Model *completeCampus) {
 			filestream.read((char*)& vertex.x, sizeof(float));
 			filestream.read((char*)& vertex.y, sizeof(float));
 			filestream.read((char*)& vertex.z, sizeof(float));
-			buildings->addVertex(vertex);
+			vertices.emplace_back(vertex);
+			if (vertex.x > max_bounds.x)
+				max_bounds.x = vertex.x;
+			if (vertex.y > max_bounds.y)
+				max_bounds.y = vertex.y;
+			if (vertex.z > max_bounds.z)
+				max_bounds.z = vertex.z;
+			if (vertex.x < max_bounds.x)
+				min_bounds.x = vertex.x;
+			if (vertex.y < max_bounds.y)
+				min_bounds.y = vertex.y;
+			if (vertex.z < max_bounds.z)
+				min_bounds.z = vertex.z;
 		}
 		filestream.read((char*)& count, sizeof(size_t));
 		for (size_t i = 0; i < count; i += 3) {
@@ -593,6 +592,13 @@ void LoadCampusModel(Model *completeCampus) {
 			filestream.read((char*)& uint3, sizeof(unsigned int));
 			buildings->addIndex(uint1, uint2, uint3);
 		}
+	}
+	glm::vec3 range = max_bounds - min_bounds;
+	glm::mat4 transform = glm::scale(glm::mat4(1), 1 / (fmax(fmax(range.x, range.y), range.z)) * glm::vec3(1));
+	transform = glm::translate(transform, ( -min_bounds));
+	
+	for (int i = 0; i < vertices.size(); i++) {
+		buildings->addVertex(glm::vec3(transform * glm::vec4(vertices.at(i), 1.0f)));
 	}
 	completeCampus->addMesh(new Mesh(buildings));
 	completeCampus->setModel();
@@ -789,7 +795,7 @@ void makeVolumetricShape(Shape* shape, std::vector<float> intensities, WifiData 
 
 void updateCamera(Window&w, optix::Context&context, optix::float3 camera_eye, optix::float3 camera_lookat, optix::float3 camera_up, optix::Matrix4x4 camera_rotate)
 {
-	const float vfov = 60.0f;
+	const float vfov = 45.0f;
 	const float aspect_ratio = static_cast<float>(w.width) /
 		static_cast<float>(w.height);
 
@@ -839,6 +845,8 @@ int main() {
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_BACK);
 	glDebugMessageCallback(MessageCallback, 0);
 
 	w.SetFramebuferSizeCallback();
@@ -866,7 +874,7 @@ int main() {
 	campusMap.getMeshes().at(0)->setTexture(texture, 0);
 	Model RayTraced = Model("Content\\Models\\cube\\cube.obj");
 	RayTraced.setModel();
-	glm::mat4 transformation =  glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
+	glm::mat4 transformation = glm::scale(glm::mat4(1), scale * glm::vec3(-1, 1, -1));// glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
 
 	WifiData wifi;
 
@@ -1002,14 +1010,21 @@ int main() {
 	optix::Context context;
 	createContext(context, w);
 	
-	createGeometry(context);
+	createGeometry(context, glm::vec3(wifi.numLatCells, wifi.numLonCells, num_cells), transformation);
 
-	optix::float3  camera_eye = optix::make_float3(7.0f, 9.2f, -6.0f);
-	optix::float3 camera_lookat = optix::make_float3(0.0f, 4.0f, 0.0f);
-	optix::float3 camera_up = optix::make_float3(0.0f, 1.0f, 0.0f);
+	optix::Buffer color_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT, use_intensities.size());
+	float* send = reinterpret_cast<float*>(color_buffer->map());
+	for (unsigned int i = 0; i < use_intensities.size(); i++) {
+		send[i] = use_intensities.at(i);
+	}
+	color_buffer->unmap();
+	
 
-	optix::Matrix4x4 camera_rotate = optix::Matrix4x4::identity();
-	updateCamera(w, context, camera_eye, camera_lookat, camera_up, camera_rotate);
+	context["intensity_buffer"]->setBuffer(color_buffer);
+	//setup camera
+	Camera camera = Camera(glm::vec3(0, 0, -1), glm::vec3(0, 0, 0), 45.0f, w.height/w.width);
+	w.SetCamera(&camera);
+	
 
 	struct BasicLight
 	{
@@ -1054,24 +1069,32 @@ int main() {
 	Texture2D hdr_texture = Texture2D();
 	hdr_texture.setDims(w.width, w.height, 4);
 	//Camera camera = Camera(glm::vec3(0, 10, 10), glm::vec3(0, 0, 0), 45.0f, 800/600.0f);
-	Camera camera = Camera(glm::vec3(0, 0, -1), glm::vec3(0, 0, 0), 45.0f, 800/600.0f);
-	w.SetCamera(&camera);
+	
 	glm::mat4 projection;
-	w.scale = glm::vec3(14.475, .03, 12.41);
-	glm::mat4 campusTransform = glm::scale(glm::mat4(1), w.scale);
-	w.translate = glm::vec3(-.29, -1.3, .13);
+	w.scale = glm::vec3(1, .03, 1);
+	glm::mat4 campusTransform = glm::scale(glm::mat4(1), scale * w.scale);
+	w.translate = glm::vec3(0, -.1f, 0);
 	campusTransform = glm::translate(campusTransform, w.translate);
-	campusTransform = glm::mat4(0);
+	
 	Lights lights = Lights();
 	float toNorm = 1 / 255.0;
-	lights.addPointLight(glm::vec3(20, 15, 0), .1, .3, .003, toNorm * glm::vec3(255, 195, 0), toNorm * glm::vec3(255, 195, 0), toNorm * glm::vec3(255, 195, 0));
-	lights.addPointLight(glm::vec3(-20, 15, 0), .1, .2, .003, toNorm * glm::vec3(121, 102, 162), toNorm * glm::vec3(121, 102, 162), toNorm * glm::vec3(121, 102, 162));
+	lights.addPointLight(glm::vec3(2, 1.5, 0), .1, .3, .003, toNorm * glm::vec3(255, 195, 0), toNorm * glm::vec3(255, 195, 0), toNorm * glm::vec3(255, 195, 0));
+	lights.addPointLight(glm::vec3(-2, 1.5, 0), .1, .2, .003, toNorm * glm::vec3(121, 102, 162), toNorm * glm::vec3(121, 102, 162), toNorm * glm::vec3(121, 102, 162));
 	//projection = glm::perspective(glm::radians(45.0f), 800/600.0f, 0.1f, 1000.0f);
 	glm::mat4 light_transform = glm::translate(glm::mat4(1.0f), glm::vec3(3, 3, 3));
 	while (!glfwWindowShouldClose(w.getWindow())) //main render loop
 	{
-		
-		context->launch(0, w.width, w.height);
+		optix::float3  camera_eye = optix::make_float3(camera.getPosition().x, camera.getPosition().y, camera.getPosition().z);
+		optix::float3 camera_lookat = camera_eye - optix::make_float3(camera.getDirection().x, camera.getDirection().y, camera.getDirection().z);
+		optix::float3 camera_up = optix::make_float3(0.0f, 1.0f, 0.0f);
+
+		updateCamera(w, context, camera_eye, camera_lookat, camera_up, optix::Matrix4x4().identity());
+		try {
+			context->launch(0, w.width, w.height);
+		}
+		catch (optix::Exception e) {
+			std::cout << e.getErrorString() << std::endl;
+		}
 		hdr_texture.Bind();
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, buffer_output->getGLBOId());
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, (GLsizei)w.width, (GLsizei)w.height, 0, GL_RGBA, GL_FLOAT, (void*)0); // RGBA32F from byte offset 0 in the pixel unpack buffer.
@@ -1092,7 +1115,7 @@ int main() {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		render(model, &sp);
 		//render(light, &light_sp);
-		campusTransform = glm::scale(glm::mat4(1), glm::vec3(w.scale));
+		campusTransform = glm::scale(glm::mat4(1), scale * glm::vec3(w.scale));
 		
 		campusTransform = glm::translate(campusTransform, w.translate);
 		campus_map_sp.SetUniform4fv("model", campusTransform);
@@ -1100,8 +1123,8 @@ int main() {
 		campus_map_sp.SetUniform4fv("projection", camera.getProjection());
 		render(campusMap, &campus_map_sp);
 
-		glm::mat4 ray_traced_transform = glm::translate(glm::mat4(1), glm::vec3(0));
-		campus_map_sp.SetUniform4fv("model", glm::inverse(camera.getView()) * ray_traced_transform);
+		glm::mat4 ray_traced_transform = glm::translate(glm::mat4(1), 1.0f * camera.getDirection());
+		campus_map_sp.SetUniform4fv("model",glm::scale(glm::mat4(1), scale * glm::vec3(1))); //glm::inverse(camera.getView()));
 		render(RayTraced, &campus_map_sp);
 		//render(vol, &sp);
 		w.ProcessFrame(&camera);
