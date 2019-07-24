@@ -48,7 +48,7 @@ void createGeometry(optix::Context& context, glm::vec3 volume_size, glm::mat4 tr
 		for (int x = 0; x < volume_size.x; x++)
 			for (int y = 0; y < volume_size.y; y++)
 				for (int z = 0; z < volume_size.z; z++) {
-					glm::vec4 temp = (glm::vec4(static_cast<float>((x - halfW) / max_dim), static_cast<float>((y - halfH)/ max_dim), static_cast<float>((z - halfD) / max_dim), 1.f));
+					glm::vec4 temp = (glm::vec4(static_cast<float>((x - halfW) / max_dim), static_cast<float>((y - halfH)/ max_dim), static_cast<float>((z - halfD) / max_dim), .9f));
 					spheres[i++] = optix::make_float4(temp.x, temp.y, temp.z, temp.a);
 				}
 
@@ -61,8 +61,11 @@ void createGeometry(optix::Context& context, glm::vec3 volume_size, glm::mat4 tr
 		ptx = sutil::getPtxStringDirect("RowdenRender", "tutorial.cu");
 		optix::Material box_matl = context->createMaterial();
 		optix::Program box_ch = context->createProgramFromPTXString(ptx, "closest_hit_radiance");
-
+		optix::Program box_ah = context->createProgramFromPTXString(ptx, "any_hit_shadow");
+		
 		box_matl->setClosestHitProgram(0, box_ch);
+		box_matl->setAnyHitProgram(1, box_ah);
+		box_matl["phong_exp"]->setFloat(88);
 
 		// Create GIs for each piece of geometry
 		std::vector<optix::GeometryInstance> gis;
@@ -99,12 +102,16 @@ void createContext(optix::Context&context, Window&w) {
 	context["max_depth"]->setInt(100);
 	context["scene_epsilon"]->setFloat(1.e-4f);
 	context["importance_cutoff"]->setFloat(.01f);
-	context["ambient_light_color"]->setFloat(.31f, .33f, .28f);
+	context["ambient_light_color"]->setFloat(.31f, .33f, .28f, 1.0);
+	
 
 	
 
 	std::string kernel = "tutorial.cu";
-	
+	try
+	{
+
+
 	const char* ptx = sutil::getPtxStringDirect("RowdenRender", kernel.c_str());
 	
 	//set output
@@ -119,9 +126,15 @@ void createContext(optix::Context&context, Window&w) {
 	// Miss program
 	const std::string miss_name = "miss";
 	context->setMissProgram(0, context->createProgramFromPTXString(ptx, miss_name));
+	}
+	catch (optix::Exception e)
+	{
+		std::cout << e.getErrorString() << std::endl;
+	}
 	const glm::vec3 default_color = glm::vec3(1.0f, 1.0f, 1.0f);
 	//const std::string texpath = texture_path + "/" + std::string("CedarCity.hdr");
 	//context["envmap"]->setTextureSampler(sutil::loadTexture(context, texpath, default_color));
+
 	context["bg_color"]->setFloat(0.34f, 0.55f, 0.85f);
 
 	// 3D solid noise buffer, 1 float channel, all entries in the range [0.0, 1.0].
@@ -1009,14 +1022,18 @@ int main() {
 
 	optix::Context context;
 	createContext(context, w);
-	
-	createGeometry(context, glm::vec3(wifi.numLatCells, wifi.numLonCells, num_cells), transformation);
+	glm::mat4 volume_transform = glm::rotate(glm::mat4(1), glm::radians(90.0f), glm::vec3(0, 1, 0));
+	createGeometry(context, glm::vec3(wifi.numLatCells, wifi.numLonCells, num_cells), glm::mat4(1));
 
 	optix::Buffer color_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT, use_intensities.size());
 	float* send = reinterpret_cast<float*>(color_buffer->map());
-	for (unsigned int i = 0; i < use_intensities.size(); i++) {
-		send[i] = use_intensities.at(i);
-	}
+	
+	int i = 0;
+	for (int x = 0; x < wifi.numLatCells; x++)
+		for (int y = 0; y < wifi.numLonCells; y++)
+			for (int z = 0; z < num_cells; z++) {
+				send[i++] = use_intensities.at(x + wifi.numLatCells * y + wifi.numLatCells * wifi.numLonCells * z);
+			}
 	color_buffer->unmap();
 	
 
@@ -1037,7 +1054,7 @@ int main() {
 		int    padding;      // make this structure 32 bytes -- powers of two are your friend!
 	};
 	BasicLight basic_lights[] = {
-	   { optix::make_float3(-5.0f, 60.0f, -16.0f), optix::make_float3(1.0f, 1.0f, 1.0f), 1 }
+	   { optix::make_float3(camera.getPosition().x, camera.getPosition().y, camera.getPosition().z), optix::make_float3(1.0f, 1.0f, 1.0f), 1 }
 	};
 
 	optix::Buffer light_buffer = context->createBuffer(RT_BUFFER_INPUT);
@@ -1075,6 +1092,7 @@ int main() {
 	glm::mat4 campusTransform = glm::scale(glm::mat4(1), scale * w.scale);
 	w.translate = glm::vec3(0, -.1f, 0);
 	campusTransform = glm::translate(campusTransform, w.translate);
+	w.setSpeed(.5 * scale);
 	
 	Lights lights = Lights();
 	float toNorm = 1 / 255.0;
@@ -1124,7 +1142,7 @@ int main() {
 		render(campusMap, &campus_map_sp);
 
 		glm::mat4 ray_traced_transform = glm::translate(glm::mat4(1), 1.0f * camera.getDirection());
-		campus_map_sp.SetUniform4fv("model",glm::scale(glm::mat4(1), scale * glm::vec3(1))); //glm::inverse(camera.getView()));
+		campus_map_sp.SetUniform4fv("model",  glm::scale(glm::mat4(1), scale * glm::vec3(1)));
 		render(RayTraced, &campus_map_sp);
 		//render(vol, &sp);
 		w.ProcessFrame(&camera);

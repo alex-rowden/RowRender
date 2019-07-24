@@ -61,7 +61,7 @@ void Window::standardInputProcessor(GLFWwindow* window) { //Go to processInputFu
 	float currentFrame = glfwGetTime();
 	float deltaTime = currentFrame - lastTime;
 	lastTime = currentFrame;
-	float speed = .5 * deltaTime;
+	float speed = this->speed * deltaTime;
 	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
 		speed *= 2;
 	}

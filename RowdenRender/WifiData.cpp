@@ -108,7 +108,7 @@ void WifiData::Finalize(float latLonDist)
 {
 	longitudeRange = maxLon - minLon;
 	latitudeRange = maxLat - minLat;
-	std::cout << maxLon << ", " << minLon << std::endl;
+
 
 	numLonCells = ceil(longitudeRange / latLonDist);
 	numLatCells = ceil(latitudeRange / latLonDist);

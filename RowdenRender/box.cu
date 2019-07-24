@@ -62,11 +62,11 @@ static __device__ float3 boxnormal(float t, float3 t0, float3 t1)
 }
 
 static __device__ float4 get_color(float value) {
-	if (value < .8) {
-		return make_float4(1, 0, 1, .2);
+	if (value > .8) {
+		return make_float4(1, 0, 1, .02);
 	}
 	else {
-		return make_float4(0, 1, 0, .2);
+		return make_float4(0, 0, 0, 0);
 	}
 }
 
@@ -74,6 +74,7 @@ RT_PROGRAM void box_intersect(int idx)
 {
 	if (intensity_buffer[idx] == 0) return;
 	else if (intensity_buffer[idx] < cutoff_from || intensity_buffer[idx] > cutoff_to) return;
+	if (intensity_buffer[idx] < .8) return;
 
 	float3 boxmin, boxmax;
 	make_box(voxel_buffer[idx], boxmin, boxmax);
@@ -96,6 +97,7 @@ RT_PROGRAM void box_intersect(int idx)
 		}
 		if (check_second) {
 			if (rtPotentialIntersection(tmax)) {
+				obj_color = get_color(intensity_buffer[idx]);
 				shading_normal = geometric_normal = boxnormal(tmax, t0, t1);
 				rtReportIntersection(0);
 			}
