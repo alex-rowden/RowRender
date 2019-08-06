@@ -15,7 +15,7 @@ rtDeclareVariable(float, t_hit, rtIntersectionDistance, );
 rtDeclareVariable(uint2, launch_index, rtLaunchIndex, );
 
 rtBuffer<float3, 2> location_buffer;
-rtBuffer<float3, 2> amplitude_buffer;
+rtBuffer<float4, 2> amplitude_buffer;
 rtBuffer<float, 2> initPhase_buffer;
 
 rtBuffer<float3, 3> compLocation_buffer; // store location of each composition
@@ -45,58 +45,65 @@ rtDeclareVariable(float, volumeRaytraceStepSize, , );
 
 rtDeclareVariable(uint2, buffer_range_beg, , );
 rtDeclareVariable(uint2, buffer_range_end, , );
+RT_PROGRAM void dummy() {
+	//rtPrintf("%d, %d\n", launch_index.x, launch_index.y);
+	amplitude_buffer[launch_index] = make_float4(.7, 0, .9, .6);
+}
 
-RT_PROGRAM void closest_hit_composite_volume_front_back() {
+rtDeclareVariable(float3, hg_normal, , );	// normalized
+
+RT_PROGRAM void closest_hit() {
+	float t = -dot(ray.origin, hg_normal) / dot(ray.direction, hg_normal);
+	float3 interLoc = ray.origin + t * ray.direction;
+	location_buffer[launch_index] = interLoc;
 	// init phase
 	const float3 fhp = front_hit_point;
-	if (compositionBufferRowRange.x >= compositionBufferRowRange.y) {
-		location_buffer[launch_index] = fhp;
-	}
 	float phase_u = dot(fhp - box_min, v1);
 	float phase_v = dot(fhp - box_min, v2);
 	initPhase_buffer[launch_index] = optix::rtTex2D<float>(initPhaseTextureId, phase_u, phase_v);
 	// composite from front to back
 	const float3 bhp = back_hit_point;
 	unsigned int num_steps = floorf(sqrtf(dot(bhp - fhp, bhp - fhp)) / volumeRaytraceStepSize);
-	//unsigned int num_steps = floorf(sqrtf(dot(bhp - fhp, bhp - fhp)) / ((volumeRaytraceStepSize + scene_epsilon)));
 	float3 color_composited = make_float3(0.f, 0.f, 0.f);
 	float opaque_composited = 0.f;
-	unsigned int valid_step = 0;
+	float opacities[300];
+	int counter = 0;
+	//rtPrintf("%d\n", num_steps);
 	for (unsigned int s = 0; s < num_steps; ++s) {
 		float3 texPoint = fhp + (s + 0.5) * volumeRaytraceStepSize * ray.direction;
+		
 		float vol_u = dot(texPoint - box_min, v1);
 		float vol_v = dot(texPoint - box_min, v2);
 		float vol_w = dot(texPoint - box_min, v3);
+		//rtPrintf("%f, %f, %f\n", vol_u, vol_v, vol_w);
 		float volume_scalar = optix::rtTex3D<float>(volumeTextureId, vol_u, vol_v, vol_w);
 		float4 voxel_val_tf = optix::rtTex2D<float4>(transferFunction_texId, volume_scalar, volume_scalar);
 		float3 color_self = make_float3(voxel_val_tf);
+	
+		
 		float opaque_self = voxel_val_tf.w;
-		opaque_self = 1.f - powf(1.f - opaque_self, opacity_correction);
-		// store composition results
-		if (launch_index.x >= buffer_range_beg.x && launch_index.x < buffer_range_end.x &&
-			launch_index.y >= buffer_range_beg.y && launch_index.y < buffer_range_end.y) {	// ray being traced in the elemental hologram (this condition may not be necessary)
-			if (compositionBufferRowRange.x < compositionBufferRowRange.y) {	// trace a subregion
-				uint launch_index_row_offset = launch_index.y - buffer_range_beg.y;	// offset in elemental hologram
-				if (launch_index_row_offset >= compositionBufferRowRange.x && launch_index_row_offset < compositionBufferRowRange.y) {	// ray being traced in the composition subregion
-					uint3 compositionBufferIndex = make_uint3(launch_index.x - buffer_range_beg.x, launch_index_row_offset - compositionBufferRowRange.x, valid_step);
-					if (compositionBufferIndex.x < compositionBufferSize.x && compositionBufferIndex.y < compositionBufferSize.y && compositionBufferIndex.z < compositionBufferSize.z) {
-						compAmplitude_buffer[compositionBufferIndex] = (1.f - opaque_composited) * opaque_self * make_float3(sqrt(color_self.x), sqrt(color_self.y), sqrt(color_self.z));
-						compLocation_buffer[compositionBufferIndex] = texPoint;
-						compDepth_buffer[make_uint2(compositionBufferIndex.x, compositionBufferIndex.y)] = valid_step;
-					}
-				}
-			}
-		}
+		opaque_self = 1.f - powf(1.f - opaque_self, 1);
 		// amp = amp_in + (1-opaque) * amp_self
 		// opqaue = opaque_in + (1-opqaue) * opqaue_self
 		color_composited = color_composited + (1.f - opaque_composited) * opaque_self * color_self;
 		opaque_composited = opaque_composited + (1.f - opaque_composited) * opaque_self;
-		valid_step = valid_step + 1;
+		if (s < 300 && opaque_composited > 1e-3) {
+			opacities[s] = opaque_composited;
+			counter++;
+		}
+		
+		if (opaque_composited > 0.99) break;
 	}
-	if (compositionBufferRowRange.x >= compositionBufferRowRange.y) {
-		amplitude_buffer[launch_index] = color_composited;
+	if (opaque_composited > .9) {
+		rtPrintf("%f\n", opaque_composited);
+		for (int i = 0; i < counter; i++) {
+			rtPrintf("%f\n", opacities[i]);
+		}
+		rtPrintf("END\n");
 	}
+	amplitude_buffer[launch_index] = make_float4(sqrt(color_composited.x), sqrt(color_composited.y), sqrt(color_composited.z), (opaque_composited));
 }
+
 
 rtDeclareVariable(uint2, element_hologram_dim, , );		// number of pixels in each element hologram
 rtDeclareVariable(uint2, num_rays_per_element_hologram, , );
@@ -106,7 +113,7 @@ rtDeclareVariable(float, ray_interval, , );		// ray interval in radian
 rtDeclareVariable(float3, hg_anchor, , );	// lower left corner of the hologram
 rtDeclareVariable(float3, hg_v1, , );	// normalized
 rtDeclareVariable(float3, hg_v2, , );	// normalized
-rtDeclareVariable(float3, hg_normal, , );	// normalized
+
 
 rtDeclareVariable(unsigned int, radiance_ray_type, , );
 rtDeclareVariable(float, scene_epsilon, , );
@@ -115,12 +122,37 @@ rtDeclareVariable(rtObject, top_object, , );
 // ray direction jitter random texture
 rtDeclareVariable(int, random_texture, , );	// [0, 1] ^ 4
 
+rtDeclareVariable(float3, eye, , );
+rtDeclareVariable(float3, U, , );
+rtDeclareVariable(float3, V, , );
+rtDeclareVariable(float3, W, , );
+
+RT_PROGRAM void camera() {
+	// if outside buffer range, paint it black
+	amplitude_buffer[launch_index] = make_float4(0.f, 0.f, 0.f, 0.0f);
+	location_buffer[launch_index] = make_float3(0.f, 0.f, 0.f);
+	initPhase_buffer[launch_index] = -1.f;
+	size_t2 screen = amplitude_buffer.size();
+
+	float2 d = make_float2(launch_index) / make_float2(screen) * 2.f - 1.f;
+	float3 ray_origin = eye;
+	float3 ray_direction = normalize(d.x * U + d.y * V + W);
+
+	optix::Ray ray(ray_origin, ray_direction, 0, scene_epsilon);
+
+	PerRayData_hologram prd;
+
+	rtTrace(top_object, ray, prd);
+
+}
+
 // Ray generation program
 RT_PROGRAM void RayGeneration() {
 	// if outside buffer range, paint it black
-	amplitude_buffer[launch_index] = make_float3(0.f, 0.f, 0.f);
+	amplitude_buffer[launch_index] = make_float4(0.f, 0.f, 0.f, 0.0f);
 	location_buffer[launch_index] = make_float3(0.f, 0.f, 0.f);
 	initPhase_buffer[launch_index] = -1.f;
+	/*
 	if (launch_index.x < buffer_range_beg.x || launch_index.x >= buffer_range_end.x ||
 		launch_index.y < buffer_range_beg.y || launch_index.y >= buffer_range_end.y) {
 		return;
@@ -132,28 +164,35 @@ RT_PROGRAM void RayGeneration() {
 		uint2 compDepth_idx = make_uint2(launch_index.x - buffer_range_beg.x, launch_index_row_offset - compositionBufferRowRange.x);
 		compDepth_buffer[compDepth_idx] = 0;
 	}
+	*/
 	// 1. determine element hologram
 	uint2 element_hologram_index = make_uint2(floor(make_float2(launch_index) / make_float2(num_rays_per_element_hologram)));
 	// 2. determine center of element hologram
 	float2 element_hologram_size = pixel_pitch * make_float2(element_hologram_dim);
 	float2 ele_hg_center_from_anchor = (make_float2(element_hologram_index) + make_float2(0.5f, 0.5f)) * element_hologram_size;	// physical distance
 	float3 ele_hg_center = hg_anchor + hg_v1 * ele_hg_center_from_anchor.x + hg_v2 * ele_hg_center_from_anchor.y;
+	//rtPrintf("%f, %f, %f\n", ele_hg_center.x, ele_hg_center.y, ele_hg_center.z);
 	// 3. determine vertical and horizontal angle
 	float2 ray_angle = (make_float2(launch_index - element_hologram_index * num_rays_per_element_hologram) - make_float2(half_num_rays_per_element_hologram)) * ray_interval;
 	// add random shift in ray direction
-	float2 uv = make_float2(launch_index) / make_float2(location_buffer.size());
+	float2 uv = make_float2(launch_index) / make_float2(amplitude_buffer.size());
 	float2 ray_angle_shift = 2.f * make_float2(optix::rtTex2D<float4>(random_texture, uv.x, uv.y)) - 1.f;	// [-1, 1] x [-1, 1]
-	ray_angle = ray_angle + ray_angle_shift * ray_interval * 0.5f;
+	//ray_angle = ray_angle + ray_angle_shift * ray_interval * 0.5f;
 	// 4. determine ray direction
 	float3 v_n1 = normalize(sinf(ray_angle.x) * hg_v1 + cosf(ray_angle.x) * hg_normal);
+	//rtPrintf("ray_angle: %f, %f\nhg_v2: %f\nhg_n1: %f\n", ray_angle.x, ray_angle.y, hg_v2, v_n1);
 	float3 ray_direction = normalize(sinf(ray_angle.y) * hg_v2 + cosf(ray_angle.y) * v_n1);
+	//rtPrintf("Ray_Direction: %f, %f, %f\n", ray_direction.x, ray_direction.y, ray_direction.z);
 	// ray
-	optix::Ray ray(ele_hg_center, ray_direction, radiance_ray_type, scene_epsilon);
+
+	optix::Ray ray(make_float3(0,0,-50), ray_direction, radiance_ray_type, scene_epsilon);
 	PerRayData_hologram prd;
 	prd.f2b_color = make_float3(0.f, 0.f, 0.f);
 	prd.f2b_opaque = 0.f;
 	prd.depth = 0;
 	// trace
+	//rtPrintf("%f, %f, %f\n", ray.origin.x,ray.origin.y, ray.origin.z );
+	//rtPrintf("%f, %f, %f\n", ray.direction.x,ray.direction.y, ray.direction.z );
 	rtTrace(top_object, ray, prd);
 	// collect result
 }
@@ -162,7 +201,8 @@ RT_PROGRAM void RayGeneration() {
 // did not hit anything, mark as not hit
 // zero amplitude,
 RT_PROGRAM void exception() {
-	amplitude_buffer[launch_index] = make_float3(0.f, 1.f, 0.f);
+	rtPrintExceptionDetails();
+	amplitude_buffer[launch_index] = make_float4(0.f, 1.f, 0.f, 1.0f);
 	location_buffer[launch_index] = make_float3(0.f, 0.f, 0.f);
 	initPhase_buffer[launch_index] = -1.f;
 }
@@ -171,4 +211,5 @@ RT_PROGRAM void exception() {
 // did not hit anything, mark as not hit
 // zero amplitude
 RT_PROGRAM void miss() {
+	//amplitude_buffer[launch_index] = optix::make_float3(1, 0, 1);
 }

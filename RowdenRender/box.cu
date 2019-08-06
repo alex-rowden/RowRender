@@ -30,15 +30,15 @@
 #include <optixu/optixu_math_namespace.h>
 #include <optixu/optixu_matrix_namespace.h>
 #include <optixu/optixu_aabb_namespace.h>
-
+#include <optix_device.h>
 using namespace optix;
 
 
 rtDeclareVariable(optix::Ray, ray, rtCurrentRay, );
 
 
-rtDeclareVariable(float3, boxmin, , );	// also the anchor
-rtDeclareVariable(float3, boxmax, , );	// opposite corners of the volume
+rtDeclareVariable(float3, box_min, , );	// also the anchor
+rtDeclareVariable(float3, box_max, , );	// opposite corners of the volume
 rtDeclareVariable(float3, v1, , );		// edges of the plane in which a slice is put, has been scaled by 1/dot(v1, v1)
 rtDeclareVariable(float3, v2, , );
 rtDeclareVariable(float3, v3, , );
@@ -52,36 +52,28 @@ rtDeclareVariable(float3, back_hit_point, attribute back_hit_point, );
 
 
 
-RT_PROGRAM void box_intersect(int idx)
-{
-	float3 t0 = (boxmin - ray.origin) / ray.direction;
-	float3 t1 = (boxmax - ray.origin) / ray.direction;
-
+RT_PROGRAM void box_intersect(int primIdx) {
+	float3 rayOrigin_boxMin = box_min - ray.origin;
+	float3 rayOrigin_boxMax = box_max - ray.origin;
+	float3 t0 = rayOrigin_boxMin / ray.direction;
+	float3 t1 = rayOrigin_boxMax / ray.direction;
 	float3 near = fminf(t0, t1);
 	float3 far = fmaxf(t0, t1);
-	float tmin = fmaxf(near);
-	float tmax = fminf(far);
-
-	if (tmin <= tmax && tmin > 0) {
-		bool check_second = true;
-		if (rtPotentialIntersection(tmin)) {
-			if (rtReportIntersection(0))
-				front_hit_point = ray.origin + (t_min + scene_epsilon) * ray.direction;
-				back_hit_point = ray.origin + (t_max - scene_epsilon) * ray.direction;
-				check_second = false;
-		}
-		if (check_second) {
-			if (rtPotentialIntersection(tmax)) {
-				front_hit_point = ray.origin + (t_max - scene_epsilon) * ray.direction;
-				back_hit_point = ray.origin + (t_min + scene_epsilon) * ray.direction;
-				rtReportIntersection(0);
-			}
+	float t_min = fmaxf(near);
+	float t_max = fminf(far);
+	if (t_min < t_max && t_min > 0) {
+		// ray intersects volume, enters at t_min, exists at t_max
+		if (rtPotentialIntersection(t_min)) {
+			front_hit_point = ray.origin + (t_min + scene_epsilon) * ray.direction;
+			back_hit_point = ray.origin + (t_max - scene_epsilon) * ray.direction;
+			rtReportIntersection(0);
 		}
 	}
 }
-
 RT_PROGRAM void box_bounds(int primIdx, float result[6])
 {
 	optix::Aabb* aabb = (optix::Aabb*)result;
-	aabb->set(boxmin, boxmax);
+	//rtPrintf("%f, %f, %f\n", box_min.x, box_min.y, box_min.z);
+	//rtPrintf("%f, %f, %f\n", box_max.x, box_max.y, box_max.z);
+	aabb->set(box_min, box_max);
 }
