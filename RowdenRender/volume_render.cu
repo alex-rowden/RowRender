@@ -2,6 +2,8 @@
 #include <optixu/optixu_math_namespace.h>
 #include <optix_device.h>
 
+#define M_PIf 3.1415926535897932384626433
+
 using namespace optix;
 
 struct PerRayData_hologram {
@@ -82,24 +84,24 @@ RT_PROGRAM void closest_hit() {
 	
 		
 		float opaque_self = voxel_val_tf.w;
-		opaque_self = 1.f - powf(1.f - opaque_self, 1);
+		//opaque_self = 1.f - powf(1.f - opaque_self, opacity_correction);
 		// amp = amp_in + (1-opaque) * amp_self
 		// opqaue = opaque_in + (1-opqaue) * opqaue_self
 		color_composited = color_composited + (1.f - opaque_composited) * opaque_self * color_self;
 		opaque_composited = opaque_composited + (1.f - opaque_composited) * opaque_self;
-		if (s < 300 && opaque_composited > 1e-3) {
-			opacities[s] = opaque_composited;
+		if (counter	 < 300 && opaque_composited > 1e-3 ) {
+			opacities[counter] = opaque_self;
 			counter++;
 		}
 		
 		if (opaque_composited > 0.99) break;
 	}
 	if (opaque_composited > .9) {
-		rtPrintf("%f\n", opaque_composited);
+		//rtPrintf("%f\n", opaque_composited);
 		for (int i = 0; i < counter; i++) {
-			rtPrintf("%f\n", opacities[i]);
+			//rtPrintf("%f\n", opacities[i]);
 		}
-		rtPrintf("END\n");
+		//rtPrintf("END\n");
 	}
 	amplitude_buffer[launch_index] = make_float4(sqrt(color_composited.x), sqrt(color_composited.y), sqrt(color_composited.z), (opaque_composited));
 }
@@ -123,9 +125,9 @@ rtDeclareVariable(rtObject, top_object, , );
 rtDeclareVariable(int, random_texture, , );	// [0, 1] ^ 4
 
 rtDeclareVariable(float3, eye, , );
-rtDeclareVariable(float3, U, , );
-rtDeclareVariable(float3, V, , );
-rtDeclareVariable(float3, W, , );
+rtDeclareVariable(uint, imageWidth, , );
+rtDeclareVariable(uint, imageHeight, , );
+rtDeclareVariable(float, fov, , );
 
 RT_PROGRAM void camera() {
 	// if outside buffer range, paint it black
@@ -135,15 +137,18 @@ RT_PROGRAM void camera() {
 	size_t2 screen = amplitude_buffer.size();
 
 	float2 d = make_float2(launch_index) / make_float2(screen) * 2.f - 1.f;
-	float3 ray_origin = eye;
-	float3 ray_direction = normalize(d.x * U + d.y * V + W);
-
-	optix::Ray ray(ray_origin, ray_direction, 0, scene_epsilon);
-
+	float imageAspectRatio = imageWidth / (float)imageHeight; // assuming width > height 
+	float Px = (2 * ((d.x + 0.5) / imageWidth) - 1) * tan(fov / 2 * M_PIf / 180) * imageAspectRatio;
+	float Py = (1 - 2 * ((d.y + 0.5) / imageHeight)) * tan(fov / 2 * M_PIf / 180);
+	float3 rayOrigin = eye;
+	float3 rayDirection = make_float3(Px, Py, -1) - rayOrigin; // note that this just equal to Vec3f(Px, Py, -1); 
+	rayDirection = normalize(rayDirection); // it's a direction so don't forget to normalize 
+	optix::Ray ray(rayOrigin, rayDirection, radiance_ray_type, scene_epsilon);
 	PerRayData_hologram prd;
-
+	prd.f2b_color = make_float3(0.f, 0.f, 0.f);
+	prd.f2b_opaque = 0.f;
+	prd.depth = 0;
 	rtTrace(top_object, ray, prd);
-
 }
 
 // Ray generation program

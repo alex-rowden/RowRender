@@ -15,6 +15,7 @@
 #include <random>
 #include <fstream>
 #include <iostream>
+#include <chrono>
 
 #define DEBUG true
 #define MY_PI 3.1415926535897932384626433
@@ -72,7 +73,7 @@ void createGeometry(optix::Context& context, glm::vec3 volume_size, glm::mat4 tr
 		context["v3"]->setFloat(volume_v3);
 		context["volumeRaytraceStepSize"]->setFloat(.011);
 
-		context["hg_anchor"]->setFloat( -(float)2048 *  .0037/ 2.f, -(float)2048 *.0037 / 2.f, -5.0f );
+		context["hg_anchor"]->setFloat( -(float)1024 *  .0037/ 2.f, -(float)1024 *.0037 / 2.f, -5.0f );
 		context["hg_v1"]->setFloat(1, 0, 0);
 		context["hg_v2"]->setFloat(0, 1, 0);	// axis aligned
 		context["hg_normal"]->setFloat(0, 0, 1);
@@ -97,7 +98,7 @@ void createGeometry(optix::Context& context, glm::vec3 volume_size, glm::mat4 tr
 		}
 
 		optix::float3 hg_normal = optix::normalize(optix::make_float3(0,0,1));
-		optix::float3 hg_anchor = optix::make_float3(-(float)2048* .0037 / 2.f, -(float)2048 * .0037 / 2.f, 5.0f);
+		optix::float3 hg_anchor = optix::make_float3(-(float)1024* .0037 / 2.f, -(float)1024 * .0037 / 2.f, 5.0f);
 		float min_dist = 1e10;
 		float max_dist = 0;
 		for (unsigned int it_v = 0; it_v < 8; ++it_v) {
@@ -153,7 +154,7 @@ void createContext(optix::Context&context, Window&w) {
 	//context["max_depth"]->setInt(100);
 	context["scene_epsilon"]->setFloat(1.e-4f);
 	context["opacity_correction"]->setFloat(.65f);
-	optix::float2 output_buffer_dim = optix::make_float2(2048, 2048);
+	optix::float2 output_buffer_dim = optix::make_float2(1024, 1024);
 	// buffer to store locations and brightness of intersections
 	location_buffer = sutil::createOutputBuffer(context, RT_FORMAT_FLOAT3, output_buffer_dim.x, output_buffer_dim.y, false);
 	amplitude_buffer = sutil::createOutputBuffer(context, RT_FORMAT_FLOAT4, output_buffer_dim.x, output_buffer_dim.y, false);
@@ -165,19 +166,19 @@ void createContext(optix::Context&context, Window&w) {
 	optix::float3 volume_size = optix::make_float3(.01f, .01f, .01f);
 	float volumeDiagLength = sqrt(volume_size.x * volume_size.x + volume_size.y * volume_size.y + volume_size.z * volume_size.z);
 	unsigned int maxCompositionSteps = (unsigned int)std::ceil(volumeDiagLength / volumeRaytraceStepSize);
-	optix::float3 compositionBufferSize = optix::make_float3(2048, std::floorf(100000000 / (sizeof(optix::float3) * maxCompositionSteps * 2048)), maxCompositionSteps);
+	//optix::float3 compositionBufferSize = optix::make_float3(2048, std::floorf(100000000 / (sizeof(optix::float3) * maxCompositionSteps * 2048)), maxCompositionSteps);
 	// composition buffer
-	compLocation_buffer = context->createBuffer(RT_BUFFER_OUTPUT, RT_FORMAT_FLOAT3, compositionBufferSize.x, compositionBufferSize.y, compositionBufferSize.z);
-	compAmplitude_buffer = context->createBuffer(RT_BUFFER_OUTPUT, RT_FORMAT_FLOAT3, compositionBufferSize.x, compositionBufferSize.y, compositionBufferSize.z);
-	compDepth_buffer = context->createBuffer(RT_BUFFER_OUTPUT, RT_FORMAT_UNSIGNED_INT, compositionBufferSize.x, compositionBufferSize.y);
-	context["compLocation_buffer"]->set(compLocation_buffer);
-	context["compAmplitude_buffer"]->set(compAmplitude_buffer);
-	context["compDepth_buffer"]->set(compDepth_buffer);
-	context["compositionBufferSize"]->setUint(compositionBufferSize.x, compositionBufferSize.y, compositionBufferSize.z);
+	//compLocation_buffer = context->createBuffer(RT_BUFFER_OUTPUT, RT_FORMAT_FLOAT3, compositionBufferSize.x, compositionBufferSize.y, compositionBufferSize.z);
+	//compAmplitude_buffer = context->createBuffer(RT_BUFFER_OUTPUT, RT_FORMAT_FLOAT3, compositionBufferSize.x, compositionBufferSize.y, compositionBufferSize.z);
+	//compDepth_buffer = context->createBuffer(RT_BUFFER_OUTPUT, RT_FORMAT_UNSIGNED_INT, compositionBufferSize.x, compositionBufferSize.y);
+	//context["compLocation_buffer"]->set(compLocation_buffer);
+	//context["compAmplitude_buffer"]->set(compAmplitude_buffer);
+	//context["compDepth_buffer"]->set(compDepth_buffer);
+	//context["compositionBufferSize"]->setUint(compositionBufferSize.x, compositionBufferSize.y, compositionBufferSize.z);
 
-	context["element_hologram_dim"]->setUint(2048, 2048);
-	context["half_num_rays_per_element_hologram"]->setUint( 2048/ 2, 2048 / 2);
-	context["num_rays_per_element_hologram"]->setUint(2048, 2048);
+	context["element_hologram_dim"]->setUint(1024, 1024);
+	context["half_num_rays_per_element_hologram"]->setUint( 1024/ 2, 1024 / 2);
+	context["num_rays_per_element_hologram"]->setUint(1024, 1024);
 	context["pixel_pitch"]->setFloat(.0037);
 	context["ray_interval"]->setFloat(10e-4);
 
@@ -225,7 +226,7 @@ void createOptixTextures(optix::Context& context, glm::vec3 volume_size, std::ve
 
 		// 2. random initial phase texture
 		// assume the size of the texture is 4 x num_rays_per_ele_hg
-		optix::uint2 num_rays_per_ele_hg = optix::make_uint2(2048, 2048);
+		optix::uint2 num_rays_per_ele_hg = optix::make_uint2(1024, 1024);
 		optix::uint2 randPhaseTextureSize = 4 * num_rays_per_ele_hg;
 		float* randPhaseData = new float[randPhaseTextureSize.x * randPhaseTextureSize.y];
 		for (unsigned int i = 0; i < randPhaseTextureSize.x * randPhaseTextureSize.y; ++i) {
@@ -260,7 +261,7 @@ void createOptixTextures(optix::Context& context, glm::vec3 volume_size, std::ve
 				transferFunction.emplace_back(r);
 				transferFunction.emplace_back(g);
 				transferFunction.emplace_back(b);
-				transferFunction.emplace_back( a);
+				transferFunction.emplace_back( a/100.0f);
 			}
 		}
 		transferFunctionSize = transferFunction.size() / 4;
@@ -307,7 +308,7 @@ void render(Model mesh, ShaderProgram *sp) {
 	counter = 90;
 	if (counter > 100)
 		counter -= 100;
-	glClearColor(counter/100.0f, counter / 100.0f, counter / 100.0f, 1.0);
+	glClearColor(counter/100.0f, counter / 100.0f, counter / 80.0f, 1.0);
 	
 	mesh.Render(sp);
 }
@@ -1063,34 +1064,20 @@ void updateCamera(Window&w, optix::Context&context, optix::float3 camera_eye, op
 	const float aspect_ratio = static_cast<float>(w.width) /
 		static_cast<float>(w.height);
 
-	optix::float3 camera_u, camera_v, camera_w;
-	sutil::calculateCameraVariables(
-		camera_eye, camera_lookat, camera_up, vfov, aspect_ratio,
-		camera_u, camera_v, camera_w, true);
 
-	const optix::Matrix4x4 frame = optix::Matrix4x4::fromBasis(
-		normalize(camera_u),
-		normalize(camera_v),
-		normalize(-camera_w),
-		camera_lookat);
-	const optix::Matrix4x4 frame_inv = frame.inverse();
-	// Apply camera rotation twice to match old SDK behavior
-	const optix::Matrix4x4 trans = frame * camera_rotate * camera_rotate * frame_inv;
+	camera_eye = optix::make_float3(make_float4(camera_eye, 1.0f));
+	camera_lookat = optix::make_float3(make_float4(camera_lookat, 1.0f));
+	camera_up = optix::make_float3(make_float4(camera_up, 0.0f));
 
-	camera_eye = make_float3(trans * make_float4(camera_eye, 1.0f));
-	camera_lookat = make_float3(trans * make_float4(camera_lookat, 1.0f));
-	camera_up = make_float3(trans * make_float4(camera_up, 0.0f));
-
-	sutil::calculateCameraVariables(
-		camera_eye, camera_lookat, camera_up, vfov, aspect_ratio,
-		camera_u, camera_v, camera_w, true);
 
 	camera_rotate = optix::Matrix4x4::identity();
 
+
+
 	context["eye"]->setFloat(camera_eye);
-	context["U"]->setFloat(camera_u);
-	context["V"]->setFloat(camera_v);
-	context["W"]->setFloat(camera_w);
+	context["imageHeight"]->setInt(w.height);
+	context["imageWidth"]->setInt(w.width);
+	context["fow"]->setFloat(vfov);
 }
 
 
@@ -1318,19 +1305,35 @@ int main() {
 	optix::float3 camera_lookat = camera_eye - optix::make_float3(camera.getDirection().x, camera.getDirection().y, camera.getDirection().z);
 	optix::float3 camera_up = optix::make_float3(0.0f, 1.0f, 0.0f);
 
-	updateCamera(w, context, camera_eye, camera_lookat, camera_up, optix::Matrix4x4().identity());
 	try {
-		context->launch(0, 2048, 2048);
+		context->launch(0, 1024, 1024);
 	}
 	catch (optix::Exception e) {
 		std::cout << e.getErrorString() << std::endl;
 	}
+	
 	hdr_texture.Bind();
 	hdr_texture.SetTextureID(optixBufferToGLTexture(amplitude_buffer));
 	RayTraced.getMeshes().at(0)->setTexture(hdr_texture, 0);
+	int fps = 0;
+	uint64_t start = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 	while (!glfwWindowShouldClose(w.getWindow())) //main render loop
 	{
-		
+		if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - start < 1000) {
+			fps++;
+		}
+		else {
+			std::cout << fps << std::endl;
+			fps = 0;
+			start = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+		}
+		updateCamera(w, context, camera_eye, camera_lookat, camera_up, optix::Matrix4x4().identity());
+		try {
+			context->launch(0, 1024, 1024);
+		}
+		catch (optix::Exception e) {
+			std::cout << e.getErrorString() << std::endl;
+		}
 		//transformation = glm::translate(transformation, glm::vec3(0, 0, -3));
 		//transformation = glm::rotate(transformation, glm::radians(10 * (float)glfwGetTime()), glm::vec3(.5f, 1.0f,0));
 
@@ -1354,7 +1357,7 @@ int main() {
 		//render(campusMap, &campus_map_sp);
 
 		glm::mat4 ray_traced_transform = glm::translate(glm::mat4(1), 1.0f * camera.getDirection());
-		campus_map_sp.SetUniform4fv("model",  glm::scale(glm::mat4(1), scale * glm::vec3(1)));
+		campus_map_sp.SetUniform4fv("model", glm::scale(ray_traced_transform, scale* glm::vec3(1))); //* glm::inverse(camera.getView()));
 		render(RayTraced, &campus_map_sp);
 		//render(vol, &sp);
 		w.ProcessFrame(&camera);
