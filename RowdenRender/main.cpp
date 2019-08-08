@@ -22,6 +22,7 @@
 int counter = 10;
 float increment = 0.05;
 float scale = 1.0;
+bool update = false;
 
 optix::Buffer amplitude_buffer;
 optix::Buffer location_buffer;
@@ -73,7 +74,8 @@ void createGeometry(optix::Context& context, glm::vec3 volume_size, glm::mat4 tr
 		context["v3"]->setFloat(volume_v3);
 		context["volumeRaytraceStepSize"]->setFloat(.011);
 
-		context["hg_anchor"]->setFloat( -(float)1024 *  .0037/ 2.f, -(float)1024 *.0037 / 2.f, -5.0f );
+		context["hg_anchor"]->setFloat( 0, 0, 0);
+		//context["hg_anchor"]->setFloat( -(float)1024 *  .0037/ 2.f, -(float)1024 *.0037 / 2.f, -5.0f );
 		context["hg_v1"]->setFloat(1, 0, 0);
 		context["hg_v2"]->setFloat(0, 1, 0);	// axis aligned
 		context["hg_normal"]->setFloat(0, 0, 1);
@@ -98,7 +100,8 @@ void createGeometry(optix::Context& context, glm::vec3 volume_size, glm::mat4 tr
 		}
 
 		optix::float3 hg_normal = optix::normalize(optix::make_float3(0,0,1));
-		optix::float3 hg_anchor = optix::make_float3(-(float)1024* .0037 / 2.f, -(float)1024 * .0037 / 2.f, 5.0f);
+		optix::float3 hg_anchor = optix::make_float3(0, 0, 0);
+		//optix::float3 hg_anchor = optix::make_float3(-(float)1024* .0037 / 2.f, -(float)1024 * .0037 / 2.f, 5.0f);
 		float min_dist = 1e10;
 		float max_dist = 0;
 		for (unsigned int it_v = 0; it_v < 8; ++it_v) {
@@ -192,7 +195,7 @@ void createContext(optix::Context&context, Window&w) {
 	//set output
 	//optix::Buffer buffer = sutil::createOutputBuffer(context, RT_FORMAT_UNSIGNED_BYTE4, w.width, w.height, false);
 	//context["output_buffer"]->set(buffer);
-	context->setRayGenerationProgram(0, context->createProgramFromPTXString(ptx, "RayGeneration"));
+	context->setRayGenerationProgram(0, context->createProgramFromPTXString(ptx, "camera"));
 
 	// Exception program
 	optix::Program exception_program = context->createProgramFromPTXString(ptx, "exception");
@@ -1064,20 +1067,34 @@ void updateCamera(Window&w, optix::Context&context, optix::float3 camera_eye, op
 	const float aspect_ratio = static_cast<float>(w.width) /
 		static_cast<float>(w.height);
 
+	optix::float3 camera_u, camera_v, camera_w;
+	sutil::calculateCameraVariables(
+		camera_eye, camera_lookat, camera_up, vfov, aspect_ratio,
+		camera_u, camera_v, camera_w, true);
 
-	camera_eye = optix::make_float3(make_float4(camera_eye, 1.0f));
-	camera_lookat = optix::make_float3(make_float4(camera_lookat, 1.0f));
-	camera_up = optix::make_float3(make_float4(camera_up, 0.0f));
+	const optix::Matrix4x4 frame = optix::Matrix4x4::fromBasis(
+		normalize(camera_u),
+		normalize(camera_v),
+		normalize(-camera_w),
+		camera_lookat);
+	const optix::Matrix4x4 frame_inv = frame.inverse();
+	// Apply camera rotation twice to match old SDK behavior
+	const optix::Matrix4x4 trans = frame * camera_rotate * camera_rotate * frame_inv;
 
+	camera_eye = optix::make_float3(trans * make_float4(camera_eye, 1.0f));
+	camera_lookat = optix::make_float3(trans * make_float4(camera_lookat, 1.0f));
+	camera_up = optix::make_float3(trans * make_float4(camera_up, 0.0f));
+
+	sutil::calculateCameraVariables(
+		camera_eye, camera_lookat, camera_up, vfov, aspect_ratio,
+		camera_u, camera_v, camera_w, true);
 
 	camera_rotate = optix::Matrix4x4::identity();
 
-
-
 	context["eye"]->setFloat(camera_eye);
-	context["imageHeight"]->setInt(w.height);
-	context["imageWidth"]->setInt(w.width);
-	context["fow"]->setFloat(vfov);
+	context["U"]->setFloat(camera_u);
+	context["V"]->setFloat(camera_v);
+	context["W"]->setFloat(camera_w);
 }
 
 
@@ -1268,7 +1285,7 @@ int main() {
 	optix::Buffer color_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT, use_intensities.size());
 	
 	//setup camera
-	Camera camera = Camera(glm::vec3(0, 0, -10), glm::vec3(0, 0, 0), 45.0f, w.height/w.width);
+	Camera camera = Camera(glm::vec3(0, 0, -50), glm::vec3(0, 0, 0), 45.0f, w.height/w.width);
 	w.SetCamera(&camera);
 
 	
@@ -1304,7 +1321,7 @@ int main() {
 	optix::float3  camera_eye = optix::make_float3(camera.getPosition().x, camera.getPosition().y, camera.getPosition().z);
 	optix::float3 camera_lookat = camera_eye - optix::make_float3(camera.getDirection().x, camera.getDirection().y, camera.getDirection().z);
 	optix::float3 camera_up = optix::make_float3(0.0f, 1.0f, 0.0f);
-
+	updateCamera(w, context, camera_eye, camera_lookat, camera_up, optix::Matrix4x4().identity());
 	try {
 		context->launch(0, 1024, 1024);
 	}
@@ -1313,8 +1330,7 @@ int main() {
 	}
 	
 	hdr_texture.Bind();
-	hdr_texture.SetTextureID(optixBufferToGLTexture(amplitude_buffer));
-	RayTraced.getMeshes().at(0)->setTexture(hdr_texture, 0);
+	
 	int fps = 0;
 	uint64_t start = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 	while (!glfwWindowShouldClose(w.getWindow())) //main render loop
@@ -1327,16 +1343,29 @@ int main() {
 			fps = 0;
 			start = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 		}
+
+		if (w.signal) {
+			w.signal = false;
+			update = true;
+		}
+		optix::float3  camera_eye = optix::make_float3(camera.getPosition().x, camera.getPosition().y, camera.getPosition().z);
+		optix::float3 camera_lookat = camera_eye - optix::make_float3(camera.getDirection().x, camera.getDirection().y, camera.getDirection().z);
+		optix::float3 camera_up = optix::make_float3(0.0f, 1.0f, 0.0f);
 		updateCamera(w, context, camera_eye, camera_lookat, camera_up, optix::Matrix4x4().identity());
 		try {
-			context->launch(0, 1024, 1024);
+			if (update) {
+				context->launch(0, 1024, 1024);
+				//update = false;
+			}
 		}
 		catch (optix::Exception e) {
 			std::cout << e.getErrorString() << std::endl;
 		}
+		hdr_texture.SetTextureID(optixBufferToGLTexture(amplitude_buffer));
+		RayTraced.getMeshes().at(0)->setTexture(hdr_texture, 0);
 		//transformation = glm::translate(transformation, glm::vec3(0, 0, -3));
 		//transformation = glm::rotate(transformation, glm::radians(10 * (float)glfwGetTime()), glm::vec3(.5f, 1.0f,0));
-
+		//update = true;
 		sp.SetUniform4fv("model", transformation);
 		sp.SetUniform3fv("normalMatrix", glm::mat3(glm::transpose(glm::inverse(transformation * camera.getView()))));
 		sp.SetUniform4fv("camera", camera.getView());
@@ -1354,10 +1383,10 @@ int main() {
 		campus_map_sp.SetUniform4fv("model", campusTransform);
 		campus_map_sp.SetUniform4fv("camera", camera.getView());
 		campus_map_sp.SetUniform4fv("projection", camera.getProjection());
-		//render(campusMap, &campus_map_sp);
+		render(campusMap, &campus_map_sp);
 
-		glm::mat4 ray_traced_transform = glm::translate(glm::mat4(1), 1.0f * camera.getDirection());
-		campus_map_sp.SetUniform4fv("model", glm::scale(ray_traced_transform, scale* glm::vec3(1))); //* glm::inverse(camera.getView()));
+		glm::mat4 ray_traced_transform = glm::translate(glm::mat4(1), -1.5f * camera.getDirection());
+		campus_map_sp.SetUniform4fv("model", glm::scale(ray_traced_transform, scale* glm::vec3(1)) * glm::inverse(camera.getView()));
 		render(RayTraced, &campus_map_sp);
 		//render(vol, &sp);
 		w.ProcessFrame(&camera);
