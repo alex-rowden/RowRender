@@ -34,11 +34,12 @@ public:
 	void Finalize(float latLonDist);
 	void ComputeIDIntensities(std::string netID);
 	bool loadCSV(const char*);
+	bool loadBinary(const char*, std::vector<float>&);
 	float **GetIDIntensities(std::string, std::string mac = "");
 	glm::vec2 getLatVec() { return glm::vec2(minLat, maxLat); }
 	glm::vec2 getLonVec() { return glm::vec2(minLon, maxLon); }
 	float longitudeRange, latitudeRange;
-	int numLonCells, numLatCells;
+	int numLonCells, numLatCells, numSlices;
 	std::map<std::string, float **> netIDToIntensities;
 	std::map<std::string, std::map<std::string, float **>> netIDToMacToIntensities;
 	std::map<std::string, std::vector<WifiEntry*>> getNetIDToWifiEntries() { return NetIDToWifiEntries; }

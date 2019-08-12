@@ -56,7 +56,7 @@ int main() {
 	wifi.loadCSV("../RowdenRender/Content/Data/EricWifi-2-27-19.csv");
 	wifi.loadCSV("../RowdenRender/Content/Data/EricWifi-2-27-19(2).csv");
 	
-	wifi.Finalize(.00025f);
+	wifi.Finalize(.0005f);
 	wifi.ComputeIDIntensities("umd");
 
 	float ** intensities = wifi.GetIDIntensities("umd");
@@ -97,7 +97,7 @@ int main() {
 		}
 	}
 
-	std::fstream out = std::fstream("wifi_data.raw", std::ios::out);
+	std::fstream out = std::fstream("wifi_data.raw", std::ios::out|std::ios::binary);
 	out << (UINT8)wifi.numLatCells << (UINT8)wifi.numLonCells << (UINT8)num_cells;
 	for (int i = 0; i < use_intensities.size(); i++) {
 		UINT8 test = (UINT8)(use_intensities.at(i) * 255);

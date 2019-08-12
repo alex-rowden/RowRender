@@ -1063,7 +1063,7 @@ GLuint optixBufferToGLTexture(optix::Buffer& buffer) {
 
 void updateCamera(Window&w, optix::Context&context, optix::float3 camera_eye, optix::float3 camera_lookat, optix::float3 camera_up, optix::Matrix4x4 camera_rotate)
 {
-	const float vfov = 45.0f;
+	const float vfov = 90.0f;
 	const float aspect_ratio = static_cast<float>(w.width) /
 		static_cast<float>(w.height);
 
@@ -1113,8 +1113,8 @@ int main() {
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glEnable(GL_CULL_FACE);
-	glCullFace(GL_BACK);
+	//glEnable(GL_CULL_FACE);
+	//glCullFace(GL_BACK);
 	glDebugMessageCallback(MessageCallback, 0);
 
 	w.SetFramebuferSizeCallback();
@@ -1137,80 +1137,19 @@ int main() {
 	LoadCampusModel(&model);
 	Model light = Model("Content\\Models\\cube\\cube.obj");
 	light.setModel();
-	Model campusMap = Model("Content\\Models\\cube\\cube.obj");
+	Model campusMap = Model("Content\\Models\\quad\\quad.obj");
 	campusMap.setModel();
 	campusMap.getMeshes().at(0)->setTexture(texture, 0);
-	Model RayTraced = Model("Content\\Models\\cube\\cube.obj");
+	Model RayTraced = Model("Content\\Models\\quad\\quad.obj");
 	RayTraced.setModel();
 	glm::mat4 transformation = glm::scale(glm::mat4(1), scale * glm::vec3(-1, 1, -1));// glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
 
 	WifiData wifi;
 
-	wifi.loadCSV("Content/Data/EricWifi-2-4-19.csv");
-	wifi.loadCSV("Content/Data/AlexWifi-2-4-19.csv");
-	wifi.loadCSV("Content/Data/EricWifi-2-4-19(2).csv");
-	wifi.loadCSV("Content/Data/AlexWifi-2-4-19(2).csv");
-	wifi.loadCSV("Content/Data/EricWifi-2-5-19.csv");
-	wifi.loadCSV("Content/Data/AlexWifi-2-5-19.csv");
-	wifi.loadCSV("Content/Data/EricWifi-2-6-19.csv");
-	wifi.loadCSV("Content/Data/AlexWifi-2-6-19.csv");
-	wifi.loadCSV("Content/Data/EricWifi-2-7-19.csv");
-	wifi.loadCSV("Content/Data/AlexWifi-2-26-19.csv");
-	wifi.loadCSV("Content/Data/EricWifi-2-26-19.csv");
-	wifi.loadCSV("Content/Data/AlexWifi-2-27-19.csv");
-	wifi.loadCSV("Content/Data/EricWifi-2-27-19.csv");
-	wifi.loadCSV("Content/Data/EricWifi-2-27-19(2).csv");
-	
-	wifi.Finalize(.00025f);
-	wifi.ComputeIDIntensities("umd");
-
-	float ** intensities = wifi.GetIDIntensities("umd");
-
-	float maxIntensity = 0;
-
-	int num_cells = 50;
-	std::vector<glm::vec4> pixels;
 	std::vector<float> use_intensities;
-	pixels.resize(wifi.numLonCells * wifi.numLatCells * num_cells);
-	use_intensities.resize(wifi.numLonCells * wifi.numLatCells * num_cells);
+	wifi.loadBinary("wifi_data.raw", use_intensities);
 
-	for (int i = 0; i < wifi.numLonCells; i++)
-	{
-		for (int j = 0; j < wifi.numLatCells; j++)
-		{
-			float intensity = intensities[i][j];
-			if (intensity > maxIntensity)
-				maxIntensity = intensity;
-		}
-	}
-
-	int curr_height = (num_cells - 1) / 2.0;
-	for (int h = 0; h < num_cells; h++) {
-		for (int i = 0; i < wifi.numLonCells; i++)
-		{
-			for (int j = 0; j < wifi.numLatCells; j++)
-			{
-				float intensity = intensities[i][j] / maxIntensity;
-				intensity = intensity - (increment * fabs(h - curr_height));
-				//std::cout << increment * fabs(h - curr_height) << std::endl;
-				if (intensity <= 0.0f)
-				{
-					pixels.at(j + wifi.numLatCells * i + wifi.numLatCells * wifi.numLonCells * h) = (glm::vec4(0, 0, 0, 0));
-					use_intensities.at(j + wifi.numLatCells * i + wifi.numLatCells * wifi.numLonCells * h) = 0;
-					//pixels.emplace_back(glm::vec4(0.5, 0.5, 0.5, 0.0));
-				}
-				else
-				{
-					glm::vec4 color = glm::vec4(getHeatMapColor(intensity), intensity);
-					//glm::vec4 color = glm::vec4(0, 0, 1, 1) * (1.0f - intensity) +
-					//	glm::vec4(1, 0, 0, 1) * intensity;
-					pixels.at(j + wifi.numLatCells * i + wifi.numLatCells * wifi.numLonCells * h) = (color);
-					use_intensities.at(j + wifi.numLatCells * i + wifi.numLatCells * wifi.numLonCells * h) = intensity;
-					//pixels.emplace_back(color);
-				}
-			}
-		}
-	}
+	
 	
 	Shape myShape;
 	//makeVolumetricShapeGPU(&myShape, use_intensities, wifi, num_cells, .65f);
@@ -1279,13 +1218,13 @@ int main() {
 	optix::Context context;
 	createContext(context, w);
 	glm::mat4 volume_transform = glm::rotate(glm::mat4(1), glm::radians(90.0f), glm::vec3(0, 1, 0));
-	createGeometry(context, glm::vec3(wifi.numLatCells, wifi.numLonCells, num_cells), glm::mat4(1));
-	createOptixTextures(context, glm::vec3(wifi.numLatCells, wifi.numLonCells, num_cells), use_intensities);
+	createGeometry(context, glm::vec3(wifi.numLatCells, wifi.numLonCells, wifi.numSlices), glm::mat4(1));
+	createOptixTextures(context, glm::vec3(wifi.numLatCells, wifi.numLonCells, wifi.numSlices), use_intensities);
 
 	optix::Buffer color_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT, use_intensities.size());
 	
 	//setup camera
-	Camera camera = Camera(glm::vec3(0, 0, -50), glm::vec3(0, 0, 0), 45.0f, w.height/w.width);
+	Camera camera = Camera(glm::vec3(50, 50, 50), glm::vec3(50, 50, 0), 90.0f, w.height/w.width);
 	w.SetCamera(&camera);
 
 	
@@ -1298,18 +1237,19 @@ int main() {
 	Model vol = Model();
 	vol.addMesh(&volume);
 	vol.setModel();
-	Texture2D wifi_intensities = Texture2D(&pixels, wifi.numLonCells, wifi.numLatCells);
+	//Texture2D wifi_intensities = Texture2D(&pixels, wifi.numLonCells, wifi.numLatCells);
 	//campusMap.getMeshes().at(0)->setTexture(wifi_intensities, 0);
 	Texture2D hdr_texture = Texture2D();
 	hdr_texture.setDims(w.width, w.height, 4);
 	//Camera camera = Camera(glm::vec3(0, 10, 10), glm::vec3(0, 0, 0), 45.0f, 800/600.0f);
 	
 	glm::mat4 projection;
-	w.scale = glm::vec3(1, .03, 1);
-	glm::mat4 campusTransform = glm::scale(glm::mat4(1), scale * w.scale);
-	w.translate = glm::vec3(0, -.1f, 0);
-	campusTransform = glm::translate(campusTransform, w.translate);
-	w.setSpeed(.5 * scale);
+	//w.scale = glm::vec3(1, .03, 1);
+	w.scale = glm::vec3(100, 100, 100);
+	w.translate = glm::vec3(0, 0.0f, 0);
+	//w.translate = glm::vec3(0, -.1f, 0);
+	
+	w.setSpeed(.5 * 10);
 	
 	Lights lights = Lights();
 	float toNorm = 1 / 255.0;
@@ -1318,18 +1258,7 @@ int main() {
 	//projection = glm::perspective(glm::radians(45.0f), 800/600.0f, 0.1f, 1000.0f);
 	glm::mat4 light_transform = glm::translate(glm::mat4(1.0f), glm::vec3(3, 3, 3));
 
-	optix::float3  camera_eye = optix::make_float3(camera.getPosition().x, camera.getPosition().y, camera.getPosition().z);
-	optix::float3 camera_lookat = camera_eye - optix::make_float3(camera.getDirection().x, camera.getDirection().y, camera.getDirection().z);
-	optix::float3 camera_up = optix::make_float3(0.0f, 1.0f, 0.0f);
-	updateCamera(w, context, camera_eye, camera_lookat, camera_up, optix::Matrix4x4().identity());
-	try {
-		context->launch(0, 1024, 1024);
-	}
-	catch (optix::Exception e) {
-		std::cout << e.getErrorString() << std::endl;
-	}
-	
-	hdr_texture.Bind();
+	glm::mat4 campusTransform;
 	
 	int fps = 0;
 	uint64_t start = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
@@ -1354,7 +1283,7 @@ int main() {
 		updateCamera(w, context, camera_eye, camera_lookat, camera_up, optix::Matrix4x4().identity());
 		try {
 			if (update) {
-				context->launch(0, 1024, 1024);
+				//context->launch(0, 1024, 1024);
 				//update = false;
 			}
 		}
@@ -1362,7 +1291,7 @@ int main() {
 			std::cout << e.getErrorString() << std::endl;
 		}
 		hdr_texture.SetTextureID(optixBufferToGLTexture(amplitude_buffer));
-		RayTraced.getMeshes().at(0)->setTexture(hdr_texture, 0);
+		//RayTraced.getMeshes().at(0)->setTexture(hdr_texture, 0);
 		//transformation = glm::translate(transformation, glm::vec3(0, 0, -3));
 		//transformation = glm::rotate(transformation, glm::radians(10 * (float)glfwGetTime()), glm::vec3(.5f, 1.0f,0));
 		//update = true;
@@ -1377,9 +1306,10 @@ int main() {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		render(model, &sp);
 		//render(light, &light_sp);
-		campusTransform = glm::scale(glm::mat4(1), scale * glm::vec3(w.scale));
+		campusTransform = glm::translate(glm::mat4(1), w.translate);
+		campusTransform = glm::scale(campusTransform, scale * glm::vec3(w.scale));
 		
-		campusTransform = glm::translate(campusTransform, w.translate);
+		
 		campus_map_sp.SetUniform4fv("model", campusTransform);
 		campus_map_sp.SetUniform4fv("camera", camera.getView());
 		campus_map_sp.SetUniform4fv("projection", camera.getProjection());
@@ -1387,7 +1317,7 @@ int main() {
 
 		glm::mat4 ray_traced_transform = glm::translate(glm::mat4(1), -1.5f * camera.getDirection());
 		campus_map_sp.SetUniform4fv("model", glm::scale(ray_traced_transform, scale* glm::vec3(1)) * glm::inverse(camera.getView()));
-		render(RayTraced, &campus_map_sp);
+		//render(RayTraced, &campus_map_sp);
 		//render(vol, &sp);
 		w.ProcessFrame(&camera);
 	}
