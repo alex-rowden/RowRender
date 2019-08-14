@@ -54,6 +54,8 @@
     <None Include="light_frag.glsl" />
     <None Include="light_vert.glsl" />
     <None Include="parallelogram.cu" />
+    <None Include="screen_fshader.glsl" />
+    <None Include="screen_vshader.glsl" />
     <None Include="tutorial.cu" />
     <None Include="vertex_shader.glsl">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>

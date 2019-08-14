@@ -22,7 +22,7 @@
 int counter = 10;
 float increment = 0.05;
 float scale = 1.0;
-bool update = false;
+bool update = true;
 
 optix::Buffer amplitude_buffer;
 optix::Buffer location_buffer;
@@ -48,8 +48,11 @@ void createGeometry(optix::Context& context, glm::vec3 volume_size, glm::mat4 tr
 		box->setBoundingBoxProgram(box_bounds);
 		box->setIntersectionProgram(box_intersect);
 
-		optix::float3 box_min = optix::make_float3(-volume_size.x / 2.f, -volume_size.y / 2.f, 0.f - volume_size.z / 2.f);	// volume is at origin
-		optix::float3 box_max = optix::make_float3(volume_size.x / 2.f, volume_size.y / 2.f, 0.f + volume_size.z / 2.f);
+		//optix::float3 box_min = optix::make_float3(-volume_size.x / 2.f, -volume_size.y / 2.f, 0.f - volume_size.z / 2.f);	// volume is at origin
+		//optix::float3 box_max = optix::make_float3(volume_size.x / 2.f, volume_size.y / 2.f, 0.f + volume_size.z / 2.f);
+		optix::float3 box_min = optix::make_float3(0, 0, 0);	// volume is at origin
+		optix::float3 box_max = optix::make_float3(volume_size.x, volume_size.y, volume_size.z);
+
 
 		optix::float3 volume_v1 = optix::make_float3(volume_size.x, 0.f, 0.f);
 		optix::float3 volume_v2 = optix::make_float3(0.f, volume_size.y, 0.f);
@@ -74,8 +77,8 @@ void createGeometry(optix::Context& context, glm::vec3 volume_size, glm::mat4 tr
 		context["v3"]->setFloat(volume_v3);
 		context["volumeRaytraceStepSize"]->setFloat(.011);
 
-		context["hg_anchor"]->setFloat( 0, 0, 0);
-		//context["hg_anchor"]->setFloat( -(float)1024 *  .0037/ 2.f, -(float)1024 *.0037 / 2.f, -5.0f );
+		//context["hg_anchor"]->setFloat( 0, 0, 0);
+		context["hg_anchor"]->setFloat( -(float)1024 *  .0037/ 2.f, -(float)1024 *.0037 / 2.f, -5.0f );
 		context["hg_v1"]->setFloat(1, 0, 0);
 		context["hg_v2"]->setFloat(0, 1, 0);	// axis aligned
 		context["hg_normal"]->setFloat(0, 0, 1);
@@ -1219,9 +1222,17 @@ int main() {
 	createContext(context, w);
 	glm::mat4 volume_transform = glm::rotate(glm::mat4(1), glm::radians(90.0f), glm::vec3(0, 1, 0));
 	createGeometry(context, glm::vec3(wifi.numLatCells, wifi.numLonCells, wifi.numSlices), glm::mat4(1));
+	std::vector<float> fake_intensities = std::vector<float>();
+	fake_intensities.resize(wifi.numLatCells * wifi.numLonCells * wifi.numSlices);
+	for (int i = 0; i < wifi.numLatCells; i++) {
+		for (int j = 0; j < wifi.numLonCells; j++) {
+			for (int k = 0; k < wifi.numSlices; k++) {
+				fake_intensities.at(i + j * wifi.numLatCells + k * wifi.numLatCells * wifi.numLonCells) = (i / (float)wifi.numLatCells + j / (float) wifi.numLonCells + k/(float)wifi.numSlices)/3.0f;
+			}
+		}
+	}
 	createOptixTextures(context, glm::vec3(wifi.numLatCells, wifi.numLonCells, wifi.numSlices), use_intensities);
-
-	optix::Buffer color_buffer = context->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_FLOAT, use_intensities.size());
+	//createOptixTextures(context, glm::vec3(wifi.numLatCells, wifi.numLonCells, wifi.numSlices), use_intensities);
 	
 	//setup camera
 	Camera camera = Camera(glm::vec3(50, 50, 50), glm::vec3(50, 50, 0), 90.0f, w.height/w.width);
@@ -1283,7 +1294,7 @@ int main() {
 		updateCamera(w, context, camera_eye, camera_lookat, camera_up, optix::Matrix4x4().identity());
 		try {
 			if (update) {
-				//context->launch(0, 1024, 1024);
+				context->launch(0, 1024, 1024);
 				//update = false;
 			}
 		}
@@ -1291,7 +1302,7 @@ int main() {
 			std::cout << e.getErrorString() << std::endl;
 		}
 		hdr_texture.SetTextureID(optixBufferToGLTexture(amplitude_buffer));
-		//RayTraced.getMeshes().at(0)->setTexture(hdr_texture, 0);
+		RayTraced.getMeshes().at(0)->setTexture(hdr_texture, 0);
 		//transformation = glm::translate(transformation, glm::vec3(0, 0, -3));
 		//transformation = glm::rotate(transformation, glm::radians(10 * (float)glfwGetTime()), glm::vec3(.5f, 1.0f,0));
 		//update = true;
@@ -1304,7 +1315,7 @@ int main() {
 		
 		//texture.Bind();
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		render(model, &sp);
+		//render(model, &sp);
 		//render(light, &light_sp);
 		campusTransform = glm::translate(glm::mat4(1), w.translate);
 		campusTransform = glm::scale(campusTransform, scale * glm::vec3(w.scale));
@@ -1313,11 +1324,14 @@ int main() {
 		campus_map_sp.SetUniform4fv("model", campusTransform);
 		campus_map_sp.SetUniform4fv("camera", camera.getView());
 		campus_map_sp.SetUniform4fv("projection", camera.getProjection());
-		render(campusMap, &campus_map_sp);
+		//render(campusMap, &campus_map_sp);
 
-		glm::mat4 ray_traced_transform = glm::translate(glm::mat4(1), -1.5f * camera.getDirection());
-		campus_map_sp.SetUniform4fv("model", glm::scale(ray_traced_transform, scale* glm::vec3(1)) * glm::inverse(camera.getView()));
-		//render(RayTraced, &campus_map_sp);
+		//glm::mat4 ray_traced_transform = glm::translate(glm::mat4(1), w.translate);
+
+		glm::mat4 ray_traced_transform = glm::translate(glm::mat4(1), w.translate.x * camera.getDirection());
+		campus_map_sp.SetUniform4fv("model", glm::scale(ray_traced_transform, scale* glm::vec3(w.scale)));
+		//campus_map_sp.SetUniform4fv("model", glm::scale(ray_traced_transform, scale* glm::vec3(w.scale)));
+		render(RayTraced, &campus_map_sp);
 		//render(vol, &sp);
 		w.ProcessFrame(&camera);
 	}

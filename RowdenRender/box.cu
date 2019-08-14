@@ -61,13 +61,23 @@ RT_PROGRAM void box_intersect(int primIdx) {
 	float3 far = fmaxf(t0, t1);
 	float t_min = fmaxf(near);
 	float t_max = fminf(far);
-	if (t_min < t_max && t_min > 0) {
+	
+	if (t_min < t_max) {
+		
 		bool check_second = true;
 		// ray intersects volume, enters at t_min, exists at t_max
 		if (rtPotentialIntersection(t_min)) {
+			//rtPrintf("%f, %f\n", t_min, t_max);
 			front_hit_point = ray.origin + (t_min + scene_epsilon) * ray.direction;
 			back_hit_point = ray.origin + (t_max - scene_epsilon) * ray.direction;
 			rtReportIntersection(0);
+		}
+		if (check_second) {
+			if (rtPotentialIntersection(t_max)) {
+				front_hit_point = ray.origin + (t_min + scene_epsilon) * ray.direction;
+				back_hit_point = ray.origin + (t_max - scene_epsilon) * ray.direction;
+				rtReportIntersection(0);
+			}
 		}
 		
 	}

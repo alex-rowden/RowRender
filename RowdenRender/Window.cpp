@@ -86,24 +86,24 @@ void Window::standardInputProcessor(GLFWwindow* window) { //Go to processInputFu
 	}if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
 		camera->moveUp(-speed);
 	}if (glfwGetKey(window, GLFW_KEY_KP_ADD) == GLFW_PRESS) {
-		if(j == 0)
+		if(j == 1)
 			scale[i] += .01;
 		else {
-			translate[i] += .01;
+			translate[i] += .1;
 		}
 	}if (glfwGetKey(window, GLFW_KEY_KP_SUBTRACT) == GLFW_PRESS) {
-		if(j == 0)
+		if(j == 1)
 			scale[i] -= .01;
 		else {
-			translate[i] -= .01;
+			translate[i] -= .1;
 		}
 	}if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS && !pressed) {
 		pressed = true;
-		i += 1;
+		//i += 1;
 		i %= 3;
 	}else if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS && !pressed) {
 		pressed = true;
-		j += 1;
+		//j += 1;
 		j %= 2;
 	}if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
 		signal = true;

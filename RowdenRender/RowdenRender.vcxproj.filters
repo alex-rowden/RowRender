@@ -130,5 +130,11 @@
     <None Include="volume_render.cu">
       <Filter>Source Files\Cuda Code</Filter>
     </None>
+    <None Include="screen_fshader.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="screen_vshader.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -215,5 +215,5 @@ RT_PROGRAM void exception() {
 // did not hit anything, mark as not hit
 // zero amplitude
 RT_PROGRAM void miss() {
-	//amplitude_buffer[launch_index] = optix::make_float4(0, 1, 1, 1);
+	amplitude_buffer[launch_index] = optix::make_float4(0, 1, 1, 1);
 }
