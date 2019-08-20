@@ -254,7 +254,7 @@ void createOptixTextures(optix::Context& context, glm::vec3 volume_size, std::ve
 		int transferFunctionSize = 2;
 		std::vector<float> transferFunction = std::vector<float>();
 		std::string line;
-		std::ifstream transferfunction("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/red_gauss.1dt");
+		std::ifstream transferfunction("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/strong_heatmap.1dt");
 		//std::ifstream transferfunction("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/transfer.1dt");
 
 		if (transferfunction.is_open()) {
@@ -267,7 +267,7 @@ void createOptixTextures(optix::Context& context, glm::vec3 volume_size, std::ve
 				transferFunction.emplace_back(r);
 				transferFunction.emplace_back(g);
 				transferFunction.emplace_back(b);
-				transferFunction.emplace_back( a/10.0f);
+				transferFunction.emplace_back( a/6.5f);
 			}
 		}
 		transferFunctionSize = transferFunction.size() / 4;
