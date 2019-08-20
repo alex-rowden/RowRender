@@ -15,14 +15,17 @@ public:
 	void SetViewportSize(int width, int height);
 	void SetFramebuferSizeCallback();
 	void standardInputProcessor(GLFWwindow* window);
+	void setSpeed(float speed) { this->speed = speed; };
 	GLFWwindow* getWindow();
 	float lastX = 400, lastY = 300;
 	Camera* camera;
 	bool firstMouse = true;
 	glm::vec3 scale = glm::vec3(1);
 	glm::vec3 translate = glm::vec3(0);
+	float speed = .5f;
 	bool pressed = false;
 	int i, j, width, height = 0;
+	bool signal = false;
 private:
 	float lastTime = 0;
 

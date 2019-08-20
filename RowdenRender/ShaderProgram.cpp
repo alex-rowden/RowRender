@@ -8,11 +8,13 @@ ShaderProgram::ShaderProgram(std::vector<Shaders> shaders) {
 		case Shaders::VERTEX:
 		case Shaders::LIGHT_VERT:
 		case Shaders::NO_LIGHT_VERT:
+		case Shaders::SCREEN_VERT:
 			glAttachShader(shaderProgram, vertexShader);
 			break;
 		case Shaders::FRAGMENT:
 		case Shaders::LIGHT_FRAG:
 		case Shaders::NO_LIGHT_FRAG:
+		case Shaders::SCREEN_FRAG:
 			glAttachShader(shaderProgram, fragmentShader);
 			break;
 		}
@@ -159,6 +161,12 @@ void ShaderProgram::importShaderFile(Shaders shader, std::string *ShaderString) 
 	case Shaders::NO_LIGHT_VERT:
 		filename = "vertex_shader_no_light.glsl";
 		break;
+	case Shaders::SCREEN_FRAG:
+		filename = "screen_fshader.glsl";
+		break;
+	case Shaders::SCREEN_VERT:
+		filename = "screen_vshader.glsl";
+		break;
 	default:
 		throw "Not a valid shader";
 	}
@@ -204,9 +212,19 @@ void ShaderProgram::shader_error_check(Shaders shader) {
 	case Shaders::NO_LIGHT_VERT:
 		shader_name = "NO_LIGHT_VERT";
 		shader_adr = &vertexShader;
+		break;
 	case Shaders::NO_LIGHT_FRAG:
 		shader_name = "NO_LIHT_FRAG";
 		shader_adr = &fragmentShader;
+		break;
+	case Shaders::SCREEN_VERT:
+		shader_name = "SCREEN_SPACE_VERTEX_SHADER";
+		shader_adr = &vertexShader;
+		break;
+	case Shaders::SCREEN_FRAG:
+		shader_name = "SCREEN_SPACE_FRAGMENT_SHADER";
+		shader_adr = &fragmentShader;
+		break;
 	default:
 		return;
 	}
@@ -252,6 +270,16 @@ void ShaderProgram::SetupShader(Shaders shader) {
 		glCompileShader(fragmentShader);
 		break;
 	case Shaders::NO_LIGHT_VERT:
+		vertexShader = glCreateShader(GL_VERTEX_SHADER);
+		glShaderSource(vertexShader, 1, &shader_source, NULL);
+		glCompileShader(vertexShader);
+		break;
+	case Shaders::SCREEN_FRAG:
+		fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+		glShaderSource(fragmentShader, 1, &shader_source, NULL);
+		glCompileShader(fragmentShader);
+		break;
+	case Shaders::SCREEN_VERT:
 		vertexShader = glCreateShader(GL_VERTEX_SHADER);
 		glShaderSource(vertexShader, 1, &shader_source, NULL);
 		glCompileShader(vertexShader);

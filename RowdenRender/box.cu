@@ -30,83 +30,78 @@
 #include <optixu/optixu_math_namespace.h>
 #include <optixu/optixu_matrix_namespace.h>
 #include <optixu/optixu_aabb_namespace.h>
-
+#include <optix_device.h>
 using namespace optix;
 
-rtBuffer<float4> voxel_buffer;
-rtBuffer<float> intensity_buffer;
 
-rtDeclareVariable(float, cutoff_to, , );
-rtDeclareVariable(float, cutoff_from, , );
 rtDeclareVariable(optix::Ray, ray, rtCurrentRay, );
-rtDeclareVariable(float3, geometric_normal, attribute geometric_normal, );
-rtDeclareVariable(float3, shading_normal, attribute shading_normal, );
-rtDeclareVariable(float4, obj_color, attribute obj_color, );
 
 
-//
-// Box
-//
-static __device__ void make_box(const float4& input, float3& boxmin, float3& boxmax) {
-	float halfWidth = input.w / 2;
-	boxmin.x = input.x - halfWidth; boxmax.x = input.x + halfWidth;
-	boxmin.y = input.y - halfWidth; boxmax.y = input.y + halfWidth;
-	boxmin.z = input.z - halfWidth; boxmax.z = input.z + halfWidth;
-}
+rtDeclareVariable(float3, box_min, , );	// also the anchor
+rtDeclareVariable(float3, box_max, , );	// opposite corners of the volume
+rtDeclareVariable(float3, v1, , );		// edges of the plane in which a slice is put, has been scaled by 1/dot(v1, v1)
+rtDeclareVariable(float3, v2, , );
+rtDeclareVariable(float3, v3, , );
+rtDeclareVariable(float3, voxel_size, , );
+rtDeclareVariable(float, scene_epsilon, , );
+rtDeclareVariable(float, volumeRaytraceStepSize, , );
 
-static __device__ float3 boxnormal(float t, float3 t0, float3 t1)
-{
-	float3 neg = make_float3(t == t0.x ? 1 : 0, t == t0.y ? 1 : 0, t == t0.z ? 1 : 0);
-	float3 pos = make_float3(t == t1.x ? 1 : 0, t == t1.y ? 1 : 0, t == t1.z ? 1 : 0);
-	return pos - neg;
-}
+rtDeclareVariable(float3, texcoord, attribute texcoord, );
+rtDeclareVariable(float3, front_hit_point, attribute front_hit_point, );
+rtDeclareVariable(float3, back_hit_point, attribute back_hit_point, );
 
-static __device__ float4 get_color(float value) {
-	if (value < .8) {
-		return make_float4(1, 0, 1, .2);
+RT_PROGRAM void box_intersect_improved(int primIdx) {
+	float3 invD = 1.0f/ray.direction;
+	float3 t0s = (box_min - ray.origin) * invD;
+	float3 t1s = (box_max - ray.origin) * invD;
+
+	float3 tsmaller = fminf(t0s, t1s);
+	float3 tbigger = fmaxf(t0s, t1s);
+
+	float tmin = fmaxf(tsmaller.x, fmaxf(tsmaller.y, tsmaller.z));
+	float tmax = fminf(tbigger.x, fminf(tbigger.y, tbigger.z));
+	if (tmin < tmax) {
+		if (rtPotentialIntersection(0)) {
+			
+		}
 	}
-	else {
-		return make_float4(0, 1, 0, .2);
-	}
+	return ;
 }
 
-RT_PROGRAM void box_intersect(int idx)
-{
-	if (intensity_buffer[idx] == 0) return;
-	else if (intensity_buffer[idx] < cutoff_from || intensity_buffer[idx] > cutoff_to) return;
-
-	float3 boxmin, boxmax;
-	make_box(voxel_buffer[idx], boxmin, boxmax);
-
-	float3 t0 = (boxmin - ray.origin) / ray.direction;
-	float3 t1 = (boxmax - ray.origin) / ray.direction;
-
+RT_PROGRAM void box_intersect(int primIdx) {
+	float3 rayOrigin_boxMin = box_min - ray.origin;
+	float3 rayOrigin_boxMax = box_max - ray.origin;
+	float3 t0 = rayOrigin_boxMin / ray.direction;
+	float3 t1 = rayOrigin_boxMax / ray.direction;
 	float3 near = fminf(t0, t1);
 	float3 far = fmaxf(t0, t1);
-	float tmin = fmaxf(near);
-	float tmax = fminf(far);
-
-	if (tmin <= tmax) {
-		bool check_second = true;
-		if (rtPotentialIntersection(tmin)) {
-			shading_normal = geometric_normal = boxnormal(tmin, t0, t1);
-			obj_color = get_color(intensity_buffer[idx]);
-			if (rtReportIntersection(0))
-				check_second = false;
+	float t_min = fmaxf(near);
+	float t_max = fminf(far);
+	
+	if (t_min < t_max) {
+		
+		bool check_second = false;
+		// ray intersects volume, enters at t_min, exists at t_max
+		if (rtPotentialIntersection(t_min)) {
+			//rtPrintf("%f, %f\n", t_min, t_max);
+			front_hit_point = ray.origin + (t_min + scene_epsilon) * ray.direction;
+			back_hit_point = ray.origin + (t_max - scene_epsilon) * ray.direction;
+			rtReportIntersection(0);
 		}
 		if (check_second) {
-			if (rtPotentialIntersection(tmax)) {
-				shading_normal = geometric_normal = boxnormal(tmax, t0, t1);
+			if (rtPotentialIntersection(t_max)) {
+				//front_hit_point = ray.origin + (t_min + scene_epsilon) * ray.direction;
+				//back_hit_point = ray.origin + (t_max - scene_epsilon) * ray.direction;
 				rtReportIntersection(0);
 			}
 		}
+		
 	}
 }
-
 RT_PROGRAM void box_bounds(int primIdx, float result[6])
 {
-	float3 boxmin, boxmax;
-	make_box(voxel_buffer[primIdx], boxmin, boxmax);
 	optix::Aabb* aabb = (optix::Aabb*)result;
-	aabb->set(boxmin, boxmax);
+	//rtPrintf("%f, %f, %f\n", box_min.x, box_min.y, box_min.z);
+	//rtPrintf("%f, %f, %f\n", box_max.x, box_max.y, box_max.z);
+	aabb->set(box_min, box_max);
 }

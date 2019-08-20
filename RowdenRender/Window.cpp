@@ -36,24 +36,26 @@ void standard_mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 	win->lastX = xpos;
 	win->lastY = ypos;
 
-	float sensitivity = 0.05f;
+	float sensitivity = 0.001f;
 	xoffset *= sensitivity;
 	yoffset *= sensitivity;
 
-	win->camera->yaw += xoffset;
+	win->camera->yaw -= xoffset;
 	win->camera->pitch += yoffset;
 	float pitch = win->camera->pitch;
 	float yaw = win->camera->yaw;
 
-	if (pitch > 89.0f)
-		win->camera->pitch = 89.0f;
-	if (pitch < -89.0f)
-		win->camera->pitch = -89.0f;
+	if (pitch > 90.0f)
+		win->camera->pitch = 90.0f;
+	if (pitch < -90.0f)
+		win->camera->pitch = -90.0f;
 
 	glm::vec3 front;
-	front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-	front.y = sin(glm::radians(pitch));
-	front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+	double xzLen = cos(pitch);
+	front.x = xzLen * cos(yaw);
+	front.y = sin(pitch);
+	front.z = xzLen * sin(-yaw);
+	
 	win->camera->setDirection(glm::normalize(front));
 }
 
@@ -61,7 +63,7 @@ void Window::standardInputProcessor(GLFWwindow* window) { //Go to processInputFu
 	float currentFrame = glfwGetTime();
 	float deltaTime = currentFrame - lastTime;
 	lastTime = currentFrame;
-	float speed = .5 * deltaTime;
+	float speed = this->speed * deltaTime;
 	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
 		speed *= 2;
 	}
@@ -84,25 +86,27 @@ void Window::standardInputProcessor(GLFWwindow* window) { //Go to processInputFu
 	}if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
 		camera->moveUp(-speed);
 	}if (glfwGetKey(window, GLFW_KEY_KP_ADD) == GLFW_PRESS) {
-		if(j == 0)
+		if(j == 1)
 			scale[i] += .01;
 		else {
-			translate[i] += .01;
+			translate[i] += .1;
 		}
 	}if (glfwGetKey(window, GLFW_KEY_KP_SUBTRACT) == GLFW_PRESS) {
-		if(j == 0)
+		if(j == 1)
 			scale[i] -= .01;
 		else {
-			translate[i] -= .01;
+			translate[i] -= .1;
 		}
 	}if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS && !pressed) {
 		pressed = true;
-		i += 1;
+		//i += 1;
 		i %= 3;
 	}else if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS && !pressed) {
 		pressed = true;
-		j += 1;
+		//j += 1;
 		j %= 2;
+	}if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+		signal = true;
 	}
 	else {
 		pressed = false;

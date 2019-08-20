@@ -12,11 +12,11 @@ Camera::Camera(glm::vec3 _position, glm::vec3 target, float _fov, float _aspect,
 }
 
 void Camera::setDirection(glm::vec3 dir) {
-	direction = dir;
+	direction = glm::normalize(dir);
 }
 
 glm::mat4 Camera::getView() {
-	return glm::lookAt(position, position - direction, up);
+	return glm::lookAt(position, position + direction, up);
 }
 
 glm::mat4 Camera::getProjection() {
@@ -28,14 +28,14 @@ glm::vec3 Camera::getPosition() {
 }
 
 void Camera::moveForward(float amount) {
-	position += direction * amount;
+	position += direction * -amount;
 }
 
 void Camera::moveUp(float amount) {
-	position += up * amount;
+	position += up * -amount;
 }
 
 void Camera::moveRight(float amount) {
-	right = -glm::normalize(glm::cross(direction, up));
+	right = glm::normalize(glm::cross(direction, up));
 	position += right * amount;
 }

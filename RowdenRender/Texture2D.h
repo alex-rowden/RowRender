@@ -20,6 +20,7 @@ public:
 	void setTexMinMagFilter(GLint min, GLint mag);
 	void setTexMinMagFilter(GLint filter);
 	void Bind();
+	void SetTextureID(unsigned int id) { texture = id; }
 	std::string name = "texture_diffuse";
 private:
 	unsigned int texture;

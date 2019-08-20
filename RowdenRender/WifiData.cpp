@@ -104,11 +104,38 @@ bool WifiData::loadCSV(const char* str) {
 	return true;
 }
 
+bool WifiData::loadBinary(const char* filename, std::vector<float>& intensities) {
+	try {
+		std::ifstream file = std::ifstream(filename, std::ios::in | std::ios::binary);
+		if (!file)
+			return false;
+		int dims[3];
+		file.read(reinterpret_cast<char *>(dims), 3 * sizeof(int));
+		numLatCells = dims[0];
+		numLonCells = dims[1];
+		numSlices = dims[2];
+		int total_size = numLatCells * numLonCells * numSlices;
+		intensities.resize(total_size);
+		std::vector<char> temp = std::vector<char>();
+		temp.resize(total_size);
+		file.read(temp.data(), total_size);
+		int counter = 0;
+		for (auto sample : temp) {
+			intensities[counter++] = (float)((unsigned char)sample / 255.0f);
+		}
+		return true;
+	}
+	catch (std::exception e) {
+		std::cerr << e.what() << std::endl;
+		return false;
+	}
+}
+
 void WifiData::Finalize(float latLonDist)
 {
 	longitudeRange = maxLon - minLon;
 	latitudeRange = maxLat - minLat;
-	std::cout << maxLon << ", " << minLon << std::endl;
+
 
 	numLonCells = ceil(longitudeRange / latLonDist);
 	numLatCells = ceil(latitudeRange / latLonDist);
