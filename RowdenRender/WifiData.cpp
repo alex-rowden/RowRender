@@ -109,11 +109,11 @@ bool WifiData::loadBinary(const char* filename, std::vector<float>& intensities)
 		std::ifstream file = std::ifstream(filename, std::ios::in | std::ios::binary);
 		if (!file)
 			return false;
-		char dims[3];
-		file.read(dims, 3);
-		numLatCells = (unsigned char)dims[0];
-		numLonCells = (unsigned char)dims[1];
-		numSlices = (unsigned char)dims[2];
+		int dims[3];
+		file.read(reinterpret_cast<char *>(dims), 3 * sizeof(int));
+		numLatCells = dims[0];
+		numLonCells = dims[1];
+		numSlices = dims[2];
 		int total_size = numLatCells * numLonCells * numSlices;
 		intensities.resize(total_size);
 		std::vector<char> temp = std::vector<char>();

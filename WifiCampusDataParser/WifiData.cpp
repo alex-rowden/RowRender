@@ -54,14 +54,7 @@ bool WifiData::loadCSV(const char* str) {
 			std::string frequencyStr;
 			getline(inputFile, frequencyStr);
 
-			if (longitude < minLon)
-				minLon = longitude;
-			if (longitude > maxLon)
-				maxLon = longitude;
-			if (latitude < minLat)
-				minLat = latitude;
-			if (latitude > maxLat)
-				maxLat = latitude;
+			
 
 			//Convert to a Wifi Entry
 			WifiEntry* entry = new WifiEntry();
@@ -75,7 +68,16 @@ bool WifiData::loadCSV(const char* str) {
 			entry->frequency = atoi(frequencyStr.c_str());
 
 			std::string id = SSIDStr;
+			
 
+			if (longitude < minLon)
+				minLon = longitude;
+			if (longitude > maxLon)
+				maxLon = longitude;
+			if (latitude < minLat)
+				minLat = latitude;
+			if (latitude > maxLat)
+				maxLat = latitude;
 			//Make sure the ID entry exists
 			if (NetIDToWifiEntries.find(id) == NetIDToWifiEntries.end())
 			{
@@ -106,6 +108,8 @@ bool WifiData::loadCSV(const char* str) {
 
 void WifiData::Finalize(float latLonDist)
 {
+
+
 	longitudeRange = maxLon - minLon;
 	latitudeRange = maxLat - minLat;
 

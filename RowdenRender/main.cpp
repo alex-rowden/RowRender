@@ -50,13 +50,13 @@ void createGeometry(optix::Context& context, glm::vec3 volume_size, glm::mat4 tr
 
 		//optix::float3 box_min = optix::make_float3(-volume_size.x / 2.f, -volume_size.y / 2.f, 0.f - volume_size.z / 2.f);	// volume is at origin
 		//optix::float3 box_max = optix::make_float3(volume_size.x / 2.f, volume_size.y / 2.f, 0.f + volume_size.z / 2.f);
-		optix::float3 box_min = optix::make_float3(0, 0, 0);	// volume is at origin
-		optix::float3 box_max = optix::make_float3(volume_size.x, volume_size.y, volume_size.z);
+		optix::float3 box_min = optix::make_float3(25, 25, 0);	// volume is at origin
+		optix::float3 box_max = optix::make_float3(75, 75, 25);
 
 
-		optix::float3 volume_v1 = optix::make_float3(volume_size.x, 0.f, 0.f);
-		optix::float3 volume_v2 = optix::make_float3(0.f, volume_size.y, 0.f);
-		optix::float3 volume_v3 = optix::make_float3(0.f, 0.f, volume_size.z);
+		optix::float3 volume_v1 = optix::make_float3(50, 0.f, 0.f);
+		optix::float3 volume_v2 = optix::make_float3(0.f, 50, 0.f);
+		optix::float3 volume_v3 = optix::make_float3(0.f, 0.f, 25);
 		volume_v1 *= 1.0f / dot(volume_v1, volume_v1);
 		volume_v2 *= 1.0f / dot(volume_v2, volume_v2);
 		volume_v3 *= 1.0f / dot(volume_v3, volume_v3);
@@ -68,14 +68,14 @@ void createGeometry(optix::Context& context, glm::vec3 volume_size, glm::mat4 tr
 		box["voxel_size"]->setFloat(.01, .01, .01);
 
 		box["scene_epsilon"]->setFloat(1e-4f);
-		box["volumeRaytraceStepSize"]->setFloat(.011);
+		box["volumeRaytraceStepSize"]->setFloat(.11);
 
 		context["box_min"]->setFloat(box_min);
 		context["box_max"]->setFloat(box_max);
 		context["v1"]->setFloat(volume_v1);
 		context["v2"]->setFloat(volume_v2);
 		context["v3"]->setFloat(volume_v3);
-		context["volumeRaytraceStepSize"]->setFloat(.011);
+		context["volumeRaytraceStepSize"]->setFloat(.11);
 
 		//context["hg_anchor"]->setFloat( 0, 0, 0);
 		context["hg_anchor"]->setFloat( -(float)1024 *  .0037/ 2.f, -(float)1024 *.0037 / 2.f, -5.0f );
@@ -160,7 +160,7 @@ void createContext(optix::Context&context, Window&w) {
 	//context["max_depth"]->setInt(100);
 	context["scene_epsilon"]->setFloat(1.e-4f);
 	context["opacity_correction"]->setFloat(.65f);
-	optix::float2 output_buffer_dim = optix::make_float2(1024, 1024);
+	optix::float2 output_buffer_dim = optix::make_float2(512, 512);
 	// buffer to store locations and brightness of intersections
 	location_buffer = sutil::createOutputBuffer(context, RT_FORMAT_FLOAT3, output_buffer_dim.x, output_buffer_dim.y, false);
 	amplitude_buffer = sutil::createOutputBuffer(context, RT_FORMAT_FLOAT4, output_buffer_dim.x, output_buffer_dim.y, false);
@@ -168,7 +168,7 @@ void createContext(optix::Context&context, Window&w) {
 	context["location_buffer"]->set(location_buffer);
 	context["amplitude_buffer"]->set(amplitude_buffer);
 	context["initPhase_buffer"]->set(initPhase_buffer);
-	float volumeRaytraceStepSize = .011;
+	float volumeRaytraceStepSize = .11;
 	optix::float3 volume_size = optix::make_float3(.01f, .01f, .01f);
 	float volumeDiagLength = sqrt(volume_size.x * volume_size.x + volume_size.y * volume_size.y + volume_size.z * volume_size.z);
 	unsigned int maxCompositionSteps = (unsigned int)std::ceil(volumeDiagLength / volumeRaytraceStepSize);
@@ -182,9 +182,9 @@ void createContext(optix::Context&context, Window&w) {
 	//context["compDepth_buffer"]->set(compDepth_buffer);
 	//context["compositionBufferSize"]->setUint(compositionBufferSize.x, compositionBufferSize.y, compositionBufferSize.z);
 
-	context["element_hologram_dim"]->setUint(1024, 1024);
-	context["half_num_rays_per_element_hologram"]->setUint( 1024/ 2, 1024 / 2);
-	context["num_rays_per_element_hologram"]->setUint(1024, 1024);
+	context["element_hologram_dim"]->setUint(512, 512);
+	context["half_num_rays_per_element_hologram"]->setUint( 512/ 2, 512 / 2);
+	context["num_rays_per_element_hologram"]->setUint(512, 512);
 	context["pixel_pitch"]->setFloat(.0037);
 	context["ray_interval"]->setFloat(10e-4);
 
@@ -267,7 +267,7 @@ void createOptixTextures(optix::Context& context, glm::vec3 volume_size, std::ve
 				transferFunction.emplace_back(r);
 				transferFunction.emplace_back(g);
 				transferFunction.emplace_back(b);
-				transferFunction.emplace_back( a/100.0f);
+				transferFunction.emplace_back( a/10.0f);
 			}
 		}
 		transferFunctionSize = transferFunction.size() / 4;
@@ -1074,7 +1074,7 @@ void updateCamera(Window&w, optix::Context&context, optix::float3 camera_eye, op
 	sutil::calculateCameraVariables(
 		camera_eye, camera_lookat, camera_up, vfov, aspect_ratio,
 		camera_u, camera_v, camera_w, true);
-
+	
 	const optix::Matrix4x4 frame = optix::Matrix4x4::fromBasis(
 		normalize(camera_u),
 		normalize(camera_v),
@@ -1093,6 +1093,7 @@ void updateCamera(Window&w, optix::Context&context, optix::float3 camera_eye, op
 		camera_u, camera_v, camera_w, true);
 
 	camera_rotate = optix::Matrix4x4::identity();
+	
 
 	context["eye"]->setFloat(camera_eye);
 	context["U"]->setFloat(camera_u);
@@ -1113,7 +1114,7 @@ int main() {
 	}
 	// During init, enable debug output
 	glEnable(GL_DEBUG_OUTPUT);
-	glEnable(GL_DEPTH_TEST);
+	
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	//glEnable(GL_CULL_FACE);
@@ -1121,7 +1122,7 @@ int main() {
 	glDebugMessageCallback(MessageCallback, 0);
 
 	w.SetFramebuferSizeCallback();
-
+	glfwSwapInterval(0);
 	//Shape cube = Shape(Shape::PREMADE::CUBE);
 	
 
@@ -1130,6 +1131,7 @@ int main() {
 
 	ShaderProgram sp = ShaderProgram({ShaderProgram::Shaders::FRAGMENT, ShaderProgram::Shaders::VERTEX});
 	ShaderProgram campus_map_sp = ShaderProgram({ShaderProgram::Shaders::NO_LIGHT_FRAG, ShaderProgram::Shaders::NO_LIGHT_VERT});
+	ShaderProgram screen_shader = ShaderProgram({ ShaderProgram::Shaders::SCREEN_FRAG, ShaderProgram::Shaders::SCREEN_VERT });
 	
 
 	//mesh.SetData();
@@ -1143,7 +1145,7 @@ int main() {
 	Model campusMap = Model("Content\\Models\\quad\\quad.obj");
 	campusMap.setModel();
 	campusMap.getMeshes().at(0)->setTexture(texture, 0);
-	Model RayTraced = Model("Content\\Models\\quad\\quad.obj");
+	Model RayTraced = Model("Content\\Models\\quad\\quad_centered.obj");
 	RayTraced.setModel();
 	glm::mat4 transformation = glm::scale(glm::mat4(1), scale * glm::vec3(-1, 1, -1));// glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
 
@@ -1275,6 +1277,7 @@ int main() {
 	uint64_t start = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 	while (!glfwWindowShouldClose(w.getWindow())) //main render loop
 	{
+		glEnable(GL_DEPTH_TEST);
 		if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - start < 1000) {
 			fps++;
 		}
@@ -1294,7 +1297,7 @@ int main() {
 		updateCamera(w, context, camera_eye, camera_lookat, camera_up, optix::Matrix4x4().identity());
 		try {
 			if (update) {
-				context->launch(0, 1024, 1024);
+				context->launch(0, 512, 512);
 				//update = false;
 			}
 		}
@@ -1324,14 +1327,15 @@ int main() {
 		campus_map_sp.SetUniform4fv("model", campusTransform);
 		campus_map_sp.SetUniform4fv("camera", camera.getView());
 		campus_map_sp.SetUniform4fv("projection", camera.getProjection());
-		//render(campusMap, &campus_map_sp);
+		render(campusMap, &campus_map_sp);
 
 		//glm::mat4 ray_traced_transform = glm::translate(glm::mat4(1), w.translate);
 
 		glm::mat4 ray_traced_transform = glm::translate(glm::mat4(1), w.translate.x * camera.getDirection());
 		campus_map_sp.SetUniform4fv("model", glm::scale(ray_traced_transform, scale* glm::vec3(w.scale)));
 		//campus_map_sp.SetUniform4fv("model", glm::scale(ray_traced_transform, scale* glm::vec3(w.scale)));
-		render(RayTraced, &campus_map_sp);
+		glDisable(GL_DEPTH_TEST);
+		render(RayTraced, &screen_shader);
 		//render(vol, &sp);
 		w.ProcessFrame(&camera);
 	}

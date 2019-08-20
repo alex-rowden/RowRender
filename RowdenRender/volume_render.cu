@@ -55,9 +55,9 @@ RT_PROGRAM void dummy() {
 rtDeclareVariable(float3, hg_normal, , );	// normalized
 
 RT_PROGRAM void closest_hit() {
-	float t = -dot(ray.origin, hg_normal) / dot(ray.direction, hg_normal);
-	float3 interLoc = ray.origin + t * ray.direction;
-	location_buffer[launch_index] = interLoc;
+	//float t = -dot(ray.origin, hg_normal) / dot(ray.direction, hg_normal);
+	//float3 interLoc = ray.origin + t * ray.direction;
+	//location_buffer[launch_index] = interLoc;
 	// init phase
 	const float3 fhp = front_hit_point;
 	//float phase_u = dot(fhp - box_min, v1);
@@ -77,7 +77,7 @@ RT_PROGRAM void closest_hit() {
 		float vol_u = dot(texPoint - box_min, v1);
 		float vol_v = dot(texPoint - box_min, v2);
 		float vol_w = dot(texPoint - box_min, v3);
-		//rtPrintf("%f, %f, %f\n", vol_u, vol_v, vol_w);
+		
 		float volume_scalar = optix::rtTex3D<float>(volumeTextureId, vol_u, vol_v, vol_w);
 		float4 voxel_val_tf = optix::rtTex2D<float4>(transferFunction_texId, volume_scalar, volume_scalar);
 		float3 color_self = make_float3(voxel_val_tf);
@@ -136,10 +136,10 @@ RT_PROGRAM void camera() {
 	//initPhase_buffer[launch_index] = -1.f;
 	size_t2 screen = amplitude_buffer.size();
 
-	float2 d = make_float2(launch_index) / make_float2(screen) * make_float2(2.0f * M_PIf, M_PIf) + make_float2(M_PIf, 0);
-	float3 angle = make_float3(cos(d.x) * sin(d.y), -cos(d.y), sin(d.x) * sin(d.y));
+	float2 d = make_float2(launch_index) / make_float2(screen) * 2.f - 1.f;
+	//float3 angle = make_float3(cos(d.x) * sin(d.y), -cos(d.y), sin(d.x) * sin(d.y));
 	float3 ray_origin = eye;
-	float3 ray_direction = normalize(angle.x * normalize(U) + angle.y * normalize(V) + angle.z * normalize(W));
+	float3 ray_direction = normalize(d.x * -normalize(U) + d.y * -normalize(V) +  -normalize(W));
 
 	optix::Ray ray(ray_origin, ray_direction, radiance_ray_type, scene_epsilon);
 	//rtPrintf("%f, %f, %f\n", rayDirection.x, rayDirection.y, rayDirection.z);
@@ -149,6 +149,11 @@ RT_PROGRAM void camera() {
 	prd.depth = 0;
 	rtTrace(top_object, ray, prd);
 }
+
+rtDeclareVariable(float, fov, , );
+
+
+
 
 // Ray generation program
 RT_PROGRAM void RayGeneration() {
@@ -215,5 +220,5 @@ RT_PROGRAM void exception() {
 // did not hit anything, mark as not hit
 // zero amplitude
 RT_PROGRAM void miss() {
-	amplitude_buffer[launch_index] = optix::make_float4(0, 1, 1, 1);
+	//amplitude_buffer[launch_index] = optix::make_float4(0, 1, 1, 1);
 }

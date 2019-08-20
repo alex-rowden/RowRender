@@ -25,11 +25,12 @@ private:
 	float area(int x1, int y1, int x2, int y2, int x3, int y3);
 	bool isInside(int x1, int y1, int x2, int y2, int x3, int y3, int x, int y);
 
+	
+public:
 	float minLat = std::numeric_limits<float>::max();
 	float minLon = std::numeric_limits<float>::max();
 	float maxLat = std::numeric_limits<float>::lowest();
 	float maxLon = std::numeric_limits<float>::lowest();
-public:
 	WifiData() {};
 	void Finalize(float latLonDist);
 	void ComputeIDIntensities(std::string netID);
