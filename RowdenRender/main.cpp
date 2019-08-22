@@ -1063,7 +1063,26 @@ GLuint optixBufferToGLTexture(optix::Buffer& buffer) {
 
 	return gl_tex_id;
 }
+//Does not work. Do not use
+void updateCamera(Window& w, optix::Context context, Camera& c) {
+	std::cerr << "Functionality still in beta. don't use this" << std::endl;
+	context["eye"]->setFloat(optix::make_float3(c.getPosition().x, c.getPosition().y, c.getPosition().z));
+	optix::float3 camera_u, camera_v, camera_w;
+	glm::vec3 forward, up, right;
+	forward = glm::normalize(c.getDirection());
+	right = glm::normalize(c.getRight());
+	up = glm::normalize(c.getUp());
 
+	camera_u = optix::make_float3(forward.x, forward.y, forward.z);
+	camera_w = optix::make_float3(right.x, right.y, right.z);
+	camera_v = optix::make_float3(up.x, up.y, up.z);
+
+	context["U"]->setFloat(camera_u);
+	context["V"]->setFloat(camera_v);
+	context["W"]->setFloat(camera_w);
+}
+
+//Use this
 void updateCamera(Window&w, optix::Context&context, optix::float3 camera_eye, optix::float3 camera_lookat, optix::float3 camera_up, optix::Matrix4x4 camera_rotate)
 {
 	const float vfov = 90.0f;
@@ -1093,7 +1112,7 @@ void updateCamera(Window&w, optix::Context&context, optix::float3 camera_eye, op
 		camera_u, camera_v, camera_w, true);
 
 	camera_rotate = optix::Matrix4x4::identity();
-	
+	 
 
 	context["eye"]->setFloat(camera_eye);
 	context["U"]->setFloat(camera_u);
@@ -1237,7 +1256,7 @@ int main() {
 	//createOptixTextures(context, glm::vec3(wifi.numLatCells, wifi.numLonCells, wifi.numSlices), use_intensities);
 	
 	//setup camera
-	Camera camera = Camera(glm::vec3(50, 50, 50), glm::vec3(50, 50, 0), 90.0f, w.height/w.width);
+	Camera camera = Camera(glm::vec3(50, 50, 50), glm::vec3(50, 49, 0), 90.0f, w.height/w.width, glm::vec3(0, 1, 0));
 	w.SetCamera(&camera);
 
 	
@@ -1293,8 +1312,9 @@ int main() {
 		}
 		optix::float3  camera_eye = optix::make_float3(camera.getPosition().x, camera.getPosition().y, camera.getPosition().z);
 		optix::float3 camera_lookat = camera_eye - optix::make_float3(camera.getDirection().x, camera.getDirection().y, camera.getDirection().z);
-		optix::float3 camera_up = optix::make_float3(0.0f, 1.0f, 0.0f);
+		optix::float3 camera_up = optix::make_float3(camera.getUp().x, camera.getUp().y, camera.getUp().z);
 		updateCamera(w, context, camera_eye, camera_lookat, camera_up, optix::Matrix4x4().identity());
+		//updateCamera(w, context, camera);
 		try {
 			if (update) {
 				context->launch(0, 512, 512);

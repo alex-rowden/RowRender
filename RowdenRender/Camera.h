@@ -7,6 +7,8 @@ public:
 	glm::mat4 getView();
 	glm::vec3 getPosition();
 	glm::mat4 getProjection();
+	glm::vec3 getUp() { return up; }
+	glm::vec3 getRight() { moveRight(0.0); return right; }
 	void moveForward(float amount);
 	void moveUp(float amount);
 	void moveRight(float amount);
