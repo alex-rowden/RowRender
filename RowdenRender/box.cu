@@ -50,23 +50,7 @@ rtDeclareVariable(float3, texcoord, attribute texcoord, );
 rtDeclareVariable(float3, front_hit_point, attribute front_hit_point, );
 rtDeclareVariable(float3, back_hit_point, attribute back_hit_point, );
 
-RT_PROGRAM void box_intersect_improved(int primIdx) {
-	float3 invD = 1.0f/ray.direction;
-	float3 t0s = (box_min - ray.origin) * invD;
-	float3 t1s = (box_max - ray.origin) * invD;
 
-	float3 tsmaller = fminf(t0s, t1s);
-	float3 tbigger = fmaxf(t0s, t1s);
-
-	float tmin = fmaxf(tsmaller.x, fmaxf(tsmaller.y, tsmaller.z));
-	float tmax = fminf(tbigger.x, fminf(tbigger.y, tbigger.z));
-	if (tmin < tmax) {
-		if (rtPotentialIntersection(0)) {
-			
-		}
-	}
-	return ;
-}
 
 RT_PROGRAM void box_intersect(int primIdx) {
 	float3 rayOrigin_boxMin = box_min - ray.origin;
@@ -80,8 +64,8 @@ RT_PROGRAM void box_intersect(int primIdx) {
 	
 	if (t_min < t_max) {
 		
-		bool check_second = false;
-		// ray intersects volume, enters at t_min, exists at t_max
+		bool check_second = true;
+		// ray intersects volume, enters at t_min, exits at t_max
 		if (rtPotentialIntersection(t_min)) {
 			//rtPrintf("%f, %f\n", t_min, t_max);
 			front_hit_point = ray.origin + (t_min + scene_epsilon) * ray.direction;
@@ -90,8 +74,8 @@ RT_PROGRAM void box_intersect(int primIdx) {
 		}
 		if (check_second) {
 			if (rtPotentialIntersection(t_max)) {
-				//front_hit_point = ray.origin + (t_min + scene_epsilon) * ray.direction;
-				//back_hit_point = ray.origin + (t_max - scene_epsilon) * ray.direction;
+				front_hit_point = ray.origin + ( scene_epsilon) * ray.direction;
+				back_hit_point = ray.origin + (t_max - scene_epsilon) * ray.direction;
 				rtReportIntersection(0);
 			}
 		}
