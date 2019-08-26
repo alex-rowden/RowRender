@@ -27,36 +27,27 @@ void standard_mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 	Window *win = static_cast<Window *>(glfwGetWindowUserPointer(window)); 
 	if (win->firstMouse) // this bool variable is initially set to true
 	{
+		win->lastTime = glfwGetTime();
 		win->lastX = xpos;
 		win->lastY = ypos;
 		win->firstMouse = false;
 	}
-	float xoffset = xpos - win->lastX;
-	float yoffset = win->lastY - ypos; // reversed since y-coordinates range from bottom to top
+	
 	win->lastX = xpos;
 	win->lastY = ypos;
 
 	float sensitivity = 0.001f;
-	xoffset *= sensitivity;
-	yoffset *= sensitivity;
-
-	win->camera->yaw -= xoffset;
-	win->camera->pitch += yoffset;
-	float pitch = win->camera->pitch;
-	float yaw = win->camera->yaw;
-
-	if (pitch > 90.0f)
-		win->camera->pitch = 90.0f;
-	if (pitch < -90.0f)
-		win->camera->pitch = -90.0f;
-
-	glm::vec3 front;
-	double xzLen = cos(pitch);
-	front.x = xzLen * cos(yaw);
-	front.y = sin(pitch);
-	front.z = xzLen * sin(-yaw);
 	
-	win->camera->setDirection(glm::normalize(front));
+	glfwSetCursorPos(win->getWindow(), win->width / 2.0f, win->height / 2.0f);
+
+	win->horizontalAngle = sensitivity * float(win->width / 2.0f - xpos);
+	win->verticalAngle = sensitivity * float(win->height / 2.0f - ypos);
+
+
+	
+	win->camera->setDirection(glm::vec3(cos(win->verticalAngle) * sin(win->horizontalAngle), sin(win->verticalAngle), cos(win->verticalAngle) * cos(win->horizontalAngle)));
+	win->camera->setRight(glm::vec3(sin(win->horizontalAngle - 3.14f / 2.0f), 0, cos(win->horizontalAngle - 3.14f / 2.0f)));
+	win->camera->setUp(glm::cross(win->camera->getDirection(), win->camera->getRight()));
 }
 
 void Window::standardInputProcessor(GLFWwindow* window) { //Go to processInputFunction, no extra steps needed
