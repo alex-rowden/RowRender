@@ -36,6 +36,6 @@ void Camera::moveUp(float amount) {
 }
 
 void Camera::moveRight(float amount) {
-	this->right = glm::normalize(glm::cross(direction, up));
+	right = glm::normalize(glm::cross(direction, up));
 	position += right * amount;
 }
