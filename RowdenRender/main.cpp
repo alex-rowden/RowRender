@@ -23,6 +23,7 @@ int counter = 10;
 float increment = 0.05;
 float scale = 1.0;
 bool update = true;
+int size = 800;
 
 optix::Buffer amplitude_buffer;
 optix::Buffer location_buffer;
@@ -56,7 +57,7 @@ void createGeometry(optix::Context& context, glm::vec3 volume_size, glm::mat4 tr
 
 		optix::float3 volume_v1 = optix::make_float3(50, 0.f, 0.f);
 		optix::float3 volume_v2 = optix::make_float3(0.f, 50, 0.f);
-		optix::float3 volume_v3 = optix::make_float3(0.f, 0.f, 25);
+		optix::float3 volume_v3 = optix::make_float3(0.f, 0.f, 50);
 		volume_v1 *= 1.0f / dot(volume_v1, volume_v1);
 		volume_v2 *= 1.0f / dot(volume_v2, volume_v2);
 		volume_v3 *= 1.0f / dot(volume_v3, volume_v3);
@@ -160,7 +161,7 @@ void createContext(optix::Context&context, Window&w) {
 	//context["max_depth"]->setInt(100);
 	context["scene_epsilon"]->setFloat(1.e-4f);
 	context["opacity_correction"]->setFloat(.65f);
-	optix::float2 output_buffer_dim = optix::make_float2(512, 512);
+	optix::float2 output_buffer_dim = optix::make_float2(size, size);
 	// buffer to store locations and brightness of intersections
 	location_buffer = sutil::createOutputBuffer(context, RT_FORMAT_FLOAT3, output_buffer_dim.x, output_buffer_dim.y, false);
 	amplitude_buffer = sutil::createOutputBuffer(context, RT_FORMAT_FLOAT4, output_buffer_dim.x, output_buffer_dim.y, false);
@@ -182,9 +183,9 @@ void createContext(optix::Context&context, Window&w) {
 	//context["compDepth_buffer"]->set(compDepth_buffer);
 	//context["compositionBufferSize"]->setUint(compositionBufferSize.x, compositionBufferSize.y, compositionBufferSize.z);
 
-	context["element_hologram_dim"]->setUint(512, 512);
-	context["half_num_rays_per_element_hologram"]->setUint( 512/ 2, 512 / 2);
-	context["num_rays_per_element_hologram"]->setUint(512, 512);
+	context["element_hologram_dim"]->setUint(size, size);
+	context["half_num_rays_per_element_hologram"]->setUint( size/ 2, size/ 2);
+	context["num_rays_per_element_hologram"]->setUint(size, size);
 	context["pixel_pitch"]->setFloat(.0037);
 	context["ray_interval"]->setFloat(10e-4);
 
@@ -254,7 +255,7 @@ void createOptixTextures(optix::Context& context, glm::vec3 volume_size, std::ve
 		int transferFunctionSize = 2;
 		std::vector<float> transferFunction = std::vector<float>();
 		std::string line;
-		std::ifstream transferfunction("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/transfer.1dt");
+		std::ifstream transferfunction("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/strong_heatmap.1dt");
 		//std::ifstream transferfunction("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/transfer.1dt");
 
 		if (transferfunction.is_open()) {
@@ -267,7 +268,7 @@ void createOptixTextures(optix::Context& context, glm::vec3 volume_size, std::ve
 				transferFunction.emplace_back(r);
 				transferFunction.emplace_back(g);
 				transferFunction.emplace_back(b);
-				transferFunction.emplace_back( a/10.0f);
+				transferFunction.emplace_back( a/3.0f);
 			}
 		}
 		transferFunctionSize = transferFunction.size() / 4;
@@ -1310,7 +1311,7 @@ int main() {
 		//updateCamera(w, context, camera);
 		try {
 			if (update) {
-				context->launch(0, 512, 512);
+				context->launch(0, size, size);
 				//update = false;
 			}
 		}
