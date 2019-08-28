@@ -254,7 +254,7 @@ void createOptixTextures(optix::Context& context, glm::vec3 volume_size, std::ve
 		int transferFunctionSize = 2;
 		std::vector<float> transferFunction = std::vector<float>();
 		std::string line;
-		std::ifstream transferfunction("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/strong_heatmap.1dt");
+		std::ifstream transferfunction("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/transfer.1dt");
 		//std::ifstream transferfunction("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/transfer.1dt");
 
 		if (transferfunction.is_open()) {
@@ -267,7 +267,7 @@ void createOptixTextures(optix::Context& context, glm::vec3 volume_size, std::ve
 				transferFunction.emplace_back(r);
 				transferFunction.emplace_back(g);
 				transferFunction.emplace_back(b);
-				transferFunction.emplace_back( a/6.5f);
+				transferFunction.emplace_back( a/10.0f);
 			}
 		}
 		transferFunctionSize = transferFunction.size() / 4;
@@ -1243,15 +1243,8 @@ int main() {
 	createContext(context, w);
 	glm::mat4 volume_transform = glm::rotate(glm::mat4(1), glm::radians(90.0f), glm::vec3(0, 1, 0));
 	createGeometry(context, glm::vec3(wifi.numLatCells, wifi.numLonCells, wifi.numSlices), glm::mat4(1));
-	std::vector<float> fake_intensities = std::vector<float>();
-	fake_intensities.resize(wifi.numLatCells * wifi.numLonCells * wifi.numSlices);
-	for (int i = 0; i < wifi.numLatCells; i++) {
-		for (int j = 0; j < wifi.numLonCells; j++) {
-			for (int k = 0; k < wifi.numSlices; k++) {
-				fake_intensities.at(i + j * wifi.numLatCells + k * wifi.numLatCells * wifi.numLonCells) = (i / (float)wifi.numLatCells + j / (float) wifi.numLonCells + k/(float)wifi.numSlices)/3.0f;
-			}
-		}
-	}
+	
+	context->validate();
 	createOptixTextures(context, glm::vec3(wifi.numLatCells, wifi.numLonCells, wifi.numSlices), use_intensities);
 	//createOptixTextures(context, glm::vec3(wifi.numLatCells, wifi.numLonCells, wifi.numSlices), use_intensities);
 	
