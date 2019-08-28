@@ -57,7 +57,7 @@ void createGeometry(optix::Context& context, glm::vec3 volume_size, glm::mat4 tr
 
 		optix::float3 volume_v1 = optix::make_float3(50, 0.f, 0.f);
 		optix::float3 volume_v2 = optix::make_float3(0.f, 50, 0.f);
-		optix::float3 volume_v3 = optix::make_float3(0.f, 0.f, 50);
+		optix::float3 volume_v3 = optix::make_float3(0.f, 0.f, 25);
 		volume_v1 *= 1.0f / dot(volume_v1, volume_v1);
 		volume_v2 *= 1.0f / dot(volume_v2, volume_v2);
 		volume_v3 *= 1.0f / dot(volume_v3, volume_v3);
