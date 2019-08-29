@@ -23,6 +23,7 @@ int counter = 10;
 float increment = 0.05;
 float scale = 1.0;
 bool update = true;
+int size = 800;
 
 optix::Buffer amplitude_buffer;
 optix::Buffer location_buffer;
@@ -160,7 +161,7 @@ void createContext(optix::Context&context, Window&w) {
 	//context["max_depth"]->setInt(100);
 	context["scene_epsilon"]->setFloat(1.e-4f);
 	context["opacity_correction"]->setFloat(.65f);
-	optix::float2 output_buffer_dim = optix::make_float2(512, 512);
+	optix::float2 output_buffer_dim = optix::make_float2(size, size);
 	// buffer to store locations and brightness of intersections
 	location_buffer = sutil::createOutputBuffer(context, RT_FORMAT_FLOAT3, output_buffer_dim.x, output_buffer_dim.y, false);
 	amplitude_buffer = sutil::createOutputBuffer(context, RT_FORMAT_FLOAT4, output_buffer_dim.x, output_buffer_dim.y, false);
@@ -182,9 +183,9 @@ void createContext(optix::Context&context, Window&w) {
 	//context["compDepth_buffer"]->set(compDepth_buffer);
 	//context["compositionBufferSize"]->setUint(compositionBufferSize.x, compositionBufferSize.y, compositionBufferSize.z);
 
-	context["element_hologram_dim"]->setUint(512, 512);
-	context["half_num_rays_per_element_hologram"]->setUint( 512/ 2, 512 / 2);
-	context["num_rays_per_element_hologram"]->setUint(512, 512);
+	context["element_hologram_dim"]->setUint(size, size);
+	context["half_num_rays_per_element_hologram"]->setUint( size/ 2, size/ 2);
+	context["num_rays_per_element_hologram"]->setUint(size, size);
 	context["pixel_pitch"]->setFloat(.0037);
 	context["ray_interval"]->setFloat(10e-4);
 
@@ -224,7 +225,7 @@ void createOptixTextures(optix::Context& context, glm::vec3 volume_size, std::ve
 		glBindTexture(GL_TEXTURE_3D, 0);
 		// create optix 3D texture sampler
 		volume_texture = context->createTextureSamplerFromGLImage(volume_textureId, RT_TARGET_GL_TEXTURE_3D);
-		volume_texture->setFilteringModes(RT_FILTER_LINEAR, RT_FILTER_LINEAR, RT_FILTER_NONE);
+		volume_texture->setFilteringModes(RT_FILTER_LINEAR, RT_FILTER_LINEAR, RT_FILTER_LINEAR);
 		volume_texture->setWrapMode(0, RT_WRAP_CLAMP_TO_EDGE);
 		volume_texture->setWrapMode(1, RT_WRAP_CLAMP_TO_EDGE);
 		volume_texture->setWrapMode(2, RT_WRAP_CLAMP_TO_EDGE);
@@ -254,7 +255,7 @@ void createOptixTextures(optix::Context& context, glm::vec3 volume_size, std::ve
 		int transferFunctionSize = 2;
 		std::vector<float> transferFunction = std::vector<float>();
 		std::string line;
-		std::ifstream transferfunction("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/strong_heatmap.1dt");
+		std::ifstream transferfunction("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/gaus.1dt");
 		//std::ifstream transferfunction("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/transfer.1dt");
 
 		if (transferfunction.is_open()) {
@@ -267,7 +268,7 @@ void createOptixTextures(optix::Context& context, glm::vec3 volume_size, std::ve
 				transferFunction.emplace_back(r);
 				transferFunction.emplace_back(g);
 				transferFunction.emplace_back(b);
-				transferFunction.emplace_back( a/6.5f);
+				transferFunction.emplace_back( a/3.0f);
 			}
 		}
 		transferFunctionSize = transferFunction.size() / 4;
@@ -1224,15 +1225,8 @@ int main() {
 	createContext(context, w);
 	glm::mat4 volume_transform = glm::rotate(glm::mat4(1), glm::radians(90.0f), glm::vec3(0, 1, 0));
 	createGeometry(context, glm::vec3(wifi.numLatCells, wifi.numLonCells, wifi.numSlices), glm::mat4(1));
-	std::vector<float> fake_intensities = std::vector<float>();
-	fake_intensities.resize(wifi.numLatCells * wifi.numLonCells * wifi.numSlices);
-	for (int i = 0; i < wifi.numLatCells; i++) {
-		for (int j = 0; j < wifi.numLonCells; j++) {
-			for (int k = 0; k < wifi.numSlices; k++) {
-				fake_intensities.at(i + j * wifi.numLatCells + k * wifi.numLatCells * wifi.numLonCells) = (i / (float)wifi.numLatCells + j / (float) wifi.numLonCells + k/(float)wifi.numSlices)/3.0f;
-			}
-		}
-	}
+	
+	context->validate();
 	createOptixTextures(context, glm::vec3(wifi.numLatCells, wifi.numLonCells, wifi.numSlices), use_intensities);
 	//createOptixTextures(context, glm::vec3(wifi.numLatCells, wifi.numLonCells, wifi.numSlices), use_intensities);
 	
@@ -1259,7 +1253,7 @@ int main() {
 	glm::mat4 projection;
 	//w.scale = glm::vec3(1, .03, 1);
 	w.scale = glm::vec3(100, 100, 100);
-	w.translate = glm::vec3(0, 0.0f, 0);
+	w.translate = glm::vec3(0, 0.0f, 7.5);
 	//w.translate = glm::vec3(0, -.1f, 0);
 	
 	w.setSpeed(.5 * 10);
@@ -1297,7 +1291,7 @@ int main() {
 		updateCamera(w, context, camera_eye, camera_lookat, camera_up, optix::Matrix4x4().identity());
 		try {
 			if (update) {
-				context->launch(0, 512, 512);
+				context->launch(0, size, size);
 				//update = false;
 			}
 		}
