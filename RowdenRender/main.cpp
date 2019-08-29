@@ -225,7 +225,7 @@ void createOptixTextures(optix::Context& context, glm::vec3 volume_size, std::ve
 		glBindTexture(GL_TEXTURE_3D, 0);
 		// create optix 3D texture sampler
 		volume_texture = context->createTextureSamplerFromGLImage(volume_textureId, RT_TARGET_GL_TEXTURE_3D);
-		volume_texture->setFilteringModes(RT_FILTER_LINEAR, RT_FILTER_LINEAR, RT_FILTER_NONE);
+		volume_texture->setFilteringModes(RT_FILTER_LINEAR, RT_FILTER_LINEAR, RT_FILTER_LINEAR);
 		volume_texture->setWrapMode(0, RT_WRAP_CLAMP_TO_EDGE);
 		volume_texture->setWrapMode(1, RT_WRAP_CLAMP_TO_EDGE);
 		volume_texture->setWrapMode(2, RT_WRAP_CLAMP_TO_EDGE);
@@ -255,7 +255,7 @@ void createOptixTextures(optix::Context& context, glm::vec3 volume_size, std::ve
 		int transferFunctionSize = 2;
 		std::vector<float> transferFunction = std::vector<float>();
 		std::string line;
-		std::ifstream transferfunction("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/strong_heatmap.1dt");
+		std::ifstream transferfunction("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/gaus.1dt");
 		//std::ifstream transferfunction("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/transfer.1dt");
 
 		if (transferfunction.is_open()) {
@@ -1272,7 +1272,7 @@ int main() {
 	glm::mat4 projection;
 	//w.scale = glm::vec3(1, .03, 1);
 	w.scale = glm::vec3(100, 100, 100);
-	w.translate = glm::vec3(0, 0.0f, 0);
+	w.translate = glm::vec3(0, 0.0f, 7.5);
 	//w.translate = glm::vec3(0, -.1f, 0);
 	
 	w.setSpeed(.5 * 10);
