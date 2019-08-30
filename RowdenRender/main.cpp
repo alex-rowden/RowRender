@@ -1321,7 +1321,7 @@ int main() {
 		if (animated) {
 			float distance = speed * (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - start);
 			int i = 0;
-			while (distance > 0) {
+			while (distance > distances.at(i)) {
 				distance -= distances.at(i);
 				i++;
 				if (i == distances.size()) {
@@ -1331,7 +1331,7 @@ int main() {
 					break;
 				}
 			}
-			distance += distances.at(i);
+			
 			float step = distance / distances.at(i);
 			camera.setPosition(glm::lerp(positions.at(i), positions.at(i + 1), step));
 			camera.setDirection(glm::lerp(look_ats.at(i), look_ats.at(i + 1), step));
