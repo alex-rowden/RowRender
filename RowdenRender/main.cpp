@@ -24,6 +24,9 @@ float increment = 0.05;
 float scale = 1.0;
 bool update = true;
 int size = 800;
+bool animated = true;
+const char* animation_file = "name.txt";
+float speed = .005f;
 
 optix::Buffer amplitude_buffer;
 optix::Buffer location_buffer;
@@ -1266,19 +1269,72 @@ int main() {
 	glm::mat4 light_transform = glm::translate(glm::mat4(1.0f), glm::vec3(3, 3, 3));
 
 	glm::mat4 campusTransform;
+	std::vector<glm::vec3> positions;
+	std::vector<glm::vec3> look_ats;
+	std::vector<float> distances;
+	char char_buffer[100];
+	char* next_token;
+	if (animated) {
+		positions.emplace_back(camera.getPosition());
+		look_ats.emplace_back(camera.getPosition() + camera.getDirection());
+		std::fstream animation = std::fstream(animation_file, std::ios::in);
+		bool odd = false;
+		while (animation.getline(char_buffer, 100)) {
+			char *parts = strtok_s(char_buffer, ", ", &next_token);
+			glm::vec3 vec;
+			int axis = 0;
+			while (parts != NULL) {
+				vec[axis] = atof(parts);
+				parts = strtok_s(NULL, ", ", &next_token);
+				axis++;
+			}
+			if (odd) {
+				look_ats.emplace_back(vec);
+			}
+			else {
+				positions.emplace_back(vec);
+			}
+			odd = !odd;
+		}
+		positions.emplace_back(camera.getPosition());
+		look_ats.emplace_back(camera.getPosition() + camera.getDirection());
+		for (int i = 0; i < positions.size() - 1; i++) {
+			distances.emplace_back(glm::distance(positions.at(i), positions.at(i + 1)));
+		}
+	}
 	
 	int fps = 0;
+	uint64_t fps_counter = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 	uint64_t start = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 	while (!glfwWindowShouldClose(w.getWindow())) //main render loop
 	{
 		glEnable(GL_DEPTH_TEST);
-		if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - start < 1000) {
+		if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - fps_counter < 1000) {
 			fps++;
 		}
 		else {
 			std::cout << fps << std::endl;
 			fps = 0;
-			start = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+			fps_counter = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+		}
+
+		if (animated) {
+			float distance = speed * (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - start);
+			int i = 0;
+			while (distance > 0) {
+				distance -= distances.at(i);
+				i++;
+				if (i == distances.size()) {
+					animated = false;
+					distance = 0;
+					i = 0;
+					break;
+				}
+			}
+			distance += distances.at(i);
+			float step = distance / distances.at(i);
+			camera.setPosition(glm::lerp(positions.at(i), positions.at(i + 1), step));
+			camera.setDirection(glm::lerp(look_ats.at(i), look_ats.at(i + 1), step));
 		}
 
 		if (w.signal) {

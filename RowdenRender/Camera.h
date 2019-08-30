@@ -13,6 +13,7 @@ public:
 	void setDirection(glm::vec3 dir);
 	void setRight(glm::vec3 right) { this->right = right; }
 	void setUp(glm::vec3 up) { this->up = up; }
+	void setPosition(glm::vec3 pos) { this->position = pos; }
 	float pitch, yaw, fov, aspect;
 	glm::vec3 getDirection() { return direction; }
 	
