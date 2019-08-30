@@ -1334,7 +1334,7 @@ int main() {
 			
 			float step = distance / distances.at(i);
 			camera.setPosition(glm::lerp(positions.at(i), positions.at(i + 1), step));
-			camera.setDirection(glm::lerp(look_ats.at(i), look_ats.at(i + 1), step));
+			camera.setDirection(glm::lerp(look_ats.at(i) - positions.at(i), look_ats.at(i + 1) - positions.at(i+1), step));
 		}
 
 		if (w.signal) {
