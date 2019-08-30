@@ -3,7 +3,7 @@
 class Camera
 {
 public:
-	Camera(glm::vec3 position, glm::vec3 target, float fov, float aspect, glm::vec3 up = glm::vec3(0,1,0));
+	Camera(glm::vec3 position, glm::vec3 target, float fov, float aspect, glm::vec3 up = glm::vec3(0,0,1));
 	glm::mat4 getView();
 	glm::vec3 getPosition();
 	glm::mat4 getProjection();

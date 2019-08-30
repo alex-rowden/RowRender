@@ -24,7 +24,7 @@ float increment = 0.05;
 float scale = 1.0;
 bool update = true;
 int size = 800;
-bool animated = true;
+bool animated = false;
 const char* animation_file = "name.txt";
 float speed = .005f;
 
@@ -1234,7 +1234,7 @@ int main() {
 	//createOptixTextures(context, glm::vec3(wifi.numLatCells, wifi.numLonCells, wifi.numSlices), use_intensities);
 	
 	//setup camera
-	Camera camera = Camera(glm::vec3(50, 50, 50), glm::vec3(50, 50, 0), 90.0f, w.height/w.width);
+	Camera camera = Camera(glm::vec3(50, 50, 50), glm::vec3(50, 49, 0), 90.0f, w.height/w.width);
 	w.SetCamera(&camera);
 
 	
@@ -1338,12 +1338,13 @@ int main() {
 		}
 
 		if (w.signal) {
+			animated = true;
 			w.signal = false;
 			update = true;
 		}
 		optix::float3  camera_eye = optix::make_float3(camera.getPosition().x, camera.getPosition().y, camera.getPosition().z);
 		optix::float3 camera_lookat = camera_eye - optix::make_float3(camera.getDirection().x, camera.getDirection().y, camera.getDirection().z);
-		optix::float3 camera_up = optix::make_float3(0.0f, 1.0f, 0.0f);
+		optix::float3 camera_up = optix::make_float3(0.0f, 0.0f, 1.0f);
 		updateCamera(w, context, camera_eye, camera_lookat, camera_up, optix::Matrix4x4().identity());
 		try {
 			if (update) {
