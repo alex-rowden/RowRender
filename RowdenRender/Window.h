@@ -1,6 +1,8 @@
 #pragma once
 #include "RowRender.h"
 #include "Camera.h"
+#include <iostream>
+#include <fstream>
 class Window
 {
 public:
@@ -29,6 +31,8 @@ public:
 	double lastTime = 0;
 	float horizontalAngle = 3.14f;
 	float verticalAngle = 0.0f;
+	std::fstream out;
+	bool printing = false;
 private:
 	
 

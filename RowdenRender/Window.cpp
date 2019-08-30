@@ -1,8 +1,10 @@
 #include "Window.h"
 
+
+
 Window::Window(const char *name) {
 	SetVersion(3, 3);
-
+	out = std::fstream("name.txt", std::ios::out);
 	bool window_made = makeWindow(600, 800, name);
 	glfwSetWindowUserPointer(window, this);
 	glfwSetCursorPos(window, width / 2.0f, height / 2.0f);
@@ -134,7 +136,15 @@ void Window::standardInputProcessor(GLFWwindow* window) { //Go to processInputFu
 		//j += 1;
 		j %= 2;
 	}if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-		signal = true;
+		//signal = true;
+		if (!printing) {
+			printing = !printing;
+			out << camera->getPosition().x << ", " << camera->getPosition().y << ", " << camera->getPosition().z << std::endl;
+			out << camera->getPosition().x + camera->getDirection().x << ", " << camera->getPosition().y + camera->getDirection().y << ", " << camera->getPosition().z + camera->getDirection().z << std::endl;
+		}
+	}if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_RELEASE) {
+		//signal = true;
+		printing = !printing;
 	}
 	else {
 		pressed = false;
