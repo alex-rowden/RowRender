@@ -24,7 +24,7 @@ float increment = 0.05;
 float scale = 1.0;
 bool update = true;
 int size = 800;
-bool animated = false;
+bool animated = true;
 const char* animation_file = "name.txt";
 float speed = .005f;
 
@@ -1301,6 +1301,7 @@ int main() {
 		for (int i = 0; i < positions.size() - 1; i++) {
 			distances.emplace_back(glm::distance(positions.at(i), positions.at(i + 1)));
 		}
+		animated = false;
 	}
 	
 	int fps = 0;
@@ -1339,8 +1340,10 @@ int main() {
 
 		if (w.signal) {
 			animated = true;
+			start = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 			w.signal = false;
 			update = true;
+
 		}
 		optix::float3  camera_eye = optix::make_float3(camera.getPosition().x, camera.getPosition().y, camera.getPosition().z);
 		optix::float3 camera_lookat = camera_eye - optix::make_float3(camera.getDirection().x, camera.getDirection().y, camera.getDirection().z);
