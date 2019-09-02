@@ -56,14 +56,14 @@ int main() {
 	wifi.loadCSV("../RowdenRender/Content/Data/EricWifi-2-27-19.csv");
 	wifi.loadCSV("../RowdenRender/Content/Data/EricWifi-2-27-19(2).csv");
 	
-	wifi.Finalize(.0005f);
+	wifi.Finalize(.00001f);
 	wifi.ComputeIDIntensities("umd");
 
 	float ** intensities = wifi.GetIDIntensities("umd");
 
 	float maxIntensity = 0;
 
-	int num_cells = 50;
+	int num_cells = 25;
 	std::vector<glm::vec4> pixels;
 	std::vector<float> use_intensities;
 	use_intensities.resize(wifi.numLonCells * wifi.numLatCells * num_cells);
@@ -78,7 +78,7 @@ int main() {
 		}
 	}
 
-	int curr_height = (num_cells - 1) / 2.0;
+	int curr_height = 0;//(num_cells - 1) / 2.0; //Just do the top half
 	for (int h = 0; h < num_cells; h++) {
 		for (int i = 0; i < wifi.numLonCells; i++)
 		{
@@ -97,7 +97,7 @@ int main() {
 		}
 	}
 
-	std::fstream out = std::fstream("wifi_data_small.raw", std::ios::out|std::ios::binary);
+	std::fstream out = std::fstream("top_half.raw", std::ios::out|std::ios::binary);
 	out.write(reinterpret_cast<char *>(&wifi.numLatCells), sizeof(int));
 	out.write(reinterpret_cast<char *>(&wifi.numLonCells), sizeof(int));
 	out.write(reinterpret_cast<char *>(&num_cells), sizeof(int));

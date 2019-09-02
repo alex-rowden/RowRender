@@ -1156,7 +1156,7 @@ int main() {
 	WifiData wifi;
 
 	std::vector<float> use_intensities;
-	wifi.loadBinary("wifi_data.raw", use_intensities);
+	wifi.loadBinary("top_half.raw", use_intensities);
 
 	
 	
@@ -1256,7 +1256,7 @@ int main() {
 	glm::mat4 projection;
 	//w.scale = glm::vec3(1, .03, 1);
 	w.scale = glm::vec3(100, 100, 100);
-	w.translate = glm::vec3(0, 0.0f, 7.5);
+	w.translate = glm::vec3(0, 0.0f, 2.5f);
 	//w.translate = glm::vec3(0, -.1f, 0);
 	
 	w.setSpeed(.5 * 10);

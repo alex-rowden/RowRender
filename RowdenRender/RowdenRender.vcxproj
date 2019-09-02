@@ -48,6 +48,7 @@
     <ClInclude Include="Window.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\WifiCampusDataParser\top_half.raw" />
     <None Include="box.cu" />
     <None Include="fragment_shader.glsl" />
     <None Include="fragment_shader_no_light.glsl" />
