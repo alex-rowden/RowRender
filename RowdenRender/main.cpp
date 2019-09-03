@@ -1235,7 +1235,7 @@ int main() {
 
 	float ambientStrength = .1;
 
-	context['ambientStrength']->setFloat(ambientStrength);
+	context["ambientStrength"]->setFloat(ambientStrength);
 	//setup camera
 	Camera camera = Camera(glm::vec3(50, 50, 50), glm::vec3(50, 49, 0), 90.0f, w.height/w.width);
 	w.SetCamera(&camera);
