@@ -47,6 +47,11 @@ rtDeclareVariable(float, volumeRaytraceStepSize, , );
 
 rtDeclareVariable(uint2, buffer_range_beg, , );
 rtDeclareVariable(uint2, buffer_range_end, , );
+
+// lighting_stuff
+
+rtDeclareVariable(float, ambientStrength, , );
+
 RT_PROGRAM void dummy() {
 	//rtPrintf("%d, %d\n", launch_index.x, launch_index.y);
 	amplitude_buffer[launch_index] = make_float4(.7, 0, .9, .6);
@@ -92,16 +97,22 @@ RT_PROGRAM void closest_hit() {
 		plus_w = optix::rtTex3D<float>(volumeTextureId, vol_u, vol_v, vol_w + region_increment);
 		minus_w = optix::rtTex3D<float>(volumeTextureId, vol_u, vol_v, vol_w - region_increment);
 
-		float3 normal = optix::normalize(v1 * (plus_u - minus_u) / (2 * region_increment) + v2 * (plus_v - minus_v) / (2 * region_increment) + v3 * (plus_w - minus_w) / (2 * region_increment));
+		float3 normal = optix::normalize(normalize(v1) * (plus_u - minus_u) / (2 * region_increment) + normalize(v2) * (plus_v - minus_v) / (2 * region_increment) + normalize(v3) * (plus_w - minus_w) / (2 * region_increment));
 
 		float4 voxel_val_tf = optix::rtTex2D<float4>(transferFunction_texId, volume_scalar, volume_scalar);
-		float3 color_self = normal;//make_float3(voxel_val_tf);
+		float3 color_self = make_float3(fabs(normal.x), fabs(normal.y), fabs(normal.z));//make_float3(voxel_val_tf);
 	
 		
 		float opaque_self = voxel_val_tf.w;
+		/*
 		if (opaque_self > .01) {
 			opaque_self = 1.0f;
+			//rtPrintf("%f, %f, %f\n", normal.x, normal.y, normal.z);
+			if (fabs(normal.x) < 0.01 && fabs(normal.y) < 0.01 && fabs(normal.z) < 0.01) {
+				opaque_self = 0;
+			}
 		}
+		*/
 		//opaque_self = 1.f - powf(1.f - opaque_self, opacity_correction);
 		// amp = amp_in + (1-opaque) * amp_self
 		// opqaue = opaque_in + (1-opqaue) * opqaue_self
