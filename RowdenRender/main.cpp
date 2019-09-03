@@ -259,7 +259,7 @@ void createOptixTextures(optix::Context& context, glm::vec3 volume_size, std::ve
 		std::vector<float> transferFunction = std::vector<float>();
 		std::string line;
 		std::ifstream transferfunction("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/gaus.1dt");
-		//std::ifstream transferfunction("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/transfer.1dt");
+		//std::ifstream transferfunction("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/strong_heatmap.1dt");
 
 		if (transferfunction.is_open()) {
 			std::getline(transferfunction, line);
@@ -1233,14 +1233,20 @@ int main() {
 	createOptixTextures(context, glm::vec3(wifi.numLatCells, wifi.numLonCells, wifi.numSlices), use_intensities);
 	//createOptixTextures(context, glm::vec3(wifi.numLatCells, wifi.numLonCells, wifi.numSlices), use_intensities);
 
-	float ambientStrength = .1;
+	float ambientStrength = .05;
+	optix::float3 lightPos = optix::make_float3(0, 0, 0);
+	float specularStrength = .75;
+	float shininess = 16;
 
 	context["ambientStrength"]->setFloat(ambientStrength);
+	
+	context["specularStrength"]->setFloat(specularStrength);
+	context["shininess"]->setFloat(shininess);
 	//setup camera
 	Camera camera = Camera(glm::vec3(50, 50, 50), glm::vec3(50, 49, 0), 90.0f, w.height/w.width);
 	w.SetCamera(&camera);
 
-	
+	context["lightPos"]->setFloat(optix::make_float3(camera.getPosition().x, camera.getPosition().y, camera.getPosition().z));
 
 	
 	//sutil::displayBufferPPM("out.ppm", context["output_buffer"]->getBuffer());
@@ -1379,6 +1385,7 @@ int main() {
 		//render(light, &light_sp);
 		campusTransform = glm::translate(glm::mat4(1), w.translate);
 		campusTransform = glm::scale(campusTransform, scale * glm::vec3(w.scale));
+		
 		
 		
 		campus_map_sp.SetUniform4fv("model", campusTransform);

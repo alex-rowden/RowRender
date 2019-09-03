@@ -51,6 +51,9 @@ rtDeclareVariable(uint2, buffer_range_end, , );
 // lighting_stuff
 
 rtDeclareVariable(float, ambientStrength, , );
+rtDeclareVariable(float3, lightPos, , );
+rtDeclareVariable(float, specularStrength, , );
+rtDeclareVariable(float, shininess, , );
 
 RT_PROGRAM void dummy() {
 	//rtPrintf("%d, %d\n", launch_index.x, launch_index.y);
@@ -100,8 +103,14 @@ RT_PROGRAM void closest_hit() {
 		float3 normal = optix::normalize(normalize(v1) * (plus_u - minus_u) / (2 * region_increment) + normalize(v2) * (plus_v - minus_v) / (2 * region_increment) + normalize(v3) * (plus_w - minus_w) / (2 * region_increment));
 
 		float4 voxel_val_tf = optix::rtTex2D<float4>(transferFunction_texId, volume_scalar, volume_scalar);
-		float3 color_self = make_float3(fabs(normal.x), fabs(normal.y), fabs(normal.z));//make_float3(voxel_val_tf);
-	
+		//float3 color_self = make_float3(fabs(normal.x), fabs(normal.y), fabs(normal.z));//make_float3(voxel_val_tf);
+		float3 lightDir = normalize(lightPos - texPoint - box_min);
+		float diffuse = fmax(dot(normal, lightDir), 0.0f);
+
+		float3 viewDir = normalize(ray.origin - texPoint - box_min);
+		float3 reflectDir = reflect(-lightDir, normal);
+		float spec = specularStrength * pow(fmax(dot(viewDir, reflectDir), 0.0f), shininess);
+		float3 color_self = (ambientStrength + diffuse + spec) * make_float3(voxel_val_tf);
 		
 		float opaque_self = voxel_val_tf.w;
 		/*
