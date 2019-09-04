@@ -57,9 +57,9 @@ int main() {
 	wifi.loadCSV("../RowdenRender/Content/Data/EricWifi-2-27-19(2).csv");
 	
 	wifi.Finalize(.00001f);
-	wifi.ComputeIDIntensities("umd");
+	wifi.ComputeIDIntensities("");
 
-	float ** intensities = wifi.GetIDIntensities("umd");
+	float ** intensities = wifi.GetIDIntensities("");
 
 	float maxIntensity = 0;
 
@@ -104,6 +104,34 @@ int main() {
 	for (int i = 0; i < use_intensities.size(); i++) {
 		UINT8 test = (UINT8)(use_intensities.at(i) * 255);
 		out << test;
+	}
+	out.close();
+
+	out = std::fstream("uninterpolated_big_all.ppm", std::ios::out);
+	out << "P3" << std::endl;
+	
+	out << wifi.numLatCells << std::endl;
+	out << wifi.numLonCells << std::endl;
+
+	out << "255" << std::endl;
+	int kernel_size = 1;
+	for (int i = 0; i < wifi.numLonCells; i++) {
+		for (int j = 0; j < wifi.numLatCells; j++) {
+			int test = 0;
+			int num_samples = 0;
+			for (int kernel_i = i - kernel_size; kernel_i < i + kernel_size; kernel_i++) {
+				for (int kernel_j = j - kernel_size; kernel_j < j + kernel_size; kernel_j++) {
+					if (kernel_i < 0 || kernel_i > wifi.numLonCells || kernel_j < 0 || kernel_j > wifi.numLatCells) {
+						continue;
+					}
+					int temp = (int)(use_intensities.at(kernel_j + kernel_i * wifi.numLatCells) * 255);
+					
+					if (temp > test)
+						test = temp;
+				}
+			}
+			out << test << " " << test << " " << test << "\n";
+		}
 	}
 	out.close();
 

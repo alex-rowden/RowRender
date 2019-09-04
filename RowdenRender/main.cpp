@@ -1233,7 +1233,7 @@ int main() {
 	createOptixTextures(context, glm::vec3(wifi.numLatCells, wifi.numLonCells, wifi.numSlices), use_intensities);
 	//createOptixTextures(context, glm::vec3(wifi.numLatCells, wifi.numLonCells, wifi.numSlices), use_intensities);
 
-	float ambientStrength = .05;
+	float ambientStrength = .02;
 	optix::float3 lightPos = optix::make_float3(0, 0, 0);
 	float specularStrength = .75;
 	float shininess = 16;
