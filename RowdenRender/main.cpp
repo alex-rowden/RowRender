@@ -29,14 +29,10 @@ const char* animation_file = "name.txt";
 float speed = .005f;
 
 optix::Buffer amplitude_buffer;
-optix::Buffer location_buffer;
-optix::Buffer initPhase_buffer;
-optix::Buffer compDepth_buffer;
-optix::Buffer compAmplitude_buffer;
-optix::Buffer compLocation_buffer;
 
-GLuint volume_textureId, randInitPhase_textureId, transferFunction_textureId, random_texture_id;
-optix::TextureSampler volume_texture, randInitPhase_texture, transferFunction_texture, random_texture;
+
+GLuint volume_textureId, randInitPhase_textureId, transferFunction_textureId;
+optix::TextureSampler volume_texture, transferFunction_texture;
 
 
 void createGeometry(optix::Context& context, glm::vec3 volume_size, glm::mat4 transform) {
@@ -154,7 +150,7 @@ void createContext(optix::Context&context, Window&w) {
 	context->setRayTypeCount(1);
 	context["radiance_ray_type"]->setUint(0);
 	context->setEntryPointCount(1);
-	context->setStackSize(46400);
+	context->setStackSize(2100);
 	//context->setMaxTraceDepth(5);
 	if (DEBUG) {
 		context->setPrintEnabled(true);
@@ -166,12 +162,12 @@ void createContext(optix::Context&context, Window&w) {
 	context["opacity_correction"]->setFloat(.65f);
 	optix::float2 output_buffer_dim = optix::make_float2(size, size);
 	// buffer to store locations and brightness of intersections
-	location_buffer = sutil::createOutputBuffer(context, RT_FORMAT_FLOAT3, output_buffer_dim.x, output_buffer_dim.y, false);
+	//location_buffer = sutil::createOutputBuffer(context, RT_FORMAT_FLOAT3, output_buffer_dim.x, output_buffer_dim.y, false);
 	amplitude_buffer = sutil::createOutputBuffer(context, RT_FORMAT_FLOAT4, output_buffer_dim.x, output_buffer_dim.y, false);
-	initPhase_buffer = sutil::createOutputBuffer(context, RT_FORMAT_FLOAT, output_buffer_dim.x, output_buffer_dim.y, false);
-	context["location_buffer"]->set(location_buffer);
+	//initPhase_buffer = sutil::createOutputBuffer(context, RT_FORMAT_FLOAT, output_buffer_dim.x, output_buffer_dim.y, false);
+	//context["location_buffer"]->set(location_buffer);
 	context["amplitude_buffer"]->set(amplitude_buffer);
-	context["initPhase_buffer"]->set(initPhase_buffer);
+	//context["initPhase_buffer"]->set(initPhase_buffer);
 	float volumeRaytraceStepSize = .11;
 	optix::float3 volume_size = optix::make_float3(.01f, .01f, .01f);
 	float volumeDiagLength = sqrt(volume_size.x * volume_size.x + volume_size.y * volume_size.y + volume_size.z * volume_size.z);
@@ -228,12 +224,12 @@ void createOptixTextures(optix::Context& context, glm::vec3 volume_size, std::ve
 		glBindTexture(GL_TEXTURE_3D, 0);
 		// create optix 3D texture sampler
 		volume_texture = context->createTextureSamplerFromGLImage(volume_textureId, RT_TARGET_GL_TEXTURE_3D);
-		volume_texture->setFilteringModes(RT_FILTER_LINEAR, RT_FILTER_LINEAR, RT_FILTER_LINEAR);
+		volume_texture->setFilteringModes(RT_FILTER_LINEAR, RT_FILTER_LINEAR, RT_FILTER_NONE);
 		volume_texture->setWrapMode(0, RT_WRAP_CLAMP_TO_EDGE);
 		volume_texture->setWrapMode(1, RT_WRAP_CLAMP_TO_EDGE);
 		volume_texture->setWrapMode(2, RT_WRAP_CLAMP_TO_EDGE);
 		context["volumeTextureId"]->setInt(volume_texture->getId());
-
+		/*
 		// 2. random initial phase texture
 		// assume the size of the texture is 4 x num_rays_per_ele_hg
 		optix::uint2 num_rays_per_ele_hg = optix::make_uint2(1024, 1024);
@@ -253,13 +249,13 @@ void createOptixTextures(optix::Context& context, glm::vec3 volume_size, std::ve
 		randInitPhase_texture->setWrapMode(0, RT_WRAP_REPEAT);
 		randInitPhase_texture->setWrapMode(1, RT_WRAP_REPEAT);
 		context["initPhaseTextureId"]->setInt(randInitPhase_texture->getId());
-
+		*/
 		// 3. create transfer function 1D texture
 		int transferFunctionSize = 2;
 		std::vector<float> transferFunction = std::vector<float>();
 		std::string line;
-		std::ifstream transferfunction("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/gaus.1dt");
-		//std::ifstream transferfunction("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/transfer.1dt");
+		//std::ifstream transferfunction("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/gaus.1dt");
+		std::ifstream transferfunction("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/seperate_colors.1dt");
 
 		if (transferfunction.is_open()) {
 			std::getline(transferfunction, line);
@@ -292,6 +288,7 @@ void createOptixTextures(optix::Context& context, glm::vec3 volume_size, std::ve
 		context["transferFunction_texId"]->setInt(transferFunction_texture->getId());
 
 		// 4. random ray direction jitter texture
+		/*
 		glGenTextures(1, &random_texture_id);
 		glBindTexture(GL_TEXTURE_2D, random_texture_id);
 		float* randData = new float[4 * num_rays_per_ele_hg.x * num_rays_per_ele_hg.y];
@@ -307,6 +304,7 @@ void createOptixTextures(optix::Context& context, glm::vec3 volume_size, std::ve
 		random_texture->setWrapMode(1, RT_WRAP_REPEAT);
 		glBindTexture(GL_TEXTURE_2D, 0);
 		context["random_texture"]->setInt(random_texture->getId());
+		*/
 	}
 	catch (std::exception& e) {
 		std::cerr << e.what() << std::endl;
@@ -1156,7 +1154,7 @@ int main() {
 	WifiData wifi;
 
 	std::vector<float> use_intensities;
-	wifi.loadBinary("top_half.raw", use_intensities);
+	wifi.loadBinary("interp.raw", use_intensities);
 
 	
 	
@@ -1228,19 +1226,29 @@ int main() {
 	createContext(context, w);
 	glm::mat4 volume_transform = glm::rotate(glm::mat4(1), glm::radians(90.0f), glm::vec3(0, 1, 0));
 	createGeometry(context, glm::vec3(wifi.numLatCells, wifi.numLonCells, wifi.numSlices), glm::mat4(1));
-	
-	context->validate();
+	try {
+		context->validate();
+	}
+	catch (optix::Exception e) {
+		std::cerr << e.getErrorString() << std::endl;
+	}
 	createOptixTextures(context, glm::vec3(wifi.numLatCells, wifi.numLonCells, wifi.numSlices), use_intensities);
 	//createOptixTextures(context, glm::vec3(wifi.numLatCells, wifi.numLonCells, wifi.numSlices), use_intensities);
 
 	float ambientStrength = .1;
+	optix::float3 lightPos = optix::make_float3(0.5, 0.5, 0.5);
+	float specularStrength = .1;
+	float shininess = 16;
 
 	context["ambientStrength"]->setFloat(ambientStrength);
+	
+	context["specularStrength"]->setFloat(specularStrength);
+	context["shininess"]->setFloat(shininess);
 	//setup camera
 	Camera camera = Camera(glm::vec3(50, 50, 50), glm::vec3(50, 49, 0), 90.0f, w.height/w.width);
 	w.SetCamera(&camera);
 
-	
+	context["lightPos"]->setFloat(optix::make_float3(25, 25, 25));
 
 	
 	//sutil::displayBufferPPM("out.ppm", context["output_buffer"]->getBuffer());
@@ -1259,7 +1267,7 @@ int main() {
 	glm::mat4 projection;
 	//w.scale = glm::vec3(1, .03, 1);
 	w.scale = glm::vec3(100, 100, 100);
-	w.translate = glm::vec3(0, 0.0f, 2.5f);
+	w.translate = glm::vec3(0, 0.0f, 0.0f);
 	//w.translate = glm::vec3(0, -.1f, 0);
 	
 	w.setSpeed(.5 * 10);
@@ -1379,6 +1387,7 @@ int main() {
 		//render(light, &light_sp);
 		campusTransform = glm::translate(glm::mat4(1), w.translate);
 		campusTransform = glm::scale(campusTransform, scale * glm::vec3(w.scale));
+		
 		
 		
 		campus_map_sp.SetUniform4fv("model", campusTransform);

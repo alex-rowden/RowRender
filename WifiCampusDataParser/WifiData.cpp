@@ -224,7 +224,7 @@ void WifiData::ComputeIDIntensities(std::string netID)
 	}
 
 	//triangulation happens here
-#if(true)
+#if(false)
 	try{
 		delaunator::Delaunator d(coords);
 
