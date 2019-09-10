@@ -16,21 +16,11 @@ rtDeclareVariable(optix::Ray, ray, rtCurrentRay, );
 rtDeclareVariable(float, t_hit, rtIntersectionDistance, );
 rtDeclareVariable(uint2, launch_index, rtLaunchIndex, );
 
-rtBuffer<float3, 2> location_buffer;
 rtBuffer<float4, 2> amplitude_buffer;
-rtBuffer<float, 2> initPhase_buffer;
-
-rtBuffer<float3, 3> compLocation_buffer; // store location of each composition
-rtBuffer<float3, 3> compAmplitude_buffer;// store real color contribution at this composition location
-rtBuffer<unsigned int, 2> compDepth_buffer;
-
-rtDeclareVariable(uint2, compositionBufferRowRange, , );
-rtDeclareVariable(uint3, compositionBufferSize, , );
-rtDeclareVariable(float, opacity_correction, , );
 
 rtDeclareVariable(int, volumeTextureId, , );
 rtDeclareVariable(int, transferFunction_texId, , );
-rtDeclareVariable(int, initPhaseTextureId, , );
+
 rtDeclareVariable(float3, texcoord, attribute texcoord, );
 rtDeclareVariable(float3, front_hit_point, attribute front_hit_point, );
 rtDeclareVariable(float3, back_hit_point, attribute back_hit_point, );
@@ -41,12 +31,9 @@ rtDeclareVariable(float3, box_max, , );
 rtDeclareVariable(float3, v1, , );		// edges of the plane in which a slice is put, has been scaled by 1/dot(v1, v1)
 rtDeclareVariable(float3, v2, , );
 rtDeclareVariable(float3, v3, , );
-rtDeclareVariable(float2, vol_hg_dist, , );
+
 // step size
 rtDeclareVariable(float, volumeRaytraceStepSize, , );
-
-rtDeclareVariable(uint2, buffer_range_beg, , );
-rtDeclareVariable(uint2, buffer_range_end, , );
 
 // lighting_stuff
 
@@ -85,7 +72,10 @@ RT_PROGRAM void closest_hit() {
 		float vol_u = dot(texPoint - box_min, v1);
 		float vol_v = dot(texPoint - box_min, v2);
 		float vol_w = dot(texPoint - box_min, v3);
+		float3 show = texPoint - box_min;
 		
+		
+
 		float volume_scalar = optix::rtTex3D<float>(volumeTextureId, vol_u, vol_v, vol_w);
 
 		float plus_u, minus_u, plus_v, minus_v, plus_w, minus_w;
@@ -100,19 +90,29 @@ RT_PROGRAM void closest_hit() {
 		plus_w = optix::rtTex3D<float>(volumeTextureId, vol_u, vol_v, vol_w + region_increment);
 		minus_w = optix::rtTex3D<float>(volumeTextureId, vol_u, vol_v, vol_w - region_increment);
 
-		float3 normal = optix::normalize(normalize(v1) * (plus_u - minus_u) / (2 * region_increment) + normalize(v2) * (plus_v - minus_v) / (2 * region_increment) + normalize(v3) * (plus_w - minus_w) / (2 * region_increment));
+		float3 normal = -optix::normalize(normalize(v1) * (plus_u - minus_u) / (2 * region_increment) + normalize(v2) * (plus_v - minus_v) / (2 * region_increment) + normalize(v3) * (plus_w - minus_w) / (2 * region_increment));
 
 		float4 voxel_val_tf = optix::rtTex2D<float4>(transferFunction_texId, volume_scalar, volume_scalar);
-		float3 color_self = make_float3(fabs(normal.x), fabs(normal.y), fabs(normal.z));//make_float3(voxel_val_tf);
-		float3 lightDir = normalize(lightPos - texPoint - box_min);
-		float diffuse = fmax(dot(normal, lightDir), 0.0f);
+		//float3 color_self = make_float3(fabs(normal.x), fabs(normal.y), fabs(normal.z));//make_float3(voxel_val_tf);
+		float3 lightDir = (lightPos - (texPoint - box_min));
+		float3 color_self = make_float3(0);
+		float opaque_self = 0;
+		//rtPrintf("%f\n", lightDir.x * lightDir.x + lightDir.y * lightDir.y + lightDir.z * lightDir.z);
+		if (lightDir.x * lightDir.x + lightDir.y * lightDir.y + lightDir.z * lightDir.z < -1) {
+			color_self = make_float3(0, 1, 0);
+			opaque_self = 1;
+		}
+		else {
+			lightDir = normalize(lightDir);
+			float diffuse = fmax(dot(normal, lightDir), 0.0f);
 
-		float3 viewDir = normalize(ray.origin - texPoint - box_min);
-		float3 reflectDir = reflect(-lightDir, normal);
-		float spec = specularStrength * pow(fmax(dot(viewDir, reflectDir), 0.0f), shininess);
-		//float3 color_self = (ambientStrength + diffuse + spec) * make_float3(voxel_val_tf);
+			float3 viewDir = normalize(ray.origin - (texPoint));
+			float3 reflectDir = reflect(-lightDir, normal);
+			float spec = specularStrength * pow(fmax(dot(viewDir, reflectDir), 0.0f), shininess);
+			color_self = (ambientStrength + diffuse) * make_float3(voxel_val_tf) + spec * make_float3(1, 1, 1);
+			opaque_self = voxel_val_tf.w;
+		}
 		
-		float opaque_self = voxel_val_tf.w;
 		/*
 		if (opaque_self > .01) {
 			opaque_self = 1.0f;
@@ -193,56 +193,6 @@ rtDeclareVariable(float, fov, , );
 
 
 
-// Ray generation program
-RT_PROGRAM void RayGeneration() {
-	// if outside buffer range, paint it black
-	amplitude_buffer[launch_index] = make_float4(0.f, 0.f, 0.f, 0.0f);
-	location_buffer[launch_index] = make_float3(0.f, 0.f, 0.f);
-	initPhase_buffer[launch_index] = -1.f;
-	/*
-	if (launch_index.x < buffer_range_beg.x || launch_index.x >= buffer_range_end.x ||
-		launch_index.y < buffer_range_beg.y || launch_index.y >= buffer_range_end.y) {
-		return;
-	}
-	if (compositionBufferRowRange.x < compositionBufferRowRange.y) {	// only trace a subregion
-		uint launch_index_row_offset = launch_index.y - buffer_range_beg.y;	// offset in elemental hologram
-		if (launch_index_row_offset < compositionBufferRowRange.x || launch_index_row_offset >= compositionBufferRowRange.y)
-			return;
-		uint2 compDepth_idx = make_uint2(launch_index.x - buffer_range_beg.x, launch_index_row_offset - compositionBufferRowRange.x);
-		compDepth_buffer[compDepth_idx] = 0;
-	}
-	*/
-	// 1. determine element hologram
-	uint2 element_hologram_index = make_uint2(floor(make_float2(launch_index) / make_float2(num_rays_per_element_hologram)));
-	// 2. determine center of element hologram
-	float2 element_hologram_size = pixel_pitch * make_float2(element_hologram_dim);
-	float2 ele_hg_center_from_anchor = (make_float2(element_hologram_index) + make_float2(0.5f, 0.5f)) * element_hologram_size;	// physical distance
-	float3 ele_hg_center = hg_anchor + hg_v1 * ele_hg_center_from_anchor.x + hg_v2 * ele_hg_center_from_anchor.y;
-	//rtPrintf("%f, %f, %f\n", ele_hg_center.x, ele_hg_center.y, ele_hg_center.z);
-	// 3. determine vertical and horizontal angle
-	float2 ray_angle = (make_float2(launch_index - element_hologram_index * num_rays_per_element_hologram) - make_float2(half_num_rays_per_element_hologram)) * ray_interval;
-	// add random shift in ray direction
-	float2 uv = make_float2(launch_index) / make_float2(amplitude_buffer.size());
-	float2 ray_angle_shift = 2.f * make_float2(optix::rtTex2D<float4>(random_texture, uv.x, uv.y)) - 1.f;	// [-1, 1] x [-1, 1]
-	//ray_angle = ray_angle + ray_angle_shift * ray_interval * 0.5f;
-	// 4. determine ray direction
-	float3 v_n1 = normalize(sinf(ray_angle.x) * hg_v1 + cosf(ray_angle.x) * hg_normal);
-	//rtPrintf("ray_angle: %f, %f\nhg_v2: %f\nhg_n1: %f\n", ray_angle.x, ray_angle.y, hg_v2, v_n1);
-	float3 ray_direction = normalize(sinf(ray_angle.y) * hg_v2 + cosf(ray_angle.y) * v_n1);
-	//rtPrintf("Ray_Direction: %f, %f, %f\n", ray_direction.x, ray_direction.y, ray_direction.z);
-	// ray
-
-	optix::Ray ray(make_float3(0,0,-50), ray_direction, radiance_ray_type, scene_epsilon);
-	PerRayData_hologram prd;
-	prd.f2b_color = make_float3(0.f, 0.f, 0.f);
-	prd.f2b_opaque = 0.f;
-	prd.depth = 0;
-	// trace
-	//rtPrintf("%f, %f, %f\n", ray.origin.x,ray.origin.y, ray.origin.z );
-	//rtPrintf("%f, %f, %f\n", ray.direction.x,ray.direction.y, ray.direction.z );
-	rtTrace(top_object, ray, prd);
-	// collect result
-}
 
 // exception program
 // did not hit anything, mark as not hit
@@ -250,8 +200,7 @@ RT_PROGRAM void RayGeneration() {
 RT_PROGRAM void exception() {
 	rtPrintExceptionDetails();
 	amplitude_buffer[launch_index] = make_float4(0.f, 1.f, 0.f, 1.0f);
-	location_buffer[launch_index] = make_float3(0.f, 0.f, 0.f);
-	initPhase_buffer[launch_index] = -1.f;
+
 }
 
 // miss program
