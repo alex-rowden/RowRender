@@ -1,5 +1,7 @@
 #include "Camera.h"
 
+
+
 Camera::Camera(glm::vec3 _position, glm::vec3 target, float _fov, float _aspect, glm::vec3 _up) {
 	up = _up;
 	position = _position;
@@ -28,14 +30,24 @@ glm::vec3 Camera::getPosition() {
 }
 
 void Camera::moveForward(float amount) {
+	float y = position.z;
+	
 	position += direction * -amount;
+	if (lock_axis)
+		position.z = y;
 }
 
 void Camera::moveUp(float amount) {
+	float y = position.z;
 	position += up * -amount;
+	if (lock_axis)
+		position.z = y;
 }
 
 void Camera::moveRight(float amount) {
 	right = glm::normalize(glm::cross(direction, up));
+	float y = position.z;
 	position += right * amount;
+	if (lock_axis)
+		position.z = y;
 }

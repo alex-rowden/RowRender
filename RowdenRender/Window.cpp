@@ -75,10 +75,10 @@ void standard_mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 	float pitch = win->camera->pitch;
 	float yaw = win->camera->yaw;
 
-	if (pitch > 90.0f)
-		win->camera->pitch = 90.0f;
-	if (pitch < -90.0f)
-		win->camera->pitch = -90.0f;
+	if (pitch > 89.0f)
+		win->camera->pitch = 89.f;
+	if (pitch < -89.0f)
+		win->camera->pitch = -89.f;
 
 	glm::vec3 front;
 	double xzLen = cos(pitch);
@@ -138,7 +138,9 @@ void Window::standardInputProcessor(GLFWwindow* window) { //Go to processInputFu
 	}if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
 		//signal = true;
 		if (!printing) {
+			std::cout << "Print" << std::endl;
 			printing = !printing;
+			camera->lock_axis = true;
 			out << camera->getPosition().x << ", " << camera->getPosition().y << ", " << camera->getPosition().z << std::endl;
 			out << camera->getPosition().x + camera->getDirection().x << ", " << camera->getPosition().y + camera->getDirection().y << ", " << camera->getPosition().z + camera->getDirection().z << std::endl;
 		}

@@ -26,7 +26,8 @@ public:
 	glm::vec3 translate = glm::vec3(0);
 	float speed = .5f;
 	bool pressed = false;
-	int i, j, width, height = 0;
+	int j, width, height = 0;
+	int i = 2;
 	bool signal = false;
 	double lastTime = 0;
 	float horizontalAngle = 3.14f;

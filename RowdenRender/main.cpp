@@ -255,7 +255,7 @@ void createOptixTextures(optix::Context& context, glm::vec3 volume_size, std::ve
 		int transferFunctionSize = 2;
 		std::vector<float> transferFunction = std::vector<float>();
 		std::string line;
-		std::ifstream transferfunction("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/gaus.1dt");
+		std::ifstream transferfunction("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/3_color.1dt");
 		//std::ifstream transferfunction("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/transfer.1dt");
 
 		if (transferfunction.is_open()) {
@@ -1153,7 +1153,7 @@ int main() {
 	WifiData wifi;
 
 	std::vector<float> use_intensities;
-	wifi.loadBinary("wifi_data.raw", use_intensities);
+	wifi.loadBinary("interp.raw", use_intensities);
 
 	
 	
