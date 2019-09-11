@@ -5,7 +5,9 @@ class Window
 {
 public:
 	GLFWwindow* window;
-	Window(const char* name);
+	
+	Window(const char* name, int resolution_x, int resolution_y);
+	Window(const char* name) { Window(name, 800, 800); }
 	void SetCamera(Camera* camera);
 	void SetVersion(int version_major, int version_minor);
 	void SetVersion(float version);

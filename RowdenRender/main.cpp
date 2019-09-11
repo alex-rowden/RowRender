@@ -16,6 +16,11 @@
 #include <fstream>
 #include <iostream>
 #include <chrono>
+#include <time.h>
+#include <direct.h>
+
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <stb_image_write.h>
 
 #define DEBUG true
 #define MY_PI 3.1415926535897932384626433
@@ -23,10 +28,11 @@ int counter = 10;
 float increment = 0.05;
 float scale = 1.0;
 bool update = true;
-int size = 800;
+//int size = 800;
 bool animated = true;
-const char* animation_file = "name.txt";
-float speed = .005f;
+const char* animation_file = "test_1.txt";
+float speed = 7.0f;
+glm::vec2 resolution = glm::vec2(2560, 1440);
 
 optix::Buffer amplitude_buffer;
 
@@ -160,7 +166,7 @@ void createContext(optix::Context&context, Window&w) {
 	//context["max_depth"]->setInt(100);
 	context["scene_epsilon"]->setFloat(1.e-4f);
 	context["opacity_correction"]->setFloat(.65f);
-	optix::float2 output_buffer_dim = optix::make_float2(size, size);
+	optix::float2 output_buffer_dim = optix::make_float2(resolution.x, resolution.y);
 	// buffer to store locations and brightness of intersections
 	//location_buffer = sutil::createOutputBuffer(context, RT_FORMAT_FLOAT3, output_buffer_dim.x, output_buffer_dim.y, false);
 	amplitude_buffer = sutil::createOutputBuffer(context, RT_FORMAT_FLOAT4, output_buffer_dim.x, output_buffer_dim.y, false);
@@ -182,9 +188,9 @@ void createContext(optix::Context&context, Window&w) {
 	//context["compDepth_buffer"]->set(compDepth_buffer);
 	//context["compositionBufferSize"]->setUint(compositionBufferSize.x, compositionBufferSize.y, compositionBufferSize.z);
 
-	context["element_hologram_dim"]->setUint(size, size);
-	context["half_num_rays_per_element_hologram"]->setUint( size/ 2, size/ 2);
-	context["num_rays_per_element_hologram"]->setUint(size, size);
+	context["element_hologram_dim"]->setUint(resolution.x, resolution.y);
+	context["half_num_rays_per_element_hologram"]->setUint( resolution.x/ 2, resolution.y/ 2);
+	context["num_rays_per_element_hologram"]->setUint(resolution.x, resolution.y);
 	context["pixel_pitch"]->setFloat(.0037);
 	context["ray_interval"]->setFloat(10e-4);
 
@@ -342,12 +348,43 @@ void MessageCallback(GLenum source,
 	const GLchar* message,
 	const void* userParam)
 {
-	if (type == 33361) {
-		return;
-	}
-	fprintf(stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
-		(type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""),
-		type, severity, message);
+	// ignore non-significant error/warning codes
+	if (id == 131169 || id == 131185 || id == 131218 || id == 131204 || id == 131154) return;
+
+	std::cout << "---------------" << std::endl;
+	std::cout << "Debug message (" << id << "): " << message << std::endl;
+
+	switch (source)
+	{
+	case GL_DEBUG_SOURCE_API:             std::cout << "Source: API"; break;
+	case GL_DEBUG_SOURCE_WINDOW_SYSTEM:   std::cout << "Source: Window System"; break;
+	case GL_DEBUG_SOURCE_SHADER_COMPILER: std::cout << "Source: Shader Compiler"; break;
+	case GL_DEBUG_SOURCE_THIRD_PARTY:     std::cout << "Source: Third Party"; break;
+	case GL_DEBUG_SOURCE_APPLICATION:     std::cout << "Source: Application"; break;
+	case GL_DEBUG_SOURCE_OTHER:           std::cout << "Source: Other"; break;
+	} std::cout << std::endl;
+
+	switch (type)
+	{
+	case GL_DEBUG_TYPE_ERROR:               std::cout << "Type: Error"; break;
+	case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: std::cout << "Type: Deprecated Behaviour"; break;
+	case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:  std::cout << "Type: Undefined Behaviour"; break;
+	case GL_DEBUG_TYPE_PORTABILITY:         std::cout << "Type: Portability"; break;
+	case GL_DEBUG_TYPE_PERFORMANCE:         std::cout << "Type: Performance"; break;
+	case GL_DEBUG_TYPE_MARKER:              std::cout << "Type: Marker"; break;
+	case GL_DEBUG_TYPE_PUSH_GROUP:          std::cout << "Type: Push Group"; break;
+	case GL_DEBUG_TYPE_POP_GROUP:           std::cout << "Type: Pop Group"; break;
+	case GL_DEBUG_TYPE_OTHER:               std::cout << "Type: Other"; break;
+	} std::cout << std::endl;
+
+	switch (severity)
+	{
+	case GL_DEBUG_SEVERITY_HIGH:         std::cout << "Severity: high"; break;
+	case GL_DEBUG_SEVERITY_MEDIUM:       std::cout << "Severity: medium"; break;
+	case GL_DEBUG_SEVERITY_LOW:          std::cout << "Severity: low"; break;
+	case GL_DEBUG_SEVERITY_NOTIFICATION: std::cout << "Severity: notification"; break;
+	} std::cout << std::endl;
+	std::cout << std::endl;
 }
 
 glm::vec3 getHeatMapColor(float value)
@@ -1107,7 +1144,7 @@ void updateCamera(Window&w, optix::Context&context, optix::float3 camera_eye, op
 int main() {
 	glfwInit();
 	glfwSetErrorCallback(error_callback);
-	Window w = Window("Better Window");
+	Window w = Window("Better Window", resolution.y, resolution.x);
 	
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) //load GLAD
 	{
@@ -1155,9 +1192,17 @@ int main() {
 
 	std::vector<float> use_intensities;
 	wifi.loadBinary("interp.raw", use_intensities);
-
+	time_t timer = time(NULL);
+	struct tm local_time; 
+	localtime_s(&local_time, &timer);
+	std::string foldername = "Output/Render_";
+	char str[80];
+	strftime(str, sizeof(str), "%b_%d_%y_%H_%M_%S", &local_time);
+	foldername.append(str);
 	
-	
+	if (!CreateDirectory(foldername.c_str(), NULL)) {
+		std::cout << "directory creation failed" << std::endl;
+	}
 	Shape myShape;
 	//makeVolumetricShapeGPU(&myShape, use_intensities, wifi, num_cells, .65f);
 	unsigned int numberOfDevices = 0;
@@ -1245,7 +1290,7 @@ int main() {
 	context["specularStrength"]->setFloat(specularStrength);
 	context["shininess"]->setFloat(shininess);
 	//setup camera
-	Camera camera = Camera(glm::vec3(50, 50, 50), glm::vec3(50, 49, 0), 90.0f, w.height/w.width);
+	Camera camera = Camera(glm::vec3(50, 50, 50), glm::vec3(50, 49, 0), 90.0f, w.width/w.height);
 	w.SetCamera(&camera);
 
 	context["lightPos"]->setFloat(optix::make_float3(25, 25, 25));
@@ -1261,7 +1306,7 @@ int main() {
 	//Texture2D wifi_intensities = Texture2D(&pixels, wifi.numLonCells, wifi.numLatCells);
 	//campusMap.getMeshes().at(0)->setTexture(wifi_intensities, 0);
 	Texture2D hdr_texture = Texture2D();
-	hdr_texture.setDims(w.width, w.height, 4);
+	hdr_texture.setDims(w.height, w.width, 4);
 	//Camera camera = Camera(glm::vec3(0, 10, 10), glm::vec3(0, 0, 0), 45.0f, 800/600.0f);
 	
 	glm::mat4 projection;
@@ -1312,12 +1357,12 @@ int main() {
 		for (int i = 0; i < positions.size() - 1; i++) {
 			distances.emplace_back(glm::distance(positions.at(i), positions.at(i + 1)));
 		}
-		animated = false;
 	}
 	
 	int fps = 0;
 	uint64_t fps_counter = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 	uint64_t start = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+	unsigned long int num_frames = 0;
 	while (!glfwWindowShouldClose(w.getWindow())) //main render loop
 	{
 		glEnable(GL_DEPTH_TEST);
@@ -1331,7 +1376,7 @@ int main() {
 		}
 
 		if (animated) {
-			float distance = speed * (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - start);
+			float distance = speed * num_frames * 1/60.0f;
 			int i = 0;
 			while (distance > distances.at(i)) {
 				distance -= distances.at(i);
@@ -1362,7 +1407,7 @@ int main() {
 		updateCamera(w, context, camera_eye, camera_lookat, camera_up, optix::Matrix4x4().identity());
 		try {
 			if (update) {
-				context->launch(0, size, size);
+				context->launch(0, resolution.x, resolution.y);
 				//update = false;
 			}
 		}
@@ -1402,6 +1447,25 @@ int main() {
 		//campus_map_sp.SetUniform4fv("model", glm::scale(ray_traced_transform, scale* glm::vec3(w.scale)));
 		glDisable(GL_DEPTH_TEST);
 		render(RayTraced, &screen_shader);
+		std::string filename = std::string(foldername + "/");
+		filename.append(std::to_string(num_frames++));
+		filename.append(".bmp");
+		void* data;
+
+		// Make the BYTE array, factor of 3 because it's RBG.
+		BYTE* pixels = new BYTE[3 * w.width * w.height];
+
+		glReadPixels(0, 0, w.width, w.height, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+		stbi_flip_vertically_on_write(true);
+		int save_result = stbi_write_bmp
+		(
+			filename.c_str(),
+			resolution.x, resolution.y,
+			3, pixels
+		);
+		if (save_result == 0) {
+			std::cout << "shit" << std::endl;
+		}
 		//render(vol, &sp);
 		w.ProcessFrame(&camera);
 	}

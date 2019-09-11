@@ -1,9 +1,9 @@
 #include "Window.h"
 
-Window::Window(const char *name) {
+Window::Window(const char *name, int resolution_x, int resolution_y) {
 	SetVersion(3, 3);
 
-	bool window_made = makeWindow(600, 800, name);
+	bool window_made = makeWindow(resolution_y, resolution_x, name);
 	glfwSetWindowUserPointer(window, this);
 	glfwSetCursorPos(window, width / 2.0f, height / 2.0f);
 	if (!window_made) {
@@ -156,7 +156,7 @@ void Window::SetVersion(float version) {
 }
 
 bool Window::makeWindow(int width, int height, std::string title) {
-	window = glfwCreateWindow(height, width, title.c_str(), NULL, NULL);
+	window = glfwCreateWindow(width, height, title.c_str(), NULL, NULL);
 	this->width = width;
 	this->height = height;
 	if (window == NULL) {
