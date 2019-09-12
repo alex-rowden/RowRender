@@ -1324,7 +1324,7 @@ int main() {
 	
 	glm::mat4 projection;
 	//w.scale = glm::vec3(1, .03, 1);
-	w.scale = glm::vec3(100, 100, 100);
+	w.scale = glm::vec3(-1, 1, -1);
 	w.translate = glm::vec3(0, 0.0f, 0.0f);
 	//w.translate = glm::vec3(0, -.1f, 0);
 	
@@ -1370,6 +1370,7 @@ int main() {
 		for (int i = 0; i < positions.size() - 1; i++) {
 			distances.emplace_back(glm::distance(positions.at(i), positions.at(i + 1)));
 		}
+		animated = false;
 	}
 	
 	int fps = 0;
@@ -1420,7 +1421,7 @@ int main() {
 		updateCamera(w, context, camera_eye, camera_lookat, camera_up, optix::Matrix4x4().identity());
 		try {
 			if (update) {
-				context->launch(0, resolution.x, resolution.y);
+				//context->launch(0, resolution.x, resolution.y);
 				//update = false;
 			}
 		}
@@ -1436,9 +1437,22 @@ int main() {
 		//render(model, &sp);
 		//render(light, &light_sp);
 
-		campusTransform = glm::translate(glm::mat4(1), w.translate);
-		campusTransform = glm::scale(campusTransform, scale * glm::vec3(w.scale));
+		glm::mat4 transformation = glm::translate(glm::mat4(1), w.translate);
+		transformation = glm::scale(transformation, scale * w.scale);// glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
+
+		sp.SetUniform4fv("model", transformation);
+		sp.SetUniform3fv("normalMatrix", glm::mat3(glm::transpose(glm::inverse(transformation* camera.getView()))));
+		sp.SetUniform4fv("camera", camera.getView());
+		sp.SetUniform4fv("projection", camera.getProjection());
+		sp.SetLights(lights);
+		sp.SetUniform3f("viewPos", camera.getPosition());
+
+
+		campusTransform = glm::translate(glm::mat4(1), glm::vec3(0,0,0));
+		campusTransform = glm::scale(campusTransform, scale * glm::vec3(100,100,100));
 		
+		render(model ,&sp);
+
 		skybox_shader.SetUniform4fv("projection", camera.getProjection());
 		skybox_shader.SetUniform4fv("view", glm::mat4(glm::mat3(camera.getView())));
 		glDepthMask(GL_FALSE);
@@ -1462,7 +1476,7 @@ int main() {
 		std::string filename = std::string(foldername + "/");
 		filename.append(std::to_string(num_frames));
 		filename.append(".bmp");
-		
+		/*
 		stbi_flip_vertically_on_write(true);
 		int save_result = stbi_write_bmp
 		(
@@ -1473,9 +1487,10 @@ int main() {
 		if (save_result == 0) {
 			std::cout << "shit" << std::endl;
 		}
+		*/
 
 		glDisable(GL_DEPTH_TEST);
-		render(RayTraced, &screen_shader);
+		//render(RayTraced, &screen_shader);
 		filename = std::string(foldername + "/");
 		filename.append(std::to_string(num_frames++));
 		filename.append(".bmp");
