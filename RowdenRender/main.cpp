@@ -1450,17 +1450,40 @@ int main() {
 		campus_map_sp.SetUniform4fv("projection", camera.getProjection());
 		render(campusMap, &campus_map_sp);
 
+		GLfloat* depths = new GLfloat[w.width * w.height];
+
+		glReadPixels(0, 0, w.width, w.height, GL_DEPTH_COMPONENT, GL_FLOAT, depths);
+
+		BYTE* depth_pix = new BYTE[w.width * w.height];
+
+		for (int i = 0; i < w.width * w.height; i++) {
+			depth_pix[i] = (unsigned char)(depths[i] * 255.0f);
+		}
+		std::string filename = std::string(foldername + "/");
+		filename.append(std::to_string(num_frames));
+		filename.append(".bmp");
 		
+		stbi_flip_vertically_on_write(true);
+		int save_result = stbi_write_bmp
+		(
+			filename.c_str(),
+			resolution.x, resolution.y,
+			1, depth_pix
+		);
+		if (save_result == 0) {
+			std::cout << "shit" << std::endl;
+		}
+
 		glDisable(GL_DEPTH_TEST);
 		render(RayTraced, &screen_shader);
-		std::string filename = std::string(foldername + "/");
+		filename = std::string(foldername + "/");
 		filename.append(std::to_string(num_frames++));
 		filename.append(".bmp");
 		void* data;
 
 		// Make the BYTE array, factor of 3 because it's RBG.
 		BYTE* pixels = new BYTE[3 * w.width * w.height];
-
+		/*
 		glReadPixels(0, 0, w.width, w.height, GL_RGB, GL_UNSIGNED_BYTE, pixels);
 		stbi_flip_vertically_on_write(true);
 		int save_result = stbi_write_bmp
@@ -1472,6 +1495,7 @@ int main() {
 		if (save_result == 0) {
 			std::cout << "shit" << std::endl;
 		}
+		*/
 		//render(vol, &sp);
 		w.ProcessFrame(&camera);
 	}
