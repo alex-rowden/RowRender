@@ -137,5 +137,11 @@
       <Filter>Source Files\Shaders</Filter>
     </None>
     <None Include="..\WifiCampusDataParser\top_half.raw" />
+    <None Include="sky_fshader.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="sky_vshader.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -260,8 +260,8 @@ void createOptixTextures(optix::Context& context, glm::vec3 volume_size, std::ve
 		int transferFunctionSize = 2;
 		std::vector<float> transferFunction = std::vector<float>();
 		std::string line;
-		//std::ifstream transferfunction("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/gaus.1dt");
-		std::ifstream transferfunction("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/seperate_colors.1dt");
+		std::ifstream transferfunction("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/gaus.1dt");
+		//std::ifstream transferfunction("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/seperate_colors.1dt");
 
 		if (transferfunction.is_open()) {
 			std::getline(transferfunction, line);
@@ -1171,16 +1171,29 @@ int main() {
 	ShaderProgram sp = ShaderProgram({ShaderProgram::Shaders::FRAGMENT, ShaderProgram::Shaders::VERTEX});
 	ShaderProgram campus_map_sp = ShaderProgram({ShaderProgram::Shaders::NO_LIGHT_FRAG, ShaderProgram::Shaders::NO_LIGHT_VERT});
 	ShaderProgram screen_shader = ShaderProgram({ ShaderProgram::Shaders::SCREEN_FRAG, ShaderProgram::Shaders::SCREEN_VERT });
-	
+	ShaderProgram skybox_shader = ShaderProgram({ ShaderProgram::Shaders::SKY_FRAG, ShaderProgram::Shaders::SKY_VERT });
 
 	//mesh.SetData();
 	//
+	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+	std::vector<std::string> skybox_files;
+	
+	skybox_files.emplace_back("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/Content/Textures/Skyboxes/miramar_lf.png");
+	skybox_files.emplace_back("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/Content/Textures/Skyboxes/miramar_rt.png");
+	skybox_files.emplace_back("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/Content/Textures/Skyboxes/miramar_bk.png");
+	skybox_files.emplace_back("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/Content/Textures/Skyboxes/miramar_ft.png");
+	skybox_files.emplace_back("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/Content/Textures/Skyboxes/miramar_up.png");
+	skybox_files.emplace_back("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/Content/Textures/Skyboxes/miramar_dn.png");
+
+
 	Texture2D texture = Texture2D("Content\\Textures\\campusMapSat.png");
+	Texture2D skybox_tex = Texture2D(skybox_files);
 	//texture.setTexParameterWrap(GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT);
 	Model model;
 	LoadCampusModel(&model);
-	Model light = Model("Content\\Models\\cube\\cube.obj");
-	light.setModel();
+	Model skybox = Model("Content\\Models\\cube\\cube.obj");
+	skybox.setModel();
+	skybox.getMeshes().at(0)->setTexture(skybox_tex, 0);
 	Model campusMap = Model("Content\\Models\\quad\\quad.obj");
 	campusMap.setModel();
 	campusMap.getMeshes().at(0)->setTexture(texture, 0);
@@ -1416,35 +1429,28 @@ int main() {
 		}
 		hdr_texture.SetTextureID(optixBufferToGLTexture(amplitude_buffer));
 		RayTraced.getMeshes().at(0)->setTexture(hdr_texture, 0);
-		//transformation = glm::translate(transformation, glm::vec3(0, 0, -3));
-		//transformation = glm::rotate(transformation, glm::radians(10 * (float)glfwGetTime()), glm::vec3(.5f, 1.0f,0));
-		//update = true;
-		sp.SetUniform4fv("model", transformation);
-		sp.SetUniform3fv("normalMatrix", glm::mat3(glm::transpose(glm::inverse(transformation * camera.getView()))));
-		sp.SetUniform4fv("camera", camera.getView());
-		sp.SetUniform4fv("projection", camera.getProjection());
-		sp.SetLights(lights);
-		sp.SetUniform3f("viewPos", camera.getPosition());
+		
 		
 		//texture.Bind();
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		//render(model, &sp);
 		//render(light, &light_sp);
+
 		campusTransform = glm::translate(glm::mat4(1), w.translate);
 		campusTransform = glm::scale(campusTransform, scale * glm::vec3(w.scale));
 		
-		
+		skybox_shader.SetUniform4fv("projection", camera.getProjection());
+		skybox_shader.SetUniform4fv("view", glm::mat4(glm::mat3(camera.getView())));
+		glDepthMask(GL_FALSE);
+		render(skybox, &skybox_shader);
+		glDepthMask(GL_TRUE);
 		
 		campus_map_sp.SetUniform4fv("model", campusTransform);
 		campus_map_sp.SetUniform4fv("camera", camera.getView());
 		campus_map_sp.SetUniform4fv("projection", camera.getProjection());
 		render(campusMap, &campus_map_sp);
 
-		//glm::mat4 ray_traced_transform = glm::translate(glm::mat4(1), w.translate);
-
-		glm::mat4 ray_traced_transform = glm::translate(glm::mat4(1), w.translate.x * camera.getDirection());
-		campus_map_sp.SetUniform4fv("model", glm::scale(ray_traced_transform, scale* glm::vec3(w.scale)));
-		//campus_map_sp.SetUniform4fv("model", glm::scale(ray_traced_transform, scale* glm::vec3(w.scale)));
+		
 		glDisable(GL_DEPTH_TEST);
 		render(RayTraced, &screen_shader);
 		std::string filename = std::string(foldername + "/");

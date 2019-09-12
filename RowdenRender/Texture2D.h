@@ -11,6 +11,7 @@ public:
 	Texture2D(aiTexture* tex);
 	Texture2D(Texture2D::COLORS color);
 	Texture2D(glm::vec4 color);
+	Texture2D(std::vector<std::string> faces);
 	Texture2D(std::vector<glm::vec4>* color, int height, int width);
 	void init_from_vector(std::vector<glm::vec4> *color, int height, int width);
 	void setBorderColor(glm::vec4 color);
@@ -22,6 +23,7 @@ public:
 	void Bind();
 	void SetTextureID(unsigned int id) { texture = id; }
 	std::string name = "texture_diffuse";
+	bool is_cube = false;
 private:
 	unsigned int texture;
 	int height, width, numChannels;

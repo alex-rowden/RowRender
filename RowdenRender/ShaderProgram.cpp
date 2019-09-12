@@ -9,12 +9,14 @@ ShaderProgram::ShaderProgram(std::vector<Shaders> shaders) {
 		case Shaders::LIGHT_VERT:
 		case Shaders::NO_LIGHT_VERT:
 		case Shaders::SCREEN_VERT:
+		case Shaders::SKY_VERT:
 			glAttachShader(shaderProgram, vertexShader);
 			break;
 		case Shaders::FRAGMENT:
 		case Shaders::LIGHT_FRAG:
 		case Shaders::NO_LIGHT_FRAG:
 		case Shaders::SCREEN_FRAG:
+		case Shaders::SKY_FRAG:
 			glAttachShader(shaderProgram, fragmentShader);
 			break;
 		}
@@ -167,6 +169,12 @@ void ShaderProgram::importShaderFile(Shaders shader, std::string *ShaderString) 
 	case Shaders::SCREEN_VERT:
 		filename = "screen_vshader.glsl";
 		break;
+	case Shaders::SKY_FRAG:
+		filename = "sky_fshader.glsl";
+		break;
+	case Shaders::SKY_VERT:
+		filename = "sky_vshader.glsl";
+		break;
 	default:
 		throw "Not a valid shader";
 	}
@@ -225,6 +233,14 @@ void ShaderProgram::shader_error_check(Shaders shader) {
 		shader_name = "SCREEN_SPACE_FRAGMENT_SHADER";
 		shader_adr = &fragmentShader;
 		break;
+	case Shaders::SKY_VERT:
+		shader_name = "SKYBOX_VERTEX_SHADER";
+		shader_adr = &vertexShader;
+		break;
+	case Shaders::SKY_FRAG:
+		shader_name = "SKYBOX_FRAGMENT_SHADER";
+		shader_adr = &fragmentShader;
+		break;
 	default:
 		return;
 	}
@@ -280,6 +296,16 @@ void ShaderProgram::SetupShader(Shaders shader) {
 		glCompileShader(fragmentShader);
 		break;
 	case Shaders::SCREEN_VERT:
+		vertexShader = glCreateShader(GL_VERTEX_SHADER);
+		glShaderSource(vertexShader, 1, &shader_source, NULL);
+		glCompileShader(vertexShader);
+		break;
+	case Shaders::SKY_FRAG:
+		fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+		glShaderSource(fragmentShader, 1, &shader_source, NULL);
+		glCompileShader(fragmentShader);
+		break;
+	case Shaders::SKY_VERT:
 		vertexShader = glCreateShader(GL_VERTEX_SHADER);
 		glShaderSource(vertexShader, 1, &shader_source, NULL);
 		glCompileShader(vertexShader);
