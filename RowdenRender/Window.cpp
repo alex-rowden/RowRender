@@ -131,7 +131,7 @@ void Window::standardInputProcessor(GLFWwindow* window) { //Go to processInputFu
 		i %= 3;
 	}else if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS && !pressed) {
 		pressed = true;
-		//j += 1;
+		j += 1;
 		j %= 2;
 	}if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
 		signal = true;

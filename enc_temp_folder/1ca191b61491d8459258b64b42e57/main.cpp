@@ -1324,8 +1324,8 @@ int main() {
 	
 	glm::mat4 projection;
 	//w.scale = glm::vec3(1, .03, 1);
-	w.scale = glm::vec3(-2, -3.2, 4);
-	w.translate = glm::vec3(77.3, 63.1, 1.2);
+	w.scale = glm::vec3(-2, -2.5, 4);
+	w.translate = glm::vec3(68.5, 88, 1);
 	//w.translate = glm::vec3(0, -.1f, 0);
 	
 	w.setSpeed(.5 * 10);
