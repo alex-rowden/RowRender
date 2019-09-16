@@ -115,13 +115,13 @@ void Window::standardInputProcessor(GLFWwindow* window) { //Go to processInputFu
 		camera->moveUp(-speed);
 	}if (glfwGetKey(window, GLFW_KEY_KP_ADD) == GLFW_PRESS) {
 		if(j == 1)
-			scale[i] += .01;
+			scale[i] += .001;
 		else {
 			translate[i] += .1;
 		}
 	}if (glfwGetKey(window, GLFW_KEY_KP_SUBTRACT) == GLFW_PRESS) {
 		if(j == 1)
-			scale[i] -= .01;
+			scale[i] -= .001;
 		else {
 			translate[i] -= .1;
 		}

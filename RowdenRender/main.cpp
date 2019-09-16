@@ -31,7 +31,7 @@ bool update = true;
 //int size = 800;
 bool animated = true;
 const char* animation_file = "test_1.txt";
-float speed = 7.0f;
+float speed = 6.0f;
 glm::vec2 resolution = glm::vec2(2560, 1440);
 
 optix::Buffer amplitude_buffer;
@@ -60,9 +60,9 @@ void createGeometry(optix::Context& context, glm::vec3 volume_size, glm::mat4 tr
 		optix::float3 box_max = optix::make_float3(75, 75, 25);
 
 
-		optix::float3 volume_v1 = optix::make_float3(50, 0.f, 0.f);
-		optix::float3 volume_v2 = optix::make_float3(0.f, 50, 0.f);
-		optix::float3 volume_v3 = optix::make_float3(0.f, 0.f, 25);
+		optix::float3 volume_v1 = optix::make_float3(50.0f, 0.f, 0.f);
+		optix::float3 volume_v2 = optix::make_float3(0.f, 50.0f, 0.f);
+		optix::float3 volume_v3 = optix::make_float3(0.f, 0.f, 25.0f);
 		volume_v1 *= 1.0f / dot(volume_v1, volume_v1);
 		volume_v2 *= 1.0f / dot(volume_v2, volume_v2);
 		volume_v3 *= 1.0f / dot(volume_v3, volume_v3);
@@ -324,7 +324,9 @@ void render(Model mesh, ShaderProgram *sp) {
 		counter -= 100;
 	glClearColor(counter/100.0f, counter / 100.0f, counter / 80.0f, 1.0);
 	
-	mesh.Render(sp);
+	for (Mesh* m : mesh.getMeshes()) {
+		m->Render();
+	}
 }
 
 void error_callback(int error, const char* description)
@@ -426,8 +428,8 @@ glm::vec3 getHeatMapColor(float value)
 }
 
 void LoadCampusModel(Model *completeCampus) {
-	
-	if (false) {
+	/*
+	if (true) {
 		int campusRunningIndex = 0;
 		for (int i = 1; i <= 999; i++)
 		{
@@ -483,11 +485,11 @@ void LoadCampusModel(Model *completeCampus) {
 			lat -= 38.990750300955419049842021195218f;
 			float scale = .0085;
 			glm::mat4 transform =
-				glm::translate(glm::mat4(1), glm::vec3(-lon * 2000, 0, lat * 2000)) *
+				glm::translate(glm::mat4(1), glm::vec3(-lon * 7500, 0, lat * 7500)) *
 				//glm::rotate((float)DEG2RAD(-90.0f), glm::vec3(0, 0, 1)) *
 				glm::rotate(glm::mat4(1), (float)glm::radians(-90.0f), glm::vec3(1, 0, 0)) *
 				//glm::rotate((float)DEG2RAD(90.0f), glm::vec3(0, 1, 0)) *
-				glm::scale(glm::mat4(1), glm::vec3(-sx, -sy, sz) * scale);
+				glm::scale(glm::mat4(1), .5f * glm::vec3(-sx, -sy, sz));
 			std::vector<Mesh*> parts = building->getMeshes();
 			Shape* moved_building = new Shape();
 			for (Mesh* part : parts)
@@ -531,7 +533,7 @@ void LoadCampusModel(Model *completeCampus) {
 							)
 						)
 					);
-					*/
+					*/ /*
 				}
 				for (int v = 0; v < texCoords.size(); v += 2) {
 					moved_building->addTexCoord(
@@ -613,7 +615,7 @@ void LoadCampusModel(Model *completeCampus) {
 				//glm::rotate((float)DEG2RAD(-90.0f), glm::vec3(0, 0, 1)) *
 				glm::rotate(glm::mat4(1), (float)glm::radians(-90.0f), glm::vec3(1, 0, 0)) *
 				//glm::rotate((float)DEG2RAD(90.0f), glm::vec3(0, 1, 0)) *
-				glm::scale(glm::mat4(1), glm::vec3(-sx, -sy, sz) * scale);
+				glm::scale(glm::mat4(1), .5f * glm::vec3(-sx, -sy, sz));
 			std::vector<Mesh*> parts = building->getMeshes();
 			Shape* moved_building = new Shape();
 			for (Mesh* part : parts)
@@ -657,7 +659,7 @@ void LoadCampusModel(Model *completeCampus) {
 							)
 						)
 					);
-					*/
+					*/ /*
 				}
 				for (int v = 0; v < texCoords.size(); v += 2) {
 					moved_building->addTexCoord(
@@ -707,7 +709,7 @@ void LoadCampusModel(Model *completeCampus) {
 			for (float tangent : tangents) {
 				filestream.write(reinterpret_cast<char*>(&tangent), sizeof(float));
 			}
-			*/
+			*/ /*
 			std::vector<float> texCoords = campusMesh->getTexCoords();
 			count = texCoords.size();
 			filestream.write(reinterpret_cast<char*>(&count), sizeof(size_t));
@@ -770,7 +772,8 @@ void LoadCampusModel(Model *completeCampus) {
 			filestream.read((char*)& vertex.z, sizeof(float));
 			buildings->addTangent(vertex);
 		}
-		*/
+		*/ 
+/*
 		filestream.read((char*)& count, sizeof(size_t));
 		for (size_t i = 0; i < count; i += 2) {
 			filestream.read((char*)& vertex.x, sizeof(float));
@@ -798,6 +801,10 @@ void LoadCampusModel(Model *completeCampus) {
 	filestream.close();
 
 	}
+	*/
+	
+completeCampus->addModel(new Model("Content/Models/Buildings/campus.fbx"));
+completeCampus->setModel();
 }
 
 int get3DIndex(int i, int j, int k, int x_dim, int y_dim, int num_cells) {
@@ -1191,6 +1198,7 @@ int main() {
 	//texture.setTexParameterWrap(GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT);
 	Model model;
 	LoadCampusModel(&model);
+	model.getMeshes()[0]->SetUniformColor(glm::vec4(1, 1, 1, 1));
 	Model skybox = Model("Content\\Models\\cube\\cube.obj");
 	skybox.setModel();
 	skybox.getMeshes().at(0)->setTexture(skybox_tex, 0);
@@ -1200,6 +1208,72 @@ int main() {
 	Model RayTraced = Model("Content\\Models\\quad\\quad_centered.obj");
 	RayTraced.setModel();
 	glm::mat4 transformation = glm::scale(glm::mat4(1), scale * glm::vec3(-1, 1, -1));// glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
+	/*
+	struct TreeEntry {
+		double lat, lon, height, diameter;
+		int objID;
+	};
+
+	std::vector<TreeEntry *> trees;
+	//load in tree positions
+	std::ifstream tree_file = std::ifstream("Content/plants.csv");
+	std::string line;
+
+	getline(tree_file, line);
+	std::string header = line;
+
+	while (!tree_file.eof())
+	{
+		TreeEntry* curr_tree = new TreeEntry();
+		std::string IDstr;
+		getline(tree_file, IDstr, ',');
+		curr_tree->objID = atoi(IDstr.c_str());
+
+		std::string skip;
+		getline(tree_file, skip, ','); //S_ID
+		getline(tree_file, skip, ','); //TAGID
+		getline(tree_file, skip, ','); //CNAME1
+		getline(tree_file, skip, ','); //CNAME2
+		getline(tree_file, skip, ','); //CNAME3
+		getline(tree_file, skip, ','); //GENUS
+		getline(tree_file, skip, ','); //SPECIES
+		getline(tree_file, skip, ','); //CULTIVAR
+
+		std::string diameter_str;
+		getline(tree_file, diameter_str, ',');
+		curr_tree->diameter = atof(diameter_str.c_str());
+
+		std::string height_str;
+		getline(tree_file, height_str, ',');
+		curr_tree->height = atof(height_str.c_str());
+
+		getline(tree_file, skip, ','); //CRADAVG
+		getline(tree_file, skip, ','); //TRUNKHEIGHT
+
+		std::string lat_str, lon_str;
+		getline(tree_file, lat_str, ',');
+		getline(tree_file, lon_str);
+		curr_tree->lat = atof(lat_str.c_str());
+		curr_tree->lon = atof(lon_str.c_str());
+
+		curr_tree->lon += 76.936594579149414130370132625103f;
+		curr_tree->lat -= 38.990750300955419049842021195218f;
+		trees.emplace_back(curr_tree);
+		//std::cout << trees.size() << std::endl;
+	}
+
+	std::vector<glm::mat4> treeTransforms;
+
+	//Create Tree transforms
+	for (TreeEntry* treeEntry : trees)
+	{
+		glm::mat4 transform =
+			glm::translate(glm::mat4(1), glm::vec3(-treeEntry->lon * 3000.0, 0, treeEntry->lat * 3000.0f)) *
+			//glm::rotate((float)DEG2RAD(-90.0f), glm::vec3(1, 0, 0)) *
+			glm::scale(glm::mat4(4), glm::vec3(-0.0009f, 0.0009f, 0.0009f));
+		treeTransforms.emplace_back(transform);
+	}
+	*/
 
 	WifiData wifi;
 
@@ -1324,16 +1398,16 @@ int main() {
 	
 	glm::mat4 projection;
 	//w.scale = glm::vec3(1, .03, 1);
-	w.scale = glm::vec3(-2, -3.2, 4);
-	w.translate = glm::vec3(77.3, 63.1, 1.2);
+	w.scale = .01f * glm::vec3(1.3, 1.6, 2.4);
+	w.translate = glm::vec3(54, 45.2, 2.9);
 	//w.translate = glm::vec3(0, -.1f, 0);
 	
 	w.setSpeed(.5 * 10);
 	
 	Lights lights = Lights();
 	float toNorm = 1 / 255.0;
-	lights.addPointLight(glm::vec3(2, 1.5, 0), .1, .3, .003, toNorm * glm::vec3(255, 195, 0), toNorm * glm::vec3(255, 195, 0), toNorm * glm::vec3(255, 195, 0));
-	lights.addPointLight(glm::vec3(-2, 1.5, 0), .1, .2, .003, toNorm * glm::vec3(121, 102, 162), toNorm * glm::vec3(121, 102, 162), toNorm * glm::vec3(121, 102, 162));
+	lights.addPointLight(50.0f * glm::vec3(2, 1.5, 0), .1, .3, .003, toNorm * glm::vec3(255, 195, 12), toNorm * glm::vec3(255, 195, 12), toNorm * glm::vec3(255, 195, 12));
+	lights.addPointLight(0.0f *  glm::vec3(-2, 1.5, 0), .1, .2, .003, toNorm * glm::vec3(121, 102, 162), toNorm * glm::vec3(121, 102, 162), toNorm * glm::vec3(121, 102, 162));
 	//projection = glm::perspective(glm::radians(45.0f), 800/600.0f, 0.1f, 1000.0f);
 	glm::mat4 light_transform = glm::translate(glm::mat4(1.0f), glm::vec3(3, 3, 3));
 
@@ -1370,7 +1444,7 @@ int main() {
 		for (int i = 0; i < positions.size() - 1; i++) {
 			distances.emplace_back(glm::distance(positions.at(i), positions.at(i + 1)));
 		}
-		animated = false;
+		animated = true;
 	}
 	
 	int fps = 0;
@@ -1421,7 +1495,7 @@ int main() {
 		updateCamera(w, context, camera_eye, camera_lookat, camera_up, optix::Matrix4x4().identity());
 		try {
 			if (update) {
-				//context->launch(0, resolution.x, resolution.y);
+				context->launch(0, resolution.x, resolution.y);
 				//update = false;
 			}
 		}
@@ -1439,27 +1513,28 @@ int main() {
 
 		glm::mat4 transformation = glm::translate(glm::mat4(1), w.translate);
 		transformation = glm::scale(transformation, scale * w.scale);// glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
-		transformation = glm::rotate(transformation, glm::radians(90.0f), glm::vec3(1, 0, 0));
+		//transformation = glm::rotate(transformation, glm::radians(180.0f), glm::vec3(0, 1, 0));
 
+		
+
+
+		campusTransform = glm::translate(glm::mat4(1), glm::vec3(0,0,0));
+		campusTransform = glm::scale(campusTransform, scale * glm::vec3(100,100,100));
+		
+		
+		skybox_shader.SetUniform4fv("projection", camera.getProjection());
+		skybox_shader.SetUniform4fv("view", glm::mat4(glm::mat3(camera.getView())));
+		
+		glDepthMask(GL_FALSE);
+		render(skybox, &skybox_shader);
+		glDepthMask(GL_TRUE);
 		sp.SetUniform4fv("model", transformation);
 		sp.SetUniform3fv("normalMatrix", glm::mat3(glm::transpose(glm::inverse(transformation* camera.getView()))));
 		sp.SetUniform4fv("camera", camera.getView());
 		sp.SetUniform4fv("projection", camera.getProjection());
 		sp.SetLights(lights);
 		sp.SetUniform3f("viewPos", camera.getPosition());
-
-
-		campusTransform = glm::translate(glm::mat4(1), glm::vec3(0,0,0));
-		campusTransform = glm::scale(campusTransform, scale * glm::vec3(100,100,-100));
-		
-		render(model ,&sp);
-
-		skybox_shader.SetUniform4fv("projection", camera.getProjection());
-		skybox_shader.SetUniform4fv("view", glm::mat4(glm::mat3(camera.getView())));
-		glDepthMask(GL_FALSE);
-		//render(skybox, &skybox_shader);
-		glDepthMask(GL_TRUE);
-		
+		render(model, &sp);
 		campus_map_sp.SetUniform4fv("model", campusTransform);
 		campus_map_sp.SetUniform4fv("camera", camera.getView());
 		campus_map_sp.SetUniform4fv("projection", camera.getProjection());
@@ -1489,29 +1564,30 @@ int main() {
 		//	std::cout << "shit" << std::endl;
 		//}
 		
-
+		
 		glDisable(GL_DEPTH_TEST);
-		//render(RayTraced, &screen_shader);
+		screen_shader.Use();
+		render(RayTraced, &screen_shader);
 		filename = std::string(foldername + "/");
 		filename.append(std::to_string(num_frames++));
 		filename.append(".bmp");
 		void* data;
+		if (true) {
+			// Make the BYTE array, factor of 3 because it's RBG.
+			BYTE* pixels = new BYTE[3 * w.width * w.height];
 
-		// Make the BYTE array, factor of 3 because it's RBG.
-		BYTE* pixels = new BYTE[3 * w.width * w.height];
-		/*
-		glReadPixels(0, 0, w.width, w.height, GL_RGB, GL_UNSIGNED_BYTE, pixels);
-		stbi_flip_vertically_on_write(true);
-		int save_result = stbi_write_bmp
-		(
-			filename.c_str(),
-			resolution.x, resolution.y,
-			3, pixels
-		);
-		if (save_result == 0) {
-			std::cout << "shit" << std::endl;
+			glReadPixels(0, 0, w.width, w.height, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+			stbi_flip_vertically_on_write(true);
+			int save_result = stbi_write_bmp
+			(
+				filename.c_str(),
+				resolution.x, resolution.y,
+				3, pixels
+			);
+			if (save_result == 0) {
+				std::cout << "shit" << std::endl;
+			}
 		}
-		*/
 		//render(vol, &sp);
 		w.ProcessFrame(&camera);
 	}
