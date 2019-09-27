@@ -90,6 +90,31 @@ void Mesh::SetColors(std::vector<glm::vec4> _colors) {
 	}
 }
 
+void Mesh::SetInstanceTransforms(std::vector<glm::mat4> transforms) {
+	glGenBuffers(1, &matrixBuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, matrixBuffer);
+	glBufferData(GL_ARRAY_BUFFER, transforms.size() * sizeof(glm::mat4), &transforms[0], GL_STATIC_DRAW);
+
+	glBindVertexArray(VertexArrayObject);
+	// vertex Attributes
+	GLsizei vec4Size = sizeof(glm::vec4);
+	glEnableVertexAttribArray(3);
+	glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)0);
+	glEnableVertexAttribArray(4);
+	glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(vec4Size));
+	glEnableVertexAttribArray(5);
+	glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(2 * vec4Size));
+	glEnableVertexAttribArray(6);
+	glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(3 * vec4Size));
+
+	glVertexAttribDivisor(3, 1);
+	glVertexAttribDivisor(4, 1);
+	glVertexAttribDivisor(5, 1);
+	glVertexAttribDivisor(6, 1);
+
+	glBindVertexArray(0);
+}
+
 
 void Mesh::SetData(GLenum usage) {
 	glGenVertexArrays(1, &VertexArrayObject);

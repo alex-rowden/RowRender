@@ -15,6 +15,7 @@ public:
 	void SetData(GLenum usage = GL_STATIC_DRAW);
 	void setTexture(Texture2D tex, int index);
 	void SetAsLight() { is_light = true; }
+	void SetInstanceTransforms(std::vector<glm::mat4>);
 	void Render();
 	bool isLight() { return is_light; }
 	std::vector<float> getVerticies() { return verticies; }
@@ -30,6 +31,6 @@ private:
 	std::vector<float> normals;
 	std::vector<float> texCoords;
 	std::vector<Texture2D> textures;
-	unsigned int VertexBufferObject, VertexArrayObject, IndexBufferArray, NormalBuffer, TexCoordBuffer;
+	unsigned int VertexBufferObject, VertexArrayObject, IndexBufferArray, NormalBuffer, TexCoordBuffer, matrixBuffer;
 };
 
