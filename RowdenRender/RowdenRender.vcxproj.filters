@@ -143,5 +143,11 @@
     <None Include="sky_vshader.glsl">
       <Filter>Source Files\Shaders</Filter>
     </None>
+    <None Include="instance_vshader.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="instance_fshader.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

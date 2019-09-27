@@ -803,7 +803,7 @@ void LoadCampusModel(Model *completeCampus) {
 	}
 	*/
 	
-completeCampus->addModel(new Model("Content/Models/Buildings/campus.fbx"));
+completeCampus->addModel(new Model("Content/Models/Buildings/flat_campus.fbx"));
 completeCampus->setModel();
 }
 
@@ -1398,8 +1398,8 @@ int main() {
 	
 	glm::mat4 projection;
 	//w.scale = glm::vec3(1, .03, 1);
-	w.scale = .01f * glm::vec3(1.3, 1.6, 2.4);
-	w.translate = glm::vec3(54, 45.2, 2.9);
+	w.scale = .01f * glm::vec3(1.3, 1.6, 2.1);
+	w.translate = glm::vec3(81.6, 31.5, 1);
 	//w.translate = glm::vec3(0, -.1f, 0);
 	
 	w.setSpeed(.5 * 10);
