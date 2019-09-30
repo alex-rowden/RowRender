@@ -91,6 +91,7 @@ void Mesh::SetColors(std::vector<glm::vec4> _colors) {
 }
 
 void Mesh::SetInstanceTransforms(std::vector<glm::mat4> transforms) {
+	num_instances = transforms.size();
 	glGenBuffers(1, &matrixBuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, matrixBuffer);
 	glBufferData(GL_ARRAY_BUFFER, transforms.size() * sizeof(glm::mat4), &transforms[0], GL_STATIC_DRAW);
@@ -191,9 +192,11 @@ void Mesh::Render() {
 	}
 	
 	glBindVertexArray(VertexArrayObject);
-	
-	glDrawElements(GL_TRIANGLES, indices.size() , GL_UNSIGNED_INT, 0);
-	
+	if(num_instances == 0)
+		glDrawElements(GL_TRIANGLES, indices.size() , GL_UNSIGNED_INT, 0);
+	else
+		glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0, num_instances);
+
 	glBindVertexArray(0);
 
 	glActiveTexture(GL_TEXTURE0);

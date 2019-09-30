@@ -1179,7 +1179,7 @@ int main() {
 	ShaderProgram campus_map_sp = ShaderProgram({ShaderProgram::Shaders::NO_LIGHT_FRAG, ShaderProgram::Shaders::NO_LIGHT_VERT});
 	ShaderProgram screen_shader = ShaderProgram({ ShaderProgram::Shaders::SCREEN_FRAG, ShaderProgram::Shaders::SCREEN_VERT });
 	ShaderProgram skybox_shader = ShaderProgram({ ShaderProgram::Shaders::SKY_FRAG, ShaderProgram::Shaders::SKY_VERT });
-
+	ShaderProgram instance_shader = ShaderProgram({ ShaderProgram::Shaders::INSTANCE_FRAG, ShaderProgram::Shaders::INSTANCE_VERT });
 	//mesh.SetData();
 	//
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
@@ -1207,8 +1207,10 @@ int main() {
 	campusMap.getMeshes().at(0)->setTexture(texture, 0);
 	Model RayTraced = Model("Content\\Models\\quad\\quad_centered.obj");
 	RayTraced.setModel();
+	Model Tree = Model("Content\\Models\\tree.FBX");
+	Tree.setModel();
 	glm::mat4 transformation = glm::scale(glm::mat4(1), scale * glm::vec3(-1, 1, -1));// glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
-	/*
+	
 	struct TreeEntry {
 		double lat, lon, height, diameter;
 		int objID;
@@ -1216,7 +1218,10 @@ int main() {
 
 	std::vector<TreeEntry *> trees;
 	//load in tree positions
-	std::ifstream tree_file = std::ifstream("Content/plants.csv");
+	std::ifstream tree_file = std::ifstream("Content/Data/plants.csv");
+	if (!tree_file.is_open()) {
+		std::cerr << "ERROR OPENING PLANTS.CSV\n" << std::endl;
+	}
 	std::string line;
 
 	getline(tree_file, line);
@@ -1267,26 +1272,27 @@ int main() {
 	//Create Tree transforms
 	for (TreeEntry* treeEntry : trees)
 	{
-		glm::mat4 transform =
-			glm::translate(glm::mat4(1), glm::vec3(-treeEntry->lon * 3000.0, 0, treeEntry->lat * 3000.0f)) *
-			//glm::rotate((float)DEG2RAD(-90.0f), glm::vec3(1, 0, 0)) *
-			glm::scale(glm::mat4(4), glm::vec3(-0.0009f, 0.0009f, 0.0009f));
+		if (treeTransforms.size() < 0)
+			break;
+		glm::mat4 transform = //glm::translate(glm::mat4(1), glm::vec3(20, 20, 1));
+		glm::translate(glm::mat4(1), glm::vec3(treeEntry->lon * 3000000, treeEntry->lat * 3000000, 1.0f));
 		treeTransforms.emplace_back(transform);
 	}
-	*/
+
+	Tree.getMeshes().at(0)->SetInstanceTransforms(treeTransforms);
 
 	WifiData wifi;
 
 	std::vector<float> use_intensities;
 	wifi.loadBinary("interp.raw", use_intensities);
 	time_t timer = time(NULL);
-	struct tm local_time; 
+	struct tm local_time;
 	localtime_s(&local_time, &timer);
 	std::string foldername = "Output/Render_";
 	char str[80];
 	strftime(str, sizeof(str), "%b_%d_%y_%H_%M_%S", &local_time);
 	foldername.append(str);
-	
+
 	if (!CreateDirectory(foldername.c_str(), NULL)) {
 		std::cout << "directory creation failed" << std::endl;
 	}
@@ -1337,15 +1343,15 @@ int main() {
 		int cudaDeviceOrdinal = 0;
 		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_CUDA_DEVICE_ORDINAL, sizeof(cudaDeviceOrdinal), &cudaDeviceOrdinal));
 		std::cout << "  CUDA Device Ordinal: " << cudaDeviceOrdinal << std::endl << std::endl;
-  }
-#if(false)
-	std::fstream out = std::fstream("wifi_data.raw", std::ios::binary|std::ios::out);
-
-	for (int i = 0; i < use_intensities.size(); i++) {
-		UINT8 test = (UINT8)(use_intensities.at(i) * 255);
-		out << test;
 	}
-	out.close();
+#if(false)
+		std::fstream out = std::fstream("wifi_data.raw", std::ios::binary | std::ios::out);
+
+		for (int i = 0; i < use_intensities.size(); i++) {
+			UINT8 test = (UINT8)(use_intensities.at(i) * 255);
+			out << test;
+		}
+		out.close();
 #endif	
 
 	GLuint output_buffer = 0;
@@ -1373,16 +1379,16 @@ int main() {
 	float shininess = 16;
 
 	context["ambientStrength"]->setFloat(ambientStrength);
-	
+
 	context["specularStrength"]->setFloat(specularStrength);
 	context["shininess"]->setFloat(shininess);
 	//setup camera
-	Camera camera = Camera(glm::vec3(50, 50, 50), glm::vec3(50, 49, 0), 90.0f, w.width/w.height);
+	Camera camera = Camera(glm::vec3(50, 50, 50), glm::vec3(50, 49, 0), 90.0f, w.width / w.height);
 	w.SetCamera(&camera);
 
 	context["lightPos"]->setFloat(optix::make_float3(25, 25, 25));
 
-	
+
 	//sutil::displayBufferPPM("out.ppm", context["output_buffer"]->getBuffer());
 
 	Mesh volume = Mesh(&myShape);
@@ -1395,19 +1401,19 @@ int main() {
 	Texture2D hdr_texture = Texture2D();
 	hdr_texture.setDims(w.height, w.width, 4);
 	//Camera camera = Camera(glm::vec3(0, 10, 10), glm::vec3(0, 0, 0), 45.0f, 800/600.0f);
-	
+
 	glm::mat4 projection;
 	//w.scale = glm::vec3(1, .03, 1);
-	w.scale = .01f * glm::vec3(1.3, 1.6, 2.1);
-	w.translate = glm::vec3(81.6, 31.5, 1);
+	w.scale = glm::vec3(.00128,.00201,.002);
+	w.translate = glm::vec3(78.899, 61, 0);
 	//w.translate = glm::vec3(0, -.1f, 0);
-	
+
 	w.setSpeed(.5 * 10);
-	
+
 	Lights lights = Lights();
 	float toNorm = 1 / 255.0;
 	lights.addPointLight(50.0f * glm::vec3(2, 1.5, 0), .1, .3, .003, toNorm * glm::vec3(255, 195, 12), toNorm * glm::vec3(255, 195, 12), toNorm * glm::vec3(255, 195, 12));
-	lights.addPointLight(0.0f *  glm::vec3(-2, 1.5, 0), .1, .2, .003, toNorm * glm::vec3(121, 102, 162), toNorm * glm::vec3(121, 102, 162), toNorm * glm::vec3(121, 102, 162));
+	lights.addPointLight(0.0f * glm::vec3(-2, 1.5, 0), .1, .2, .003, toNorm * glm::vec3(121, 102, 162), toNorm * glm::vec3(121, 102, 162), toNorm * glm::vec3(121, 102, 162));
 	//projection = glm::perspective(glm::radians(45.0f), 800/600.0f, 0.1f, 1000.0f);
 	glm::mat4 light_transform = glm::translate(glm::mat4(1.0f), glm::vec3(3, 3, 3));
 
@@ -1423,7 +1429,7 @@ int main() {
 		std::fstream animation = std::fstream(animation_file, std::ios::in);
 		bool odd = false;
 		while (animation.getline(char_buffer, 100)) {
-			char *parts = strtok_s(char_buffer, ", ", &next_token);
+			char* parts = strtok_s(char_buffer, ", ", &next_token);
 			glm::vec3 vec;
 			int axis = 0;
 			while (parts != NULL) {
@@ -1444,9 +1450,9 @@ int main() {
 		for (int i = 0; i < positions.size() - 1; i++) {
 			distances.emplace_back(glm::distance(positions.at(i), positions.at(i + 1)));
 		}
-		animated = true;
+		animated = false;
 	}
-	
+
 	int fps = 0;
 	uint64_t fps_counter = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 	uint64_t start = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
@@ -1464,7 +1470,7 @@ int main() {
 		}
 
 		if (animated) {
-			float distance = speed * num_frames * 1/60.0f;
+			float distance = speed * num_frames * 1 / 60.0f;
 			int i = 0;
 			while (distance > distances.at(i)) {
 				distance -= distances.at(i);
@@ -1476,10 +1482,10 @@ int main() {
 					break;
 				}
 			}
-			
+
 			float step = distance / distances.at(i);
 			camera.setPosition(glm::lerp(positions.at(i), positions.at(i + 1), step));
-			camera.setDirection(glm::lerp(look_ats.at(i) - positions.at(i), look_ats.at(i + 1) - positions.at(i+1), step));
+			camera.setDirection(glm::lerp(look_ats.at(i) - positions.at(i), look_ats.at(i + 1) - positions.at(i + 1), step));
 		}
 
 		if (w.signal) {
@@ -1495,7 +1501,7 @@ int main() {
 		updateCamera(w, context, camera_eye, camera_lookat, camera_up, optix::Matrix4x4().identity());
 		try {
 			if (update) {
-				context->launch(0, resolution.x, resolution.y);
+				//context->launch(0, resolution.x, resolution.y);
 				//update = false;
 			}
 		}
@@ -1504,37 +1510,37 @@ int main() {
 		}
 		hdr_texture.SetTextureID(optixBufferToGLTexture(amplitude_buffer));
 		RayTraced.getMeshes().at(0)->setTexture(hdr_texture, 0);
-		
-		
+
+
 		//texture.Bind();
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		//render(model, &sp);
 		//render(light, &light_sp);
 
-		glm::mat4 transformation = glm::translate(glm::mat4(1), w.translate);
-		transformation = glm::scale(transformation, scale * w.scale);// glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
+		glm::mat4 transformation = glm::translate(glm::mat4(1), glm::vec3(80.8, 31.9, 1));
+		transformation = glm::scale(transformation, scale * .01f * glm::vec3(1.3, 1.6, 2.1));// glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
 		//transformation = glm::rotate(transformation, glm::radians(180.0f), glm::vec3(0, 1, 0));
 
-		
 
 
-		campusTransform = glm::translate(glm::mat4(1), glm::vec3(0,0,0));
-		campusTransform = glm::scale(campusTransform, scale * glm::vec3(100,100,100));
-		
-		
+
+		campusTransform = glm::translate(glm::mat4(1), glm::vec3(0, 0, 0));
+		campusTransform = glm::scale(campusTransform, scale * glm::vec3(100, 100, 100));
+
+
 		skybox_shader.SetUniform4fv("projection", camera.getProjection());
 		skybox_shader.SetUniform4fv("view", glm::mat4(glm::mat3(camera.getView())));
-		
+
 		glDepthMask(GL_FALSE);
-		render(skybox, &skybox_shader);
+		//render(skybox, &skybox_shader);
 		glDepthMask(GL_TRUE);
 		sp.SetUniform4fv("model", transformation);
-		sp.SetUniform3fv("normalMatrix", glm::mat3(glm::transpose(glm::inverse(transformation* camera.getView()))));
+		sp.SetUniform3fv("normalMatrix", glm::mat3(glm::transpose(glm::inverse(transformation * camera.getView()))));
 		sp.SetUniform4fv("camera", camera.getView());
 		sp.SetUniform4fv("projection", camera.getProjection());
 		sp.SetLights(lights);
 		sp.SetUniform3f("viewPos", camera.getPosition());
-		render(model, &sp);
+		//render(model, &sp);
 		campus_map_sp.SetUniform4fv("model", campusTransform);
 		campus_map_sp.SetUniform4fv("camera", camera.getView());
 		campus_map_sp.SetUniform4fv("projection", camera.getProjection());
@@ -1552,7 +1558,7 @@ int main() {
 		std::string filename = std::string(foldername + "/");
 		filename.append(std::to_string(num_frames));
 		filename.append(".bmp");
-		
+
 		stbi_flip_vertically_on_write(true);
 		//int save_result = stbi_write_bmp
 		//(
@@ -1563,16 +1569,20 @@ int main() {
 		//if (save_result == 0) {
 		//	std::cout << "shit" << std::endl;
 		//}
-		
-		
+		instance_shader.Use();
+		instance_shader.SetUniform4fv("projection", camera.getProjection());
+		instance_shader.SetUniform4fv("view", camera.getView());
+		instance_shader.SetUniform4fv("transform", glm::scale(glm::translate(glm::mat4(1), w.translate), w.scale));
+		render(Tree, &instance_shader);
+
 		glDisable(GL_DEPTH_TEST);
 		screen_shader.Use();
-		render(RayTraced, &screen_shader);
+		//render(RayTraced, &screen_shader);
 		filename = std::string(foldername + "/");
 		filename.append(std::to_string(num_frames++));
 		filename.append(".bmp");
 		void* data;
-		if (true) {
+		if (false) {
 			// Make the BYTE array, factor of 3 because it's RBG.
 			BYTE* pixels = new BYTE[3 * w.width * w.height];
 
@@ -1593,5 +1603,5 @@ int main() {
 	}
 	glfwTerminate(); //Shut it down!
 
-	return 0;
+	return 1;
 } 

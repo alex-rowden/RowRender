@@ -25,6 +25,7 @@ public:
 	std::vector<unsigned int> getIndices() { return indices; }
 private:
 	bool is_light = false;
+	int num_instances = 0;
 	std::vector<float> verticies;
 	std::vector<unsigned int> indices;
 	std::vector<float> colors;
