@@ -1501,7 +1501,7 @@ int main() {
 		updateCamera(w, context, camera_eye, camera_lookat, camera_up, optix::Matrix4x4().identity());
 		try {
 			if (update) {
-				//context->launch(0, resolution.x, resolution.y);
+				context->launch(0, resolution.x, resolution.y);
 				//update = false;
 			}
 		}
@@ -1532,7 +1532,7 @@ int main() {
 		skybox_shader.SetUniform4fv("view", glm::mat4(glm::mat3(camera.getView())));
 
 		glDepthMask(GL_FALSE);
-		//render(skybox, &skybox_shader);
+		render(skybox, &skybox_shader);
 		glDepthMask(GL_TRUE);
 		sp.SetUniform4fv("model", transformation);
 		sp.SetUniform3fv("normalMatrix", glm::mat3(glm::transpose(glm::inverse(transformation * camera.getView()))));
@@ -1540,7 +1540,7 @@ int main() {
 		sp.SetUniform4fv("projection", camera.getProjection());
 		sp.SetLights(lights);
 		sp.SetUniform3f("viewPos", camera.getPosition());
-		//render(model, &sp);
+		render(model, &sp);
 		campus_map_sp.SetUniform4fv("model", campusTransform);
 		campus_map_sp.SetUniform4fv("camera", camera.getView());
 		campus_map_sp.SetUniform4fv("projection", camera.getProjection());
@@ -1555,20 +1555,22 @@ int main() {
 		for (int i = 0; i < w.width * w.height; i++) {
 			depth_pix[i] = (unsigned char)(depths[i] * 255.0f);
 		}
-		std::string filename = std::string(foldername + "/");
-		filename.append(std::to_string(num_frames));
-		filename.append(".bmp");
+		if (false) {
+			std::string filename = std::string(foldername + "/");
+			filename.append(std::to_string(num_frames));
+			filename.append(".bmp");
 
-		stbi_flip_vertically_on_write(true);
-		//int save_result = stbi_write_bmp
-		//(
-		//	filename.c_str(),
-		//	resolution.x, resolution.y,
-		//	1, depth_pix
-		//);
-		//if (save_result == 0) {
-		//	std::cout << "shit" << std::endl;
-		//}
+			stbi_flip_vertically_on_write(true);
+			int save_result = stbi_write_bmp
+			(
+				filename.c_str(),
+				resolution.x, resolution.y,
+				1, depth_pix
+			);
+			if (save_result == 0) {
+				std::cout << "shit" << std::endl;
+			}
+		}
 		instance_shader.Use();
 		instance_shader.SetUniform4fv("projection", camera.getProjection());
 		instance_shader.SetUniform4fv("view", camera.getView());
@@ -1577,7 +1579,7 @@ int main() {
 
 		glDisable(GL_DEPTH_TEST);
 		screen_shader.Use();
-		//render(RayTraced, &screen_shader);
+		render(RayTraced, &screen_shader);
 		filename = std::string(foldername + "/");
 		filename.append(std::to_string(num_frames++));
 		filename.append(".bmp");
