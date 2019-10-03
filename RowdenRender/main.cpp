@@ -1495,21 +1495,7 @@ int main() {
 			update = true;
 
 		}
-		optix::float3  camera_eye = optix::make_float3(camera.getPosition().x, camera.getPosition().y, camera.getPosition().z);
-		optix::float3 camera_lookat = camera_eye - optix::make_float3(camera.getDirection().x, camera.getDirection().y, camera.getDirection().z);
-		optix::float3 camera_up = optix::make_float3(0.0f, 0.0f, 1.0f);
-		updateCamera(w, context, camera_eye, camera_lookat, camera_up, optix::Matrix4x4().identity());
-		try {
-			if (update) {
-				context->launch(0, resolution.x, resolution.y);
-				//update = false;
-			}
-		}
-		catch (optix::Exception e) {
-			std::cout << e.getErrorString() << std::endl;
-		}
-		hdr_texture.SetTextureID(optixBufferToGLTexture(amplitude_buffer));
-		RayTraced.getMeshes().at(0)->setTexture(hdr_texture, 0);
+		
 
 
 		//texture.Bind();
@@ -1546,6 +1532,8 @@ int main() {
 		campus_map_sp.SetUniform4fv("projection", camera.getProjection());
 		render(campusMap, &campus_map_sp);
 
+
+
 		GLfloat* depths = new GLfloat[w.width * w.height];
 
 		glReadPixels(0, 0, w.width, w.height, GL_DEPTH_COMPONENT, GL_FLOAT, depths);
@@ -1555,8 +1543,9 @@ int main() {
 		for (int i = 0; i < w.width * w.height; i++) {
 			depth_pix[i] = (unsigned char)(depths[i] * 255.0f);
 		}
+		std::string filename;
 		if (false) {
-			std::string filename = std::string(foldername + "/");
+			filename = std::string(foldername + "/");
 			filename.append(std::to_string(num_frames));
 			filename.append(".bmp");
 
@@ -1576,6 +1565,23 @@ int main() {
 		instance_shader.SetUniform4fv("view", camera.getView());
 		instance_shader.SetUniform4fv("transform", glm::scale(glm::translate(glm::mat4(1), w.translate), w.scale));
 		render(Tree, &instance_shader);
+
+		optix::float3  camera_eye = optix::make_float3(camera.getPosition().x, camera.getPosition().y, camera.getPosition().z);
+		optix::float3 camera_lookat = camera_eye - optix::make_float3(camera.getDirection().x, camera.getDirection().y, camera.getDirection().z);
+		optix::float3 camera_up = optix::make_float3(0.0f, 0.0f, 1.0f);
+		updateCamera(w, context, camera_eye, camera_lookat, camera_up, optix::Matrix4x4().identity());
+		try {
+			if (update) {
+				context->launch(0, resolution.x, resolution.y);
+				//update = false;
+			}
+		}
+		catch (optix::Exception e) {
+			std::cout << e.getErrorString() << std::endl;
+		}
+		hdr_texture.SetTextureID(optixBufferToGLTexture(amplitude_buffer));
+		RayTraced.getMeshes().at(0)->setTexture(hdr_texture, 0);
+
 
 		glDisable(GL_DEPTH_TEST);
 		screen_shader.Use();
