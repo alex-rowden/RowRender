@@ -37,8 +37,8 @@ glm::vec2 resolution = glm::vec2(2560, 1440);
 optix::Buffer amplitude_buffer;
 
 
-GLuint volume_textureId, randInitPhase_textureId, transferFunction_textureId, depth_mask_id;
-optix::TextureSampler volume_texture, transferFunction_texture, depth_mask;
+GLuint volume_textureId, randInitPhase_textureId, transferFunction_textureId;
+optix::TextureSampler volume_texture, transferFunction_texture;
 
 
 void createGeometry(optix::Context& context, glm::vec3 volume_size, glm::mat4 transform) {
@@ -178,9 +178,6 @@ void createContext(optix::Context&context, Window&w) {
 	optix::float3 volume_size = optix::make_float3(.01f, .01f, .01f);
 	float volumeDiagLength = sqrt(volume_size.x * volume_size.x + volume_size.y * volume_size.y + volume_size.z * volume_size.z);
 	unsigned int maxCompositionSteps = (unsigned int)std::ceil(volumeDiagLength / volumeRaytraceStepSize);
-
-	
-
 	//optix::float3 compositionBufferSize = optix::make_float3(2048, std::floorf(100000000 / (sizeof(optix::float3) * maxCompositionSteps * 2048)), maxCompositionSteps);
 	// composition buffer
 	//compLocation_buffer = context->createBuffer(RT_BUFFER_OUTPUT, RT_FORMAT_FLOAT3, compositionBufferSize.x, compositionBufferSize.y, compositionBufferSize.z);
@@ -238,18 +235,6 @@ void createOptixTextures(optix::Context& context, glm::vec3 volume_size, std::ve
 		volume_texture->setWrapMode(1, RT_WRAP_CLAMP_TO_EDGE);
 		volume_texture->setWrapMode(2, RT_WRAP_CLAMP_TO_EDGE);
 		context["volumeTextureId"]->setInt(volume_texture->getId());
-
-		glGenTextures(1, &depth_mask_id);
-		glBindTexture(GL_TEXTURE_2D, depth_mask_id);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, resolution.x, resolution.y, 0, GL_RED, GL_FLOAT, (void*)0);
-		glBindTexture(GL_TEXTURE_2D, 0);
-
-		depth_mask = context->createTextureSamplerFromGLImage(depth_mask_id, RT_TARGET_GL_TEXTURE_2D);
-		depth_mask->setFilteringModes(RT_FILTER_LINEAR, RT_FILTER_LINEAR, RT_FILTER_NONE);
-		depth_mask->setWrapMode(0, RT_WRAP_CLAMP_TO_EDGE);
-		depth_mask->setWrapMode(1, RT_WRAP_CLAMP_TO_EDGE);
-		context["depth_mask_id"]->setInt(depth_mask->getId());
-
 		/*
 		// 2. random initial phase texture
 		// assume the size of the texture is 4 x num_rays_per_ele_hg
@@ -1419,8 +1404,8 @@ int main() {
 
 	glm::mat4 projection;
 	//w.scale = glm::vec3(1, .03, 1);
-	w.scale = glm::vec3(.00128,.00196,.002);
-	w.translate = glm::vec3(78.799, 60.3, 0);
+	w.scale = glm::vec3(.00128,.00201,.002);
+	w.translate = glm::vec3(78.899, 61, 0);
 	//w.translate = glm::vec3(0, -.1f, 0);
 
 	w.setSpeed(.5 * 10);
@@ -1436,10 +1421,6 @@ int main() {
 	std::vector<glm::vec3> positions;
 	std::vector<glm::vec3> look_ats;
 	std::vector<float> distances;
-	GLfloat data[2];
-	glGetFloati_v(GL_DEPTH_RANGE, 0, data);
-	context["zFar"]->setFloat(data[1]);
-	context["zNear"]->setFloat(data[0]);
 	char char_buffer[100];
 	char* next_token;
 	if (animated) {
@@ -1469,7 +1450,7 @@ int main() {
 		for (int i = 0; i < positions.size() - 1; i++) {
 			distances.emplace_back(glm::distance(positions.at(i), positions.at(i + 1)));
 		}
-		animated = true;
+		animated = false;
 	}
 
 	int fps = 0;
@@ -1498,7 +1479,7 @@ int main() {
 					animated = false;
 					distance = 0;
 					i = 0;
-					return 0;
+					break;
 				}
 			}
 
@@ -1514,7 +1495,21 @@ int main() {
 			update = true;
 
 		}
-		
+		optix::float3  camera_eye = optix::make_float3(camera.getPosition().x, camera.getPosition().y, camera.getPosition().z);
+		optix::float3 camera_lookat = camera_eye - optix::make_float3(camera.getDirection().x, camera.getDirection().y, camera.getDirection().z);
+		optix::float3 camera_up = optix::make_float3(0.0f, 0.0f, 1.0f);
+		updateCamera(w, context, camera_eye, camera_lookat, camera_up, optix::Matrix4x4().identity());
+		try {
+			if (update) {
+				//context->launch(0, resolution.x, resolution.y);
+				//update = false;
+			}
+		}
+		catch (optix::Exception e) {
+			std::cout << e.getErrorString() << std::endl;
+		}
+		hdr_texture.SetTextureID(optixBufferToGLTexture(amplitude_buffer));
+		RayTraced.getMeshes().at(0)->setTexture(hdr_texture, 0);
 
 
 		//texture.Bind();
@@ -1537,7 +1532,7 @@ int main() {
 		skybox_shader.SetUniform4fv("view", glm::mat4(glm::mat3(camera.getView())));
 
 		glDepthMask(GL_FALSE);
-		render(skybox, &skybox_shader);
+		//render(skybox, &skybox_shader);
 		glDepthMask(GL_TRUE);
 		sp.SetUniform4fv("model", transformation);
 		sp.SetUniform3fv("normalMatrix", glm::mat3(glm::transpose(glm::inverse(transformation * camera.getView()))));
@@ -1545,61 +1540,35 @@ int main() {
 		sp.SetUniform4fv("projection", camera.getProjection());
 		sp.SetLights(lights);
 		sp.SetUniform3f("viewPos", camera.getPosition());
-		render(model, &sp);
+		//render(model, &sp);
 		campus_map_sp.SetUniform4fv("model", campusTransform);
 		campus_map_sp.SetUniform4fv("camera", camera.getView());
 		campus_map_sp.SetUniform4fv("projection", camera.getProjection());
 		render(campusMap, &campus_map_sp);
 
 		GLfloat* depths = new GLfloat[w.width * w.height];
-		
+
 		glReadPixels(0, 0, w.width, w.height, GL_DEPTH_COMPONENT, GL_FLOAT, depths);
 
-		glBindTexture(GL_TEXTURE_2D, depth_mask_id);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, w.width, w.height, 0, GL_RED, GL_FLOAT, (void*)depths);
-		glBindTexture(GL_TEXTURE_2D, 0);
+		BYTE* depth_pix = new BYTE[w.width * w.height];
 
-		optix::float3  camera_eye = optix::make_float3(camera.getPosition().x, camera.getPosition().y, camera.getPosition().z);
-		optix::float3 camera_lookat = camera_eye - optix::make_float3(camera.getDirection().x, camera.getDirection().y, camera.getDirection().z);
-		optix::float3 camera_up = optix::make_float3(0.0f, 0.0f, 1.0f);
-		updateCamera(w, context, camera_eye, camera_lookat, camera_up, optix::Matrix4x4().identity());
-		try {
-			if (update) {
-				context->launch(0, resolution.x, resolution.y);
-				//update = false;
-			}
+		for (int i = 0; i < w.width * w.height; i++) {
+			depth_pix[i] = (unsigned char)(depths[i] * 255.0f);
 		}
-		catch (optix::Exception e) {
-			std::cout << e.getErrorString() << std::endl;
-		}
-		hdr_texture.SetTextureID(optixBufferToGLTexture(amplitude_buffer));
-		RayTraced.getMeshes().at(0)->setTexture(hdr_texture, 0);
+		std::string filename = std::string(foldername + "/");
+		filename.append(std::to_string(num_frames));
+		filename.append(".bmp");
 
-		std::string filename;
-
-		if (false) {
-			BYTE* depth_pix = new BYTE[w.width * w.height];
-
-			for (int i = 0; i < w.width * w.height; i++) {
-				depth_pix[i] = (unsigned char)(depths[i] * 255.0f);
-			}
-			filename = std::string(foldername + "/depth/");
-			filename.append(std::to_string(num_frames));
-			filename.append(".bmp");
-			if (!CreateDirectory((foldername + "/depth/").c_str(), NULL)) {
-				std::cout << "directory creation failed" << std::endl;
-			}
-			stbi_flip_vertically_on_write(true);
-			int save_result = stbi_write_bmp
-			(
-				filename.c_str(),
-				resolution.x, resolution.y,
-				1, depth_pix
-			);
-			if (save_result == 0) {
-				std::cout << "shit" << std::endl;
-			}
-		}
+		stbi_flip_vertically_on_write(true);
+		//int save_result = stbi_write_bmp
+		//(
+		//	filename.c_str(),
+		//	resolution.x, resolution.y,
+		//	1, depth_pix
+		//);
+		//if (save_result == 0) {
+		//	std::cout << "shit" << std::endl;
+		//}
 		instance_shader.Use();
 		instance_shader.SetUniform4fv("projection", camera.getProjection());
 		instance_shader.SetUniform4fv("view", camera.getView());
@@ -1608,7 +1577,7 @@ int main() {
 
 		glDisable(GL_DEPTH_TEST);
 		screen_shader.Use();
-		render(RayTraced, &screen_shader);
+		//render(RayTraced, &screen_shader);
 		filename = std::string(foldername + "/");
 		filename.append(std::to_string(num_frames++));
 		filename.append(".bmp");
