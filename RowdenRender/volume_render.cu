@@ -100,23 +100,23 @@ RT_PROGRAM void closest_hit() {
 		float4 voxel_val_tf = optix::rtTex2D<float4>(transferFunction_texId, volume_scalar, volume_scalar);
 		//float3 color_self = make_float3(fabs(normal.x), fabs(normal.y), fabs(normal.z));//make_float3(voxel_val_tf);
 		float3 lightDir = (lightPos - (texPoint - box_min));
-		/*
-		float depth = optix::rtTex2D<float>(depth_mask_id, vol_u, vol_v) * 2.0f - 1;
-		if (depth != -1 && depth != 1) {
+		
+		//float depth = optix::rtTex2D<float>(depth_mask_id, vol_u, vol_v) * 2.0f - 1;
+		//if (depth != -1 && depth != 1) {
 			//rtPrintf("%f\n", depth);
-		}
+		//}
 		//if(depth < 1)
 			//rtPrintf("%f\n", depth);
-		float distance = 10000;
-		if ((zFar + zNear - depth * (zFar - zNear)) > 0) {
-			distance = (2.0 * zNear * zFar) / (zFar + zNear - depth * (zFar - zNear));
-			//rtPrintf("%f, %f\n", texPoint.z, distance);
-		}
+		//float distance = 10000;
+		//if ((zFar + zNear - depth * (zFar - zNear)) > 0) {
+		//	distance = (2.0 * zNear * zFar) / (zFar + zNear - depth * (zFar - zNear));
+		//	//rtPrintf("%f, %f\n", texPoint.z, distance);
+		//}
 		//rtPrintf("%f\n", (texPoint-box_min).z);
-		if ((texPoint-box_min).z < distance * 25.0) {
-			break;
-		}
-		*/
+		//if ((texPoint-box_min).z < distance * 25.0) {
+		//	break;
+		//}
+		
 		float3 color_self = make_float3(0);
 		float opaque_self = 0;
 		//rtPrintf("%f\n", lightDir.x * lightDir.x + lightDir.y * lightDir.y + lightDir.z * lightDir.z);
