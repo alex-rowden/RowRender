@@ -37,8 +37,8 @@ glm::vec2 resolution = glm::vec2(2560, 1440);
 optix::Buffer amplitude_buffer;
 
 
-GLuint volume_textureId, randInitPhase_textureId, transferFunction_textureId;
-optix::TextureSampler volume_texture, transferFunction_texture;
+GLuint volume_textureId, randInitPhase_textureId, transferFunction_textureId, depth_mask_id;
+optix::TextureSampler volume_texture, transferFunction_texture, depth_mask;
 
 
 void createGeometry(optix::Context& context, glm::vec3 volume_size, glm::mat4 transform) {
@@ -235,6 +235,9 @@ void createOptixTextures(optix::Context& context, glm::vec3 volume_size, std::ve
 		volume_texture->setWrapMode(1, RT_WRAP_CLAMP_TO_EDGE);
 		volume_texture->setWrapMode(2, RT_WRAP_CLAMP_TO_EDGE);
 		context["volumeTextureId"]->setInt(volume_texture->getId());
+
+		
+
 		/*
 		// 2. random initial phase texture
 		// assume the size of the texture is 4 x num_rays_per_ele_hg
@@ -1450,8 +1453,11 @@ int main() {
 		for (int i = 0; i < positions.size() - 1; i++) {
 			distances.emplace_back(glm::distance(positions.at(i), positions.at(i + 1)));
 		}
-		animated = false;
+		animated = true;
 	}
+	glGenTextures(1, &depth_mask_id);
+	context["zFar"]->setFloat(1000.0f);
+	context["zNear"]->setFloat(.1f);
 
 	int fps = 0;
 	uint64_t fps_counter = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
@@ -1479,7 +1485,7 @@ int main() {
 					animated = false;
 					distance = 0;
 					i = 0;
-					break;
+					return 0;
 				}
 			}
 
@@ -1532,19 +1538,28 @@ int main() {
 		campus_map_sp.SetUniform4fv("projection", camera.getProjection());
 		render(campusMap, &campus_map_sp);
 
-
+		instance_shader.Use();
+		instance_shader.SetUniform4fv("projection", camera.getProjection());
+		instance_shader.SetUniform4fv("view", camera.getView());
+		instance_shader.SetUniform4fv("transform", glm::scale(glm::translate(glm::mat4(1), w.translate), w.scale));
+		render(Tree, &instance_shader);
 
 		GLfloat* depths = new GLfloat[w.width * w.height];
 
 		glReadPixels(0, 0, w.width, w.height, GL_DEPTH_COMPONENT, GL_FLOAT, depths);
 
-		BYTE* depth_pix = new BYTE[w.width * w.height];
+		//glBindTexture(GL_TEXTURE_2D, depth_mask_id);
+		//glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, w.width, w.height, 0, GL_RED, GL_FLOAT, (void*)depths);
+		//glBindTexture(GL_TEXTURE_2D, 0);
 
-		for (int i = 0; i < w.width * w.height; i++) {
-			depth_pix[i] = (unsigned char)(depths[i] * 255.0f);
-		}
 		std::string filename;
 		if (false) {
+			BYTE* depth_pix = new BYTE[w.width * w.height];
+
+			for (int i = 0; i < w.width * w.height; i++) {
+				depth_pix[i] = (unsigned char)(depths[i] * 255.0f);
+			}
+		
 			filename = std::string(foldername + "/");
 			filename.append(std::to_string(num_frames));
 			filename.append(".bmp");
@@ -1560,11 +1575,23 @@ int main() {
 				std::cout << "shit" << std::endl;
 			}
 		}
-		instance_shader.Use();
-		instance_shader.SetUniform4fv("projection", camera.getProjection());
-		instance_shader.SetUniform4fv("view", camera.getView());
-		instance_shader.SetUniform4fv("transform", glm::scale(glm::translate(glm::mat4(1), w.translate), w.scale));
-		render(Tree, &instance_shader);
+		
+
+		
+		glBindTexture(GL_TEXTURE_2D, depth_mask_id);
+		if (num_frames == 0)
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, resolution.x, resolution.y, 0, GL_RED, GL_FLOAT, (void*)depths);
+		else
+			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, resolution.x, resolution.y, GL_RED, GL_FLOAT, (void*)depths);
+		glBindTexture(GL_TEXTURE_2D, 0);
+		
+		depth_mask = context->createTextureSamplerFromGLImage(depth_mask_id, RT_TARGET_GL_TEXTURE_2D);
+		depth_mask->setFilteringModes(RT_FILTER_LINEAR, RT_FILTER_LINEAR, RT_FILTER_NONE);
+		depth_mask->setWrapMode(0, RT_WRAP_CLAMP_TO_EDGE);
+		depth_mask->setWrapMode(1, RT_WRAP_CLAMP_TO_EDGE);
+		context["depth_mask_id"]->setInt(depth_mask->getId());
+
+		
 
 		optix::float3  camera_eye = optix::make_float3(camera.getPosition().x, camera.getPosition().y, camera.getPosition().z);
 		optix::float3 camera_lookat = camera_eye - optix::make_float3(camera.getDirection().x, camera.getDirection().y, camera.getDirection().z);
@@ -1581,7 +1608,7 @@ int main() {
 		}
 		hdr_texture.SetTextureID(optixBufferToGLTexture(amplitude_buffer));
 		RayTraced.getMeshes().at(0)->setTexture(hdr_texture, 0);
-
+		delete[] depths;
 
 		glDisable(GL_DEPTH_TEST);
 		screen_shader.Use();
@@ -1605,7 +1632,9 @@ int main() {
 			if (save_result == 0) {
 				std::cout << "shit" << std::endl;
 			}
+			delete[] pixels;
 		}
+		
 		//render(vol, &sp);
 		w.ProcessFrame(&camera);
 	}
