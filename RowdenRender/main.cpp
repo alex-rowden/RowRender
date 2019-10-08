@@ -1453,7 +1453,7 @@ int main() {
 		for (int i = 0; i < positions.size() - 1; i++) {
 			distances.emplace_back(glm::distance(positions.at(i), positions.at(i + 1)));
 		}
-		animated = true;
+		animated = false;
 	}
 	glGenTextures(1, &depth_mask_id);
 	context["zFar"]->setFloat(1000.0f);
@@ -1485,6 +1485,8 @@ int main() {
 					animated = false;
 					distance = 0;
 					i = 0;
+					uint64_t start = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+
 					return 0;
 				}
 			}

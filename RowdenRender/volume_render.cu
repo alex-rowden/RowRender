@@ -122,7 +122,7 @@ RT_PROGRAM void closest_hit() {
 		//}
 		//if(s == 0)
 			//rtPrintf("%f, %f\n", (texPoint).z, distance);
-		if (length(texPoint) > distance) {
+		if (false){//length(texPoint) > distance) {
 			//rtPrintf("%f, %f\n", (texPoint).z, 25 * distance);
 			color_composited = make_float3(0);
 			opaque_composited = 0;
