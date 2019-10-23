@@ -58,6 +58,8 @@ RT_PROGRAM void dummy() {
 rtDeclareVariable(float3, hg_normal, , );	// normalized
 
 RT_PROGRAM void closest_hit() {
+	amplitude_buffer[launch_index] = make_float4(1, 0, 1, 1);
+	return;
 	//float t = -dot(ray.origin, hg_normal) / dot(ray.direction, hg_normal);
 	//float3 interLoc = ray.origin + t * ray.direction;
 	//location_buffer[launch_index] = interLoc;
@@ -122,12 +124,7 @@ RT_PROGRAM void closest_hit() {
 		//}
 		//if(s == 0)
 			//rtPrintf("%f, %f\n", (texPoint).z, distance);
-		if (false){//length(texPoint) > distance) {
-			//rtPrintf("%f, %f\n", (texPoint).z, 25 * distance);
-			color_composited = make_float3(0);
-			opaque_composited = 0;
-			continue;
-		}
+		
 
 		float3 color_self = make_float3(0);
 		float opaque_self = 0;
@@ -165,7 +162,10 @@ RT_PROGRAM void closest_hit() {
 			//opacities[counter] = opaque_self;
 			//counter++;
 		//}
-
+		if (length(texPoint) <= distance) {
+			amplitude_buffer[launch_index] = make_float4(sqrt(color_composited.x), sqrt(color_composited.y), sqrt(color_composited.z), (opaque_composited));
+			break;
+		}
 		if (opaque_composited > 0.99 ) break;
 	}
 	if (opaque_composited > .9) {

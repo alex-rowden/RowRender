@@ -1123,7 +1123,7 @@ void updateCamera(Window&w, optix::Context&context, optix::float3 camera_eye, op
 	sutil::calculateCameraVariables(
 		camera_eye, camera_lookat, camera_up, vfov, aspect_ratio,
 		camera_u, camera_v, camera_w, true);
-	
+	/*
 	const optix::Matrix4x4 frame = optix::Matrix4x4::fromBasis(
 		normalize(camera_u),
 		normalize(camera_v),
@@ -1142,7 +1142,7 @@ void updateCamera(Window&w, optix::Context&context, optix::float3 camera_eye, op
 		camera_u, camera_v, camera_w, true);
 
 	camera_rotate = optix::Matrix4x4::identity();
-	
+	*/
 
 	context["eye"]->setFloat(camera_eye);
 	context["U"]->setFloat(camera_u);
@@ -1287,7 +1287,8 @@ int main() {
 	WifiData wifi;
 
 	std::vector<float> use_intensities;
-	wifi.loadBinary("interp.raw", use_intensities);
+	wifi.loadBinary("sphere_scaled.raw", use_intensities);
+	//wifi.loadBinary("interp.raw", use_intensities);
 	time_t timer = time(NULL);
 	struct tm local_time;
 	localtime_s(&local_time, &timer);
@@ -1596,6 +1597,8 @@ int main() {
 		
 
 		optix::float3  camera_eye = optix::make_float3(camera.getPosition().x, camera.getPosition().y, camera.getPosition().z);
+		//TODO:
+		//Multiply the direction by the projection matrix to make the rays in the same projected space
 		optix::float3 camera_lookat = camera_eye - optix::make_float3(camera.getDirection().x, camera.getDirection().y, camera.getDirection().z);
 		optix::float3 camera_up = optix::make_float3(0.0f, 0.0f, 1.0f);
 		updateCamera(w, context, camera_eye, camera_lookat, camera_up, optix::Matrix4x4().identity());
