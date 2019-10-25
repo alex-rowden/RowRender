@@ -16,6 +16,7 @@ public:
 	void setPosition(glm::vec3 pos) { this->position = pos; }
 	float pitch, yaw, fov, aspect;
 	glm::vec3 getDirection() { return direction; }
+	glm::vec3 getProjectedDirection() { return (getProjection() * glm::vec4(direction, 1)); }
 	
 private:
 	glm::vec3 position;

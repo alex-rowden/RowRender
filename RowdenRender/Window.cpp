@@ -68,7 +68,7 @@ void standard_mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 	xoffset *= sensitivity;
 	yoffset *= sensitivity;
 
-	win->camera->yaw -= yoffset;
+	win->camera->yaw += yoffset;
 	win->camera->pitch += xoffset;
 	float pitch = win->camera->pitch;
 	float yaw = win->camera->yaw;
