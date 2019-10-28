@@ -2,7 +2,6 @@
 #include <optixu/optixu_math_namespace.h>
 #include <optix_device.h>
 
-#define M_PIf 3.1415926535897932384626433
 
 
 using namespace optix;
@@ -140,7 +139,9 @@ RT_PROGRAM void closest_hit() {
 			float3 reflectDir = reflect(-lightDir, normal);
 			float spec = specularStrength * pow(fmax(dot(viewDir, reflectDir), 0.0f), shininess);
 			color_self = (ambientStrength + diffuse) * make_float3(voxel_val_tf) + spec * make_float3(1, 1, 1);
-			opaque_self = voxel_val_tf.w;
+			float bubble_coefficient = 1 - abs(dot(normalize(normal), viewDir));
+			//rtPrintf("%f\n", bubble_coefficient);
+			opaque_self = voxel_val_tf.w * pow(bubble_coefficient, .8f);
 		}
 
 		/*
@@ -162,9 +163,9 @@ RT_PROGRAM void closest_hit() {
 			//counter++;
 		//}
 		if (length(texPoint) > distance) {
-			color_composited = make_float3(1, 0, 0);
+			//color_composited = make_float3(1, 0, 0);
 			amplitude_buffer[launch_index] = make_float4(sqrt(color_composited.x), sqrt(color_composited.y), sqrt(color_composited.z), (opaque_composited));
-			break;
+			//break;
 		}
 		if (opaque_composited > 0.99 ) break;
 	}

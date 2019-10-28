@@ -1600,7 +1600,7 @@ int main() {
 		//TODO:
 		//Multiply the direction by the projection matrix to make the rays in the same projected space
 		optix::float3 camera_lookat = camera_eye - optix::make_float3(camera.getDirection().x, camera.getDirection().y, camera.getDirection().z);
-		optix::float3 camera_up = optix::make_float3(0.0f, 0.0f, 1.0f);
+		optix::float3 camera_up = optix::make_float3(camera.getUp().x, camera.getUp().y, camera.getUp().z);
 		updateCamera(w, context, camera_eye, camera_lookat, camera_up, optix::Matrix4x4().identity());
 		try {
 			if (update) {

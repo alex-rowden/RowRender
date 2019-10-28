@@ -17,6 +17,7 @@ public:
 	float pitch, yaw, fov, aspect;
 	glm::vec3 getDirection() { return direction; }
 	glm::vec3 getProjectedDirection() { return (getProjection() * glm::vec4(direction, 1)); }
+	glm::vec3 getUp() { return up; }
 	
 private:
 	glm::vec3 position;
