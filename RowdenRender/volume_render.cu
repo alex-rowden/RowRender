@@ -21,6 +21,7 @@ rtBuffer<float4, 2> amplitude_buffer;
 
 rtDeclareVariable(int, volumeTextureId, , );
 rtDeclareVariable(int, transferFunction_texId, , );
+rtDeclareVariable(int, random_texture, , );
 rtDeclareVariable(int, depth_mask_id, , );
 
 rtDeclareVariable(float3, texcoord, attribute texcoord, );
@@ -43,6 +44,7 @@ rtDeclareVariable(float, ambientStrength, , );
 rtDeclareVariable(float3, lightPos, , );
 rtDeclareVariable(float, specularStrength, , );
 rtDeclareVariable(float, shininess, , );
+rtDeclareVariable(float, diffuseStrength, , );
 
 rtDeclareVariable(float, zFar, , );
 rtDeclareVariable(float, zNear, , );
@@ -71,11 +73,12 @@ RT_PROGRAM void closest_hit() {
 	unsigned int num_steps = floorf(sqrtf(dot(bhp - fhp, bhp - fhp)) / volumeRaytraceStepSize);
 	float3 color_composited = make_float3(0.f, 0.f, 0.f);
 	float opaque_composited = 0.f;
+	float epsilon = .1f * volumeRaytraceStepSize;
 	//float opacities[300];
 	//int counter = 0;
 	//rtPrintf("%d\n", num_steps);
 	for (unsigned int s = 0; s < num_steps; ++s) {
-		float3 texPoint = fhp + (s) * volumeRaytraceStepSize * ray.direction;
+		float3 texPoint = fhp + (s) * volumeRaytraceStepSize * ray.direction + (epsilon) * (optix::rtTex3D<float>(random_texture, launch_index.x / amplitude_buffer.size().x, launch_index.y / amplitude_buffer.size().y, s/num_steps));
 
 		float vol_u = dot(texPoint - box_min, v1);
 		float vol_v = dot(texPoint - box_min, v2);
@@ -87,7 +90,7 @@ RT_PROGRAM void closest_hit() {
 		float volume_scalar = optix::rtTex3D<float>(volumeTextureId, vol_u, vol_v, vol_w);
 
 		float plus_u, minus_u, plus_v, minus_v, plus_w, minus_w;
-		float region_increment = volumeRaytraceStepSize / 5.0f;
+		float region_increment = volumeRaytraceStepSize / 50.0f;
 
 		plus_u = optix::rtTex3D<float>(volumeTextureId, vol_u + region_increment, vol_v, vol_w);
 		minus_u = optix::rtTex3D<float>(volumeTextureId, vol_u - region_increment, vol_v, vol_w);
@@ -98,9 +101,20 @@ RT_PROGRAM void closest_hit() {
 		plus_w = optix::rtTex3D<float>(volumeTextureId, vol_u, vol_v, vol_w + region_increment);
 		minus_w = optix::rtTex3D<float>(volumeTextureId, vol_u, vol_v, vol_w - region_increment);
 
-		float3 normal = -optix::normalize(normalize(v1) * (plus_u - minus_u) / (2 * region_increment) + normalize(v2) * (plus_v - minus_v) / (2 * region_increment) + normalize(v3) * (plus_w - minus_w) / (2 * region_increment));
-
+		float3 normal = optix::normalize((v1) * (plus_u - minus_u) / (2.0 * region_increment) + (v2) * (plus_v - minus_v) / (2.0 * region_increment) + (v3) * (plus_w - minus_w) / (2.0 * region_increment));
+		
 		float4 voxel_val_tf = optix::rtTex2D<float4>(transferFunction_texId, volume_scalar, volume_scalar);
+		
+		if (volume_scalar < .4 && volume_scalar > .39) {
+			voxel_val_tf = make_float4(0, 0, 1, 1.0);
+			if (fabs(normal.x) <= .01 && fabs(normal.y) <= .01 && fabs(normal.z) <= 0.01) {
+				rtPrintf("%f, %f/n", normal.x, normal.y);
+			}
+		}
+		else {
+			voxel_val_tf = make_float4(0, 0, 0, 0);
+		}
+		
 		//float3 color_self = make_float3(fabs(normal.x), fabs(normal.y), fabs(normal.z));//make_float3(voxel_val_tf);
 		float3 lightDir = (lightPos - (texPoint - box_min));
 		
@@ -133,15 +147,25 @@ RT_PROGRAM void closest_hit() {
 		}
 		else {
 			lightDir = normalize(lightDir);
-			float diffuse = fmax(dot(normal, lightDir), 0.0f);
+			float diffuse = diffuseStrength * fmax(dot(normal, lightDir), 0.0f);
 
-			float3 viewDir = normalize(ray.origin - (texPoint));
+			float3 viewDir = normalize(ray.direction);
 			float3 reflectDir = reflect(-lightDir, normal);
 			float spec = specularStrength * pow(fmax(dot(viewDir, reflectDir), 0.0f), shininess);
 			color_self = (ambientStrength + diffuse) * make_float3(voxel_val_tf) + spec * make_float3(1, 1, 1);
-			float bubble_coefficient = 1 - abs(dot(normalize(normal), viewDir));
+			//color_self = (make_float3(fabs(normal.x), fabs(normal.y), fabs(normal.z)));
+			float bubble_coefficient = 1 - (abs(dot(normal, viewDir)));
+			if (bubble_coefficient < .9 && voxel_val_tf.w > 1e-5) {
+				voxel_val_tf.w = .2;
+			}
+			else if(voxel_val_tf.w > 1e-5){
+				voxel_val_tf.w = 1.0;
+			}
+			//bubble_coefficient /= 4;
+			//bubble_coefficient += .75;
+			bubble_coefficient = 1;
 			//rtPrintf("%f\n", bubble_coefficient);
-			opaque_self = voxel_val_tf.w * pow(bubble_coefficient, .8f);
+			opaque_self = voxel_val_tf.w * pow(bubble_coefficient, 1.0f);// 0.5f);
 		}
 
 		/*
@@ -164,7 +188,7 @@ RT_PROGRAM void closest_hit() {
 		//}
 		if (length(texPoint) > distance) {
 			//color_composited = make_float3(1, 0, 0);
-			amplitude_buffer[launch_index] = make_float4(sqrt(color_composited.x), sqrt(color_composited.y), sqrt(color_composited.z), (opaque_composited));
+			//amplitude_buffer[launch_index] = make_float4(sqrt(color_composited.x), sqrt(color_composited.y), sqrt(color_composited.z), (opaque_composited));
 			//break;
 		}
 		if (opaque_composited > 0.99 ) break;
@@ -195,13 +219,18 @@ rtDeclareVariable(unsigned int, radiance_ray_type, , );
 rtDeclareVariable(float, scene_epsilon, , );
 rtDeclareVariable(rtObject, top_object, , );
 
-// ray direction jitter random texture
-rtDeclareVariable(int, random_texture, , );	// [0, 1] ^ 4
 
 rtDeclareVariable(float3, eye, , );
 rtDeclareVariable(float3, U, , );
 rtDeclareVariable(float3, V, , );
 rtDeclareVariable(float3, W, , );
+
+rtDeclareVariable(float4, m1, , );
+rtDeclareVariable(float4, m2, , );
+rtDeclareVariable(float4, m3, , );
+rtDeclareVariable(float4, m4, , );
+
+
 
 RT_PROGRAM void camera() {
 	// if outside buffer range, paint it black
@@ -213,8 +242,8 @@ RT_PROGRAM void camera() {
 	float2 d = make_float2(launch_index) / make_float2(screen) * 2.f - 1.f;
 	//float3 angle = make_float3(cos(d.x) * sin(d.y), -cos(d.y), sin(d.x) * sin(d.y));
 	float3 ray_origin = eye;
-	float3 ray_direction = normalize(d.x * -normalize(U) + d.y * -normalize(V) + -normalize(W));
-
+	float3 ray_direction = normalize(d.x * -(U) + d.y * -(V) + -(W));
+	//float3 ray_direction = normalize(make_float3((d.x * normalize(m1) + d.y * normalize(m2) + normalize(m3) + normalize(m4))));
 	optix::Ray ray(ray_origin, ray_direction, radiance_ray_type, scene_epsilon);
 	//rtPrintf("%f, %f, %f\n", rayDirection.x, rayDirection.y, rayDirection.z);
 	PerRayData_hologram prd;
