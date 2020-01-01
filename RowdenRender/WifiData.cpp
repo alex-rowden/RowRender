@@ -3,6 +3,7 @@
 #include <string>
 #include <fstream>
 #include "delaunator.hpp"
+#include <optixu/optixu_math_namespace.h>
 
 bool WifiData::loadCSV(const char* str) {
 	std::ifstream inputFile(str);
@@ -104,24 +105,261 @@ bool WifiData::loadCSV(const char* str) {
 	return true;
 }
 
-bool WifiData::loadBinary(const char* filename, std::vector<float>& intensities) {
+unsigned long WifiData::get_indx(int x, int y, int z) {
+	return x + y * this->numLonCells + this->numLonCells * this->numLatCells * z;
+}
+
+unsigned char WifiData::sample_tex(std::vector<unsigned char>& intensities, int x, int y, int z) {
+	if (x < 0) {
+		x = 0;
+	}
+	else if (x >= numLonCells) {
+		x = numLonCells - 1;
+	}if (y < 0) {
+		y = 0;
+	}else if (y >= numLatCells) {
+		y = numLatCells - 1;
+	}if (z < 0) {
+		z = 0;
+	}
+	else if (z >= numSlices) {
+		z = numSlices - 1;
+	}
+	return intensities.at(get_indx(x, y, z));
+}
+float WifiData::sample_tex(std::vector<float>& intensities, int x, int y, int z) {
+	if (x < 0) {
+		x = 0;
+	}
+	else if (x >= numLonCells) {
+		x = numLonCells - 1;
+	}if (y < 0) {
+		y = 0;
+	}else if (y >= numLatCells) {
+		y = numLatCells - 1;
+	}if (z < 0) {
+		z = 0;
+	}
+	else if (z >= numSlices) {
+		z = numSlices - 1;
+	}
+	return intensities.at(get_indx(x, y, z));
+}
+
+
+
+void WifiData::calculate_neighbors(Neighborhood&neighbors, std::vector<unsigned char>& intensities, int x, int y, int z, unsigned int sample_step) {
+	neighbors.right = (int)sample_tex(intensities, x + sample_step, y, z);
+	neighbors.left = (int)sample_tex(intensities, x - sample_step, y, z);
+	neighbors.up = (int)sample_tex(intensities, x, y + sample_step, z);
+	neighbors.down = (int)sample_tex(intensities, x, y - sample_step, z);
+	neighbors.front = (int)sample_tex(intensities, x, y, z + sample_step);
+	neighbors.back = (int)sample_tex(intensities, x, y, z - sample_step);
+};
+void WifiData::calculate_neighbors(Neighborhoodf&neighbors, std::vector<float>& intensities, int x, int y, int z, unsigned int sample_step) {
+	neighbors.right = sample_tex(intensities, x + sample_step, y, z);
+	neighbors.left = sample_tex(intensities, x - sample_step, y, z);
+	neighbors.up = sample_tex(intensities, x, y + sample_step, z);
+	neighbors.down = sample_tex(intensities, x, y - sample_step, z);
+	neighbors.front = sample_tex(intensities, x, y, z + sample_step);
+	neighbors.back = sample_tex(intensities, x, y, z - sample_step);
+};
+
+short normFloat2Short(float val) {
+	return (((val + 1) * (SHRT_MAX - SHRT_MIN)) / 2.0) + SHRT_MIN;
+}
+
+glm::ivec3 getTrip(unsigned long indx, int numLatCells, int numLonCells, int numSlices) {
+	glm::ivec3 ret = glm::ivec3();
+	ret.z = indx / (numLatCells * numLonCells);
+	ret.y = (indx - (ret.z * numLatCells * numLonCells)) / numLonCells;
+	ret.x = (indx - (ret.z * numLatCells * numLonCells) - (ret.y * numLonCells));
+	return ret;
+}
+
+bool WifiData::loadBinary(const char* filename, std::vector<unsigned char>& intensities, std::vector<short>& phi, std::vector<short>&theta, unsigned int sample_step) {
+	int dialation = 3;
+	int num_smooths = 1;
+	std::string outputf = std::to_string(dialation) + "_" + std::to_string(num_smooths) + std::string(filename);
+	std::ifstream f(outputf.c_str(), std::ios::in|std::ios::binary);
+	if (f.good()) {
+		//size_t size;
+		f.read((char*)(&numSlices), sizeof(int));
+		f.read((char*)(&numLatCells), sizeof(int));
+		f.read((char*)(&numLonCells), sizeof(int));
+		//numSlices = size / (numLatCells * numLonCells);
+		unsigned long size = numSlices * numLatCells * numLonCells;
+		intensities.resize(size);
+		phi.resize(size);
+		theta.resize(size);
+		f.read((char*)(&intensities[0]), size * sizeof(unsigned char));
+		f.read((char*)(&phi[0]), size * sizeof(short));
+		f.read((char*)(&theta[0]), size * sizeof(short));
+		return true;
+	}
+	if (!loadBinary(filename, intensities))
+		return false;
+	Neighborhood neighbors = { 0, 0, 0, 0, 0, 0 };
+	Neighborhoodf neighborsf = { 0, 0, 0, 0, 0, 0 };
+	phi.resize(numLatCells * numLonCells * numSlices);
+	theta.resize(numLatCells * numLonCells * numSlices);
+	
+	std::vector<float>temp_x, temp_y, temp_z;
+
+	std::ofstream out(outputf.c_str(), std::ios::out | std::ios::binary);
+	
+	temp_x.resize(numLatCells * numLonCells * numSlices);
+	temp_y.resize(numLatCells * numLonCells * numSlices);
+	temp_z.resize(numLatCells * numLonCells * numSlices);
+	/*
+	for (int x = 0; x < numLonCells; x++) {
+		for (int y = 0; y < numLatCells; y++) {
+			for (int z = 0; z < numSlices; z++) {
+				calculate_neighbors(neighbors, intensities, x, y, z, 1);
+				unsigned long curr_idx = get_indx(x, y, z);
+				glm::vec3 normal = glm::vec3((neighbors.right) - neighbors.left, (neighbors.up) - neighbors.down, (neighbors.front) - neighbors.back);
+				normal /= 255.0f;
+				if (glm::length(normal) != 0) {
+					normal = glm::normalize(normal);
+				}
+				//normal = glm::normalize(normal);
+				temp_x.at(curr_idx) = normal.x;
+				temp_y.at(curr_idx) = normal.y;
+				temp_z.at(curr_idx) = normal.z;
+			}
+		}
+	}
+	*/
+	for (unsigned long i = 0; i < intensities.size(); i++) {
+		glm::ivec3 indices = getTrip(i, numLatCells, numLonCells, numSlices);
+		calculate_neighbors(neighbors, intensities, indices.x, indices.y, indices.z, 1);
+		glm::vec3 normal = glm::vec3(((neighbors.right) - neighbors.left)/(float)numLonCells, ((neighbors.up) - neighbors.down)/(float)numLatCells, ((neighbors.front) - neighbors.back))/(float)numSlices;
+		normal /= (dialation * 2);
+		if (glm::length(normal) != 0) {
+			normal = glm::normalize(normal);
+		}
+		temp_x.at(i) = normal.x;
+		temp_y.at(i) = normal.y;
+		temp_z.at(i) = normal.z;
+	}
+
+	for (int i = 0; i < num_smooths; i++) {
+		for (unsigned long curr_idx = 0; curr_idx < intensities.size(); curr_idx++) {
+			glm::ivec3 indices = getTrip(curr_idx, numLatCells, numLatCells, numSlices);
+			calculate_neighbors(neighborsf, temp_x, indices.x, indices.y, indices.z, dialation);
+			temp_x.at(curr_idx) = (neighborsf.right + neighborsf.left + neighborsf.up + neighborsf.down + neighborsf.front + neighborsf.back) / 6.0f;
+			calculate_neighbors(neighborsf, temp_y, indices.x, indices.y, indices.z, dialation);
+			temp_y.at(curr_idx) = (neighborsf.right + neighborsf.left + neighborsf.up + neighborsf.down + neighborsf.front + neighborsf.back) / 6.0f;
+			calculate_neighbors(neighborsf, temp_z, indices.x, indices.y, indices.z, dialation);
+			temp_z.at(curr_idx) = (neighborsf.right + neighborsf.left + neighborsf.up + neighborsf.down + neighborsf.front + neighborsf.back) / 6.0f;
+			glm::vec3 normal = glm::vec3(temp_x.at(curr_idx), temp_y.at(curr_idx), temp_z.at(curr_idx));
+			if (num_smooths == i - 1) {
+				normal = glm::normalize(normal);
+				temp_x.at(curr_idx) = normal.x;
+				temp_y.at(curr_idx) = normal.y;
+				temp_z.at(curr_idx) = normal.z;
+			}
+		}
+		/*
+		for (int x = 0; x < numLonCells; x++) {
+			for (int y = 0; y < numLatCells; y++) {
+				for (int z = 0; z < numSlices; z++) {
+					calculate_neighbors(neighborsf, temp_x, x, y, z, dialation);
+					unsigned long curr_idx = get_indx(x, y, z);
+					temp_x.at(curr_idx) = (neighborsf.right + neighborsf.left + neighborsf.up + neighborsf.down + neighborsf.front + neighborsf.back) / 6.0f;
+					calculate_neighbors(neighborsf, temp_y, x, y, z, dialation);
+					temp_y.at(curr_idx) = (neighborsf.right + neighborsf.left + neighborsf.up + neighborsf.down + neighborsf.front + neighborsf.back) / 6.0f;
+					calculate_neighbors(neighborsf, temp_z, x, y, z, dialation);
+					temp_z.at(curr_idx) = (neighborsf.right + neighborsf.left + neighborsf.up + neighborsf.down + neighborsf.front + neighborsf.back) / 6.0f;
+					glm::vec3 normal = glm::vec3(temp_x.at(curr_idx), temp_y.at(curr_idx), temp_z.at(curr_idx));
+					if(num_smooths == i - 1)
+						normal = glm::normalize(normal);
+					temp_x.at(curr_idx) = normal.x;
+					temp_y.at(curr_idx) = normal.y;
+					temp_z.at(curr_idx) = normal.z;
+				}
+			}
+		}
+		*/
+	}
+	/*
+	for (int x = 0; x < numLonCells; x++) {
+		for (int y = 0; y < numLatCells; y++) {
+			for (int z = 0; z < numSlices; z++) {
+				unsigned long curr_idx = get_indx(x, y, z);
+				phi.at(curr_idx) = normFloat2Short(temp_x.at(curr_idx));
+				theta.at(curr_idx) = normFloat2Short(temp_y.at(curr_idx));
+			}
+		}
+	}
+	*/
+	float max_phi = std::numeric_limits<float>().min();
+	float min_phi = std::numeric_limits<float>().max();
+	for (unsigned long curr_idx = 0; curr_idx < intensities.size(); curr_idx++) {
+		//phi.at(curr_idx) = (temp_x.at(curr_idx));
+		
+		float t_phi = (acos(temp_z.at(curr_idx)) / M_PIf);
+		//theta.at(curr_idx) = (temp_y.at(curr_idx));
+		//float t_phi = (asin(temp_y.at(curr_idx) / sin(acos(temp_z.at(curr_idx)))) + M_PI_2f) / M_PIf;
+		
+		
+		if (abs(temp_y.at(curr_idx)) <= 1e-2 && temp_x.at(curr_idx) < 0) {
+			//std::cout << t_phi << std::endl;
+		}
+		if (t_phi > max_phi) {
+			max_phi = t_phi;
+		}
+		else if (t_phi < min_phi) {
+			min_phi = t_phi;
+		}
+
+		phi.at(curr_idx) = normFloat2Short(t_phi);
+		
+		if (t_phi == 1.0f) {
+			//t_phi -= 1e-3;
+		}
+		theta.at(curr_idx) = normFloat2Short((atan2(temp_y.at(curr_idx), temp_x.at(curr_idx)) + M_PIf) / (2 * M_PIf));
+		
+	
+	}
+	std::cout << max_phi << std::endl;
+	std::cout << min_phi << std::endl;
+	size_t size = intensities.size();
+	out.write(reinterpret_cast<const char*>(&numSlices), sizeof(int));
+	out.write(reinterpret_cast<const char*>(&numLatCells), sizeof(int));
+	out.write(reinterpret_cast<const char*>(&numLonCells), sizeof(int));
+	out.write(reinterpret_cast<const char *>(&intensities[0]), intensities.size() * sizeof(unsigned char));
+	out.write(reinterpret_cast<const char*>(&phi[0]), phi.size() * sizeof(short));
+	out.write(reinterpret_cast<const char*>(&theta[0]), theta.size() * sizeof(short));
+
+	//for(unsigned long i = 0; i < phi.size(); i++){
+		//out.write((char *)&phi.at(i), sizeof(short));
+		//out.write((char *)&theta.at(i), sizeof(short));
+		//out.write((char *)&normals_z.at(i), sizeof(short));
+	//}
+	//out.flush();
+	out.close();
+	return true;
+}
+
+bool WifiData::loadBinary(const char* filename, std::vector<unsigned char>& intensities) {
 	try {
 		std::ifstream file = std::ifstream(filename, std::ios::in | std::ios::binary);
 		if (!file)
 			return false;
 		unsigned int dims[3];
 		file.read(reinterpret_cast<char*>(dims), 3 * 4 * sizeof(char)); //I know that uint is 4 bytes in matlab and I'm not sure about it here so this is how I am doing it
-		numLatCells = dims[0];//1
-		numLonCells = dims[1];//0
+		numLatCells = dims[1];//1
+		numLonCells = dims[0];//0
 		numSlices = dims[2];
-		int total_size = numLatCells * numLonCells * numSlices;
+		unsigned long total_size = numLatCells * numLonCells * numSlices;
 		intensities.resize(total_size);
 		std::vector<char> temp = std::vector<char>();
 		temp.resize(total_size);
 		file.read(temp.data(), total_size);
 		int counter = 0;
 		for (auto sample : temp) {
-			intensities[counter++] = (float)((unsigned char)sample / 255.0f);
+			intensities[counter++] = (unsigned char)sample;
 		}
 		return true;
 	}

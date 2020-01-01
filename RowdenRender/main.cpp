@@ -19,6 +19,8 @@
 #include <time.h>
 #include <direct.h>
 #include <functional>
+#include <glm/gtc/matrix_access.hpp>
+#include <optix_cuda_interop.h>
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
@@ -33,14 +35,14 @@ bool update = true;
 bool animated = true;
 const char* animation_file = "test_1.txt";
 float speed = 6.0f;
-glm::vec2 resolution = glm::vec2(2560, 1440);
+glm::vec2 resolution = glm::vec2(1920, 1080);
 glm::vec3 rand_dim = glm::vec3(50, 50, 50);
 
 optix::Buffer amplitude_buffer;
 
 
-GLuint volume_textureId, random_texture_id, transferFunction_textureId, depth_mask_id;
-optix::TextureSampler volume_texture, transferFunction_texture, depth_mask, random_texture;
+GLuint volume_textureId, volume_textureId2, random_texture_id, transferFunction_textureId, depth_mask_id, normal_textureId;
+optix::TextureSampler volume_texture, volume_texture2, transferFunction_texture, depth_mask, random_texture, normal_texture;
 
 
 void createGeometry(optix::Context& context, glm::vec3 volume_size, glm::mat4 transform) {
@@ -58,13 +60,14 @@ void createGeometry(optix::Context& context, glm::vec3 volume_size, glm::mat4 tr
 
 		//optix::float3 box_min = optix::make_float3(-volume_size.x / 2.f, -volume_size.y / 2.f, 0.f - volume_size.z / 2.f);	// volume is at origin
 		//optix::float3 box_max = optix::make_float3(volume_size.x / 2.f, volume_size.y / 2.f, 0.f + volume_size.z / 2.f);
-		optix::float3 box_min = optix::make_float3(25, 25, 0);	// volume is at origin
-		optix::float3 box_max = optix::make_float3(75, 75, 50);
+		optix::float3 box_min = optix::make_float3(20, 20, 0);	// volume is at origin
+		optix::float3 box_max = optix::make_float3(70, 70, 50);
 
 
-		optix::float3 volume_v1 = optix::make_float3(50.0f, 0.f, 0.f); //scaling factors
-		optix::float3 volume_v2 = optix::make_float3(0.f, 50.0f, 0.f);
-		optix::float3 volume_v3 = optix::make_float3(0.f, 0.f, 50.0f);
+		optix::float3 volume_v1 = optix::make_float3(50, 0.f, 0.f); //scaling factors
+		optix::float3 volume_v2 = optix::make_float3(0.f, 50, 0.f);
+		optix::float3 volume_v3 = optix::make_float3(0.f, 0.f, 3);
+		//optix::float3 volume_v3 = optix::make_float3(0.f, 0.f, 3.0);
 		/*
 		optix::float3 volume_v1 = optix::make_float3(50.0f, 0.f, 0.f);
 		optix::float3 volume_v2 = optix::make_float3(0.f, 50.0f, 0.f);
@@ -84,14 +87,14 @@ void createGeometry(optix::Context& context, glm::vec3 volume_size, glm::mat4 tr
 		box["voxel_size"]->setFloat(.01, .01, .01);
 
 		box["scene_epsilon"]->setFloat(1e-4f);
-		box["volumeRaytraceStepSize"]->setFloat(.11);
+		box["volumeRaytraceStepSize"]->setFloat(.11/3.0f);
 
 		context["box_min"]->setFloat(box_min);
 		context["box_max"]->setFloat(box_max);
 		context["v1"]->setFloat(volume_v1);
 		context["v2"]->setFloat(volume_v2);
 		context["v3"]->setFloat(volume_v3);
-		context["volumeRaytraceStepSize"]->setFloat(.11);
+		context["volumeRaytraceStepSize"]->setFloat(.11/10.0f);
 
 		//context["hg_anchor"]->setFloat( 0, 0, 0);
 		context["hg_anchor"]->setFloat( -(float)1024 *  .0037/ 2.f, -(float)1024 *.0037 / 2.f, -5.0f );
@@ -148,7 +151,6 @@ void createGeometry(optix::Context& context, glm::vec3 volume_size, glm::mat4 tr
 		geometrygroup->setChildCount(static_cast<unsigned int>(gis.size()));
 		geometrygroup->setChild(0, gis[0]);
 	
-		//geometrygroup->setAcceleration(context->createAcceleration("Trbvh"));
 		geometrygroup->setAcceleration( context->createAcceleration("NoAccel") );
 
 		context["top_object"]->set(geometrygroup);
@@ -159,44 +161,29 @@ void createGeometry(optix::Context& context, glm::vec3 volume_size, glm::mat4 tr
 }
 
 void createContext(optix::Context&context, Window&w) {
+	int rtxOn = 1;
+	rtGlobalSetAttribute(RT_GLOBAL_ATTRIBUTE_ENABLE_RTX, sizeof(rtxOn), &rtxOn);
 	context = optix::Context::create();
 	std::vector<int> devices;
 	devices.emplace_back(0);
-	//context->setDevices(devices.begin(), devices.end());
 	context->setRayTypeCount(1);
 	context["radiance_ray_type"]->setUint(0);
 	context->setEntryPointCount(1);
 	context->setStackSize(2100);
-	//context->setMaxTraceDepth(5);
 	if (DEBUG) {
 		context->setPrintEnabled(true);
-		//m_context->setPrintLaunchIndex(256, 256);
 		context->setExceptionEnabled(RT_EXCEPTION_ALL, true);
 	}
-	//context["max_depth"]->setInt(100);
 	context["scene_epsilon"]->setFloat(1.e-4f);
 	context["opacity_correction"]->setFloat(.65f);
 	optix::float2 output_buffer_dim = optix::make_float2(resolution.x, resolution.y);
-	// buffer to store locations and brightness of intersections
-	//location_buffer = sutil::createOutputBuffer(context, RT_FORMAT_FLOAT3, output_buffer_dim.x, output_buffer_dim.y, false);
 	amplitude_buffer = sutil::createOutputBuffer(context, RT_FORMAT_FLOAT4, output_buffer_dim.x, output_buffer_dim.y, false);
-	//initPhase_buffer = sutil::createOutputBuffer(context, RT_FORMAT_FLOAT, output_buffer_dim.x, output_buffer_dim.y, false);
-	//context["location_buffer"]->set(location_buffer);
 	context["amplitude_buffer"]->set(amplitude_buffer);
-	//context["initPhase_buffer"]->set(initPhase_buffer);
 	float volumeRaytraceStepSize = .11;
 	optix::float3 volume_size = optix::make_float3(.01f, .01f, .01f);
 	float volumeDiagLength = sqrt(volume_size.x * volume_size.x + volume_size.y * volume_size.y + volume_size.z * volume_size.z);
 	unsigned int maxCompositionSteps = (unsigned int)std::ceil(volumeDiagLength / volumeRaytraceStepSize);
-	//optix::float3 compositionBufferSize = optix::make_float3(2048, std::floorf(100000000 / (sizeof(optix::float3) * maxCompositionSteps * 2048)), maxCompositionSteps);
-	// composition buffer
-	//compLocation_buffer = context->createBuffer(RT_BUFFER_OUTPUT, RT_FORMAT_FLOAT3, compositionBufferSize.x, compositionBufferSize.y, compositionBufferSize.z);
-	//compAmplitude_buffer = context->createBuffer(RT_BUFFER_OUTPUT, RT_FORMAT_FLOAT3, compositionBufferSize.x, compositionBufferSize.y, compositionBufferSize.z);
-	//compDepth_buffer = context->createBuffer(RT_BUFFER_OUTPUT, RT_FORMAT_UNSIGNED_INT, compositionBufferSize.x, compositionBufferSize.y);
-	//context["compLocation_buffer"]->set(compLocation_buffer);
-	//context["compAmplitude_buffer"]->set(compAmplitude_buffer);
-	//context["compDepth_buffer"]->set(compDepth_buffer);
-	//context["compositionBufferSize"]->setUint(compositionBufferSize.x, compositionBufferSize.y, compositionBufferSize.z);
+
 
 	context["element_hologram_dim"]->setUint(resolution.x, resolution.y);
 	context["half_num_rays_per_element_hologram"]->setUint( resolution.x/ 2, resolution.y/ 2);
@@ -231,44 +218,37 @@ void createContext(optix::Context&context, Window&w) {
 	const glm::vec3 default_color = glm::vec3(1.0f, 1.0f, 1.0f);
 }
 
-void createOptixTextures(optix::Context& context, glm::vec3 volume_size, std::vector<float> volumeRaw) {
+void createOptixTextures(optix::Context& context, glm::vec3 volume_size, std::vector<unsigned char> volumeRaw, std::vector<short> normals, int tex_num = 1) {
 	try {
 		
 		glGenTextures(1, &volume_textureId);
 		glBindTexture(GL_TEXTURE_3D, volume_textureId);
-		glTexImage3D(GL_TEXTURE_3D, 0, GL_R32F, volume_size.x, volume_size.y, volume_size.z, 0, GL_RED, GL_FLOAT, (void*)& volumeRaw[0]);
+		glTexImage3D(GL_TEXTURE_3D, 0, GL_COMPRESSED_RED, volume_size.x, volume_size.y, volume_size.z, 0, GL_RED, GL_UNSIGNED_BYTE, (void*)volumeRaw.data());
+		//glTexImage3D(GL_TEXTURE_3D, 0, GL_R8, volume_size.x, volume_size.y, volume_size.z, 0, GL_RED, GL_UNSIGNED_BYTE, (void*)volumeRaw.data());
 		glBindTexture(GL_TEXTURE_3D, 0);
 		// create optix 3D texture sampler
+
 		volume_texture = context->createTextureSamplerFromGLImage(volume_textureId, RT_TARGET_GL_TEXTURE_3D);
-		volume_texture->setFilteringModes(RT_FILTER_LINEAR, RT_FILTER_LINEAR, RT_FILTER_NONE);
+		volume_texture->setFilteringModes(RT_FILTER_LINEAR, RT_FILTER_LINEAR, RT_FILTER_LINEAR);
 		volume_texture->setWrapMode(0, RT_WRAP_CLAMP_TO_BORDER);
 		volume_texture->setWrapMode(1, RT_WRAP_CLAMP_TO_BORDER);
 		volume_texture->setWrapMode(2, RT_WRAP_CLAMP_TO_BORDER);
-		context["volumeTextureId"]->setInt(volume_texture->getId());
-
 		
+		context["volumeTextureId" + std::to_string(tex_num)]->setInt(volume_texture->getId());
 
-		/*
-		// 2. random initial phase texture
-		// assume the size of the texture is 4 x num_rays_per_ele_hg
-		optix::uint2 num_rays_per_ele_hg = optix::make_uint2(1024, 1024);
-		optix::uint2 randPhaseTextureSize = 4 * num_rays_per_ele_hg;
-		float* randPhaseData = new float[randPhaseTextureSize.x * randPhaseTextureSize.y];
-		for (unsigned int i = 0; i < randPhaseTextureSize.x * randPhaseTextureSize.y; ++i) {
-			randPhaseData[i] = std::rand() * 2.f * MY_PI;
-		}
-		glGenTextures(1, &randInitPhase_textureId);
-		glBindTexture(GL_TEXTURE_2D, randInitPhase_textureId);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, randPhaseTextureSize.x, randPhaseTextureSize.y, 0, GL_RED, GL_FLOAT, (void*)randPhaseData);
-		glBindTexture(GL_TEXTURE_2D, 0);
-		delete[] randPhaseData;
-		// create optix 2D texture sampler
-		randInitPhase_texture = context->createTextureSamplerFromGLImage(randInitPhase_textureId, RT_TARGET_GL_TEXTURE_2D);
-		randInitPhase_texture->setFilteringModes(RT_FILTER_LINEAR, RT_FILTER_LINEAR, RT_FILTER_NONE);
-		randInitPhase_texture->setWrapMode(0, RT_WRAP_REPEAT);
-		randInitPhase_texture->setWrapMode(1, RT_WRAP_REPEAT);
-		context["initPhaseTextureId"]->setInt(randInitPhase_texture->getId());
-		*/
+		glGenTextures(1, &normal_textureId);
+		glBindTexture(GL_TEXTURE_3D, normal_textureId);
+		glTexImage3D(GL_TEXTURE_3D, 0, GL_COMPRESSED_RG, volume_size.x, volume_size.y, volume_size.z, 0, GL_RG, GL_SHORT, (void*)normals.data());
+		//glTexImage3D(GL_TEXTURE_3D, 0, GL_RG16F, volume_size.x, volume_size.y, volume_size.z, 0, GL_RG, GL_SHORT, (void*)normals.data());
+		glBindTexture(GL_TEXTURE_3D, 0);
+		// create optix 3D texture sampler
+		normal_texture = context->createTextureSamplerFromGLImage(normal_textureId, RT_TARGET_GL_TEXTURE_3D);
+		normal_texture->setFilteringModes(RT_FILTER_LINEAR, RT_FILTER_NEAREST, RT_FILTER_LINEAR);
+		normal_texture->setWrapMode(0, RT_WRAP_CLAMP_TO_BORDER);
+		normal_texture->setWrapMode(1, RT_WRAP_CLAMP_TO_BORDER);
+		normal_texture->setWrapMode(2, RT_WRAP_CLAMP_TO_BORDER);
+		context["normalTextureId" + std::to_string(tex_num)]->setInt(normal_texture->getId());
+		
 		// 3. create transfer function 1D texture
 		int transferFunctionSize = 2;
 		std::vector<float> transferFunction = std::vector<float>();
@@ -1108,7 +1088,9 @@ GLuint optixBufferToGLTexture(optix::Buffer& buffer) {
 	return gl_tex_id;
 }
 
-optix::float3 make_float3(glm::vec3 a) {
+optix::float2 make_float2(glm::vec2 a) {
+	return optix::make_float2(a.x, a.y);
+}optix::float3 make_float3(glm::vec3 a) {
 	return optix::make_float3(a.x, a.y, a.z);
 }optix::float4 make_float4(glm::vec4 a) {
 	return optix::make_float4(a.x, a.y, a.z, a.w);
@@ -1116,33 +1098,20 @@ optix::float3 make_float3(glm::vec3 a) {
 
 void updateCamera(Window& w, optix::Context& context, Camera& camera) {
 	glm::vec3 camera_u, camera_v, camera_w;
-
-	camera_w = -glm::normalize(camera.getDirection());
-	camera_v = glm::normalize(camera.getUp());
-	camera_u = glm::cross(camera_w, camera_v);
 	
-	camera_v = glm::cross(camera_w, camera_u);
+	glm::mat4 ModelToView = camera.getView();
+	camera_u = glm::column(ModelToView, 0);
+	camera_v = glm::column(ModelToView, 1);
+	camera_w = glm::column(ModelToView, 2);
 
-	camera_v = glm::normalize(camera_v);
-	camera_u = glm::normalize(camera_u);
+	camera_w =  (-w.width / 2.0f ) * camera_u + (-w.height / 2.0f) * camera_v + ((w.height / 2.0f) / tan(glm::radians(90.0f) * 0.5f) * camera_w);
 
 	context["eye"]->setFloat(make_float3(camera.getPosition()));
 	context["U"]->setFloat(make_float3(camera_u));
 	context["V"]->setFloat(make_float3(camera_v));
 	context["W"]->setFloat(make_float3(camera_w));
 
-	glm::mat4 mat = camera.getView();
-	float *camera_mat = (float*)glm::value_ptr(mat);
 
-	glm::vec4 m1, m2, m3, m4;
-	m1 = glm::vec4(camera_mat[0], camera_mat[4], camera_mat[8], camera_mat[12]);
-	m2 = glm::vec4(camera_mat[1], camera_mat[5], camera_mat[9], camera_mat[13]);
-	m3 = glm::vec4(camera_mat[2], camera_mat[6], camera_mat[10], camera_mat[14]);
-	m4 = glm::vec4(camera_mat[3], camera_mat[7], camera_mat[11], camera_mat[15]);
-	context["m1"]->setFloat(make_float4(m1));
-	context["m2"]->setFloat(make_float4(m2));
-	context["m3"]->setFloat(make_float4(m3));
-	context["m4"]->setFloat(make_float4(m4));
 
 	
 }
@@ -1165,11 +1134,7 @@ void updateCamera(Window&w, optix::Context&context, optix::float3 camera_eye, op
 		camera_lookat);
 	const optix::Matrix4x4 frame_inv = frame.inverse();
 	// Apply camera rotation twice to match old SDK behavior
-	//const optix::Matrix4x4 trans = frame * camera_rotate * camera_rotate * frame_inv;
 
-	//camera_eye = optix::make_float3(trans * make_float4(camera_eye, 1.0f));
-	//camera_lookat = optix::make_float3(trans * make_float4(camera_lookat, 1.0f));
-	//camera_up = optix::make_float3(trans * make_float4(camera_up, 0.0f));
 
 	sutil::calculateCameraVariables(
 		camera_eye, camera_lookat, camera_up, vfov, aspect_ratio,
@@ -1184,8 +1149,50 @@ void updateCamera(Window&w, optix::Context&context, optix::float3 camera_eye, op
 	context["W"]->setFloat(camera_w);
 }
 
+void printMemUsage() {
+	size_t free_byte;
+
+	size_t total_byte;
+	
+	optix::cudaError_t cuda_status = optix::cudaMemGetInfo(&free_byte, &total_byte);
+
+	if (optix::cudaSuccess != cuda_status) {
+
+		printf("Error: cudaMemGetInfo fails, %s \n", optix::cudaGetErrorString(cuda_status));
+
+		exit(1);
+
+	}
+
+
+
+	double free_db = (double)free_byte;
+
+	double total_db = (double)total_byte;
+
+	double used_db = total_db - free_db;
+
+	printf("GPU memory usage: used = %f, free = %f MB, total = %f MB\n",
+
+		used_db / 1024.0 / 1024.0, free_db / 1024.0 / 1024.0, total_db / 1024.0 / 1024.0);
+}
+
 
 int main() {
+	clock_t start = clock();
+	std::vector<short> normal_x, normal_y, normal2_x, normal2_y;
+	std::vector<unsigned char> use_intensities, use_intensities2;
+	WifiData wifi;
+	int dialation = 1;
+	int num_smooths = 1;
+	//std::string filename = "sphere_scaled512";
+	std::string filename = "umd-secure-biharmonic";
+	wifi.loadBinary((filename + ".raw").c_str(), use_intensities, normal_x, normal_y);
+	WifiData wifi2;
+	//wifi2.loadBinary("sphere_scaled512.raw", use_intensities2, normal2_x, normal2_y);
+	std::cout << "Loading Data: " << (start - clock()) / CLOCKS_PER_SEC << " seconds"<< std::endl;
+	start = clock();
+
 	std::mt19937::result_type seed = time(0);
 	auto generator = std::bind(std::uniform_real_distribution<float>(-1, 1),
 		std::mt19937(seed));  // mt19937 is a standard mersenne_twister_engin
@@ -1209,12 +1216,8 @@ int main() {
 
 	w.SetFramebuferSizeCallback();
 	glfwSwapInterval(0);
-	//Shape cube = Shape(Shape::PREMADE::CUBE);
-	
-
-	//Mesh mesh = Mesh(&cube);
-
-
+	std::cout << "GLFW INIT " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
+	start = clock();
 	ShaderProgram sp = ShaderProgram({ShaderProgram::Shaders::FRAGMENT, ShaderProgram::Shaders::VERTEX});
 	ShaderProgram campus_map_sp = ShaderProgram({ShaderProgram::Shaders::NO_LIGHT_FRAG, ShaderProgram::Shaders::NO_LIGHT_VERT});
 	ShaderProgram screen_shader = ShaderProgram({ ShaderProgram::Shaders::SCREEN_FRAG, ShaderProgram::Shaders::SCREEN_VERT });
@@ -1233,7 +1236,7 @@ int main() {
 	skybox_files.emplace_back("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/Content/Textures/Skyboxes/miramar_dn.png");
 
 
-	Texture2D texture = Texture2D("Content\\Textures\\campusMapSat.png");
+	Texture2D texture = Texture2D("Content\\Textures\\CampusMap.png");
 	Texture2D skybox_tex = Texture2D(skybox_files);
 	//texture.setTexParameterWrap(GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT);
 	Model model;
@@ -1247,7 +1250,7 @@ int main() {
 	campusMap.getMeshes().at(0)->setTexture(texture, 0);
 	Model RayTraced = Model("Content\\Models\\quad\\quad_centered.obj");
 	RayTraced.setModel();
-	Model Tree = Model("Content\\Models\\tree.FBX");
+	Model Tree = Model("Content\\Models\\tree_scaled.FBX");
 	Tree.setModel();
 	glm::mat4 transformation = glm::scale(glm::mat4(1), scale * glm::vec3(-1, 1, -1));// glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
 	
@@ -1320,12 +1323,27 @@ int main() {
 	}
 
 	Tree.getMeshes().at(0)->SetInstanceTransforms(treeTransforms);
-
+	std::cout << "Model Loading " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
+	start = clock();
+	/*
 	WifiData wifi;
 
-	std::vector<float> use_intensities;
-	wifi.loadBinary("sphere_scaled.raw", use_intensities);
-	//wifi.loadBinary("interp.raw", use_intensities);
+	std::vector<short> normal_x, normal_y, normal_z;
+	std::vector<unsigned char> use_intensities;
+	wifi.loadBinary("sphere_scaled512.raw", use_intensities, normal_x, normal_y, normal_z);
+	*/
+
+	std::vector<short> normals, normals2;
+	normals.resize(2 * use_intensities.size());
+	normals2.resize(2 * use_intensities2.size());
+	for (unsigned long i = 0; i < use_intensities.size(); i++) {
+		normals[i * 2] = normal_x.at(i);
+		normals[i * 2 + 1] = normal_y.at(i);
+	}
+	for (unsigned long i = 0; i < use_intensities2.size(); i++) {
+		//normals2[i * 2] = normal2_x.at(i);
+		//normals2[i * 2 + 1] = normal2_y.at(i);
+	}
 	time_t timer = time(NULL);
 	struct tm local_time;
 	localtime_s(&local_time, &timer);
@@ -1359,7 +1377,7 @@ int main() {
 
 		int clockRate = 0;
 		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_CLOCK_RATE, sizeof(clockRate), &clockRate));
-		std::cout << "  Clock Rate: " << clockRate << " kHz" << std::endl;
+		std::cout << "  Clock Rate: " << clockRate << " Hz" << std::endl;
 
 		int maxThreadsPerBlock = 0;
 		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK, sizeof(maxThreadsPerBlock), &maxThreadsPerBlock));
@@ -1411,14 +1429,16 @@ int main() {
 	catch (optix::Exception e) {
 		std::cerr << e.getErrorString() << std::endl;
 	}
-	createOptixTextures(context, glm::vec3(wifi.numLatCells, wifi.numLonCells, wifi.numSlices), use_intensities);
+	printMemUsage();
+	createOptixTextures(context, glm::vec3(wifi.numLatCells, wifi.numLonCells, wifi.numSlices), use_intensities, normals);
+	//createOptixTextures(context, glm::vec3(wifi2.numLatCells, wifi2.numLonCells, wifi2.numSlices), use_intensities2, normals2, 2);
 	//createOptixTextures(context, glm::vec3(wifi.numLatCells, wifi.numLonCells, wifi.numSlices), use_intensities);
-
+	printMemUsage();
 	float ambientStrength = .1;
-	optix::float3 lightPos = optix::make_float3(0.5, 0.5, 0.5);
+	glm::vec3 lightDir = normalize(glm::vec3(0.5, 0.5, 0.5));
 	float specularStrength = .4;
 	float diffuseStrength = .5;
-	float shininess = 32;
+	float shininess = 256;
 
 	context["ambientStrength"]->setFloat(ambientStrength);
 
@@ -1426,11 +1446,16 @@ int main() {
 	context["diffuseStrength"]->setFloat(diffuseStrength);
 	context["shininess"]->setFloat(shininess);
 	//setup camera
-	Camera camera = Camera(glm::vec3(50, 50, 50), glm::vec3(50, 49, 0), 90.0f, w.width / w.height);
+	Camera camera = Camera(glm::vec3(25, 25, 50), glm::vec3(25, 24.999, 0), 90.0f, w.width / w.height);
+	//Camera camera = Camera(glm::vec3(61.5, 41.5, .5), glm::vec3(50, 49, 0), 90.0f, w.width / w.height);
 	w.SetCamera(&camera);
 
-	context["lightPos"]->setFloat(optix::make_float3(25, 25, 25));
-
+	context["lightDir"]->setFloat(make_float3(lightDir));
+	optix::float2 lightDirP = optix::make_float2(acos(lightDir.z), atan2(lightDir.y, lightDir.x));
+	context["lightDirP"]->setFloat(lightDirP);
+	glm::vec2 sincosLightTheta = glm::vec2(sin(lightDirP.y), cos(lightDirP.y));
+	context["sincosLightTheta"]->setFloat(make_float2(sincosLightTheta));
+	
 
 	//sutil::displayBufferPPM("out.ppm", context["output_buffer"]->getBuffer());
 
@@ -1447,7 +1472,7 @@ int main() {
 
 	glm::mat4 projection;
 	//w.scale = glm::vec3(1, .03, 1);
-	w.scale = glm::vec3(.00128,.00201,.002);
+	w.scale = glm::vec3(0, 0, 0);
 	w.translate = glm::vec3(0,0,0);
 	//w.translate = glm::vec3(0, -.1f, 0);
 
@@ -1455,8 +1480,8 @@ int main() {
 
 	Lights lights = Lights();
 	float toNorm = 1 / 255.0;
-	lights.addPointLight(50.0f * glm::vec3(2, 1.5, 0), .1, .3, .003, toNorm * glm::vec3(255, 195, 12), toNorm * glm::vec3(255, 195, 12), toNorm * glm::vec3(255, 195, 12));
-	lights.addPointLight(0.0f * glm::vec3(-2, 1.5, 0), .1, .2, .003, toNorm * glm::vec3(121, 102, 162), toNorm * glm::vec3(121, 102, 162), toNorm * glm::vec3(121, 102, 162));
+	lights.addPointLight(50.0f * glm::vec3(1, 1.5, 0), .1, .3, .003, toNorm * glm::vec3(255, 195, 12), toNorm * glm::vec3(255, 195, 12), toNorm * glm::vec3(255, 195, 12));
+	lights.addPointLight(50.0f * glm::vec3(0, 1.5, 0), .1, .2, .003, toNorm * glm::vec3(121, 102, 162), toNorm * glm::vec3(121, 102, 162), toNorm * glm::vec3(121, 102, 162));
 	//projection = glm::perspective(glm::radians(45.0f), 800/600.0f, 0.1f, 1000.0f);
 	glm::mat4 light_transform = glm::translate(glm::mat4(1.0f), glm::vec3(3, 3, 3));
 
@@ -1502,10 +1527,14 @@ int main() {
 
 	int fps = 0;
 	uint64_t fps_counter = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-	uint64_t start = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+	//uint64_t start = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 	unsigned long int num_frames = 0;
+	std::cout << "Setup OptiX " << (double)(clock() - start) / CLOCKS_PER_SEC << " seconds" << std::endl;
+	start = clock();
+	
 	while (!glfwWindowShouldClose(w.getWindow())) //main render loop
 	{
+		clock_t per_frame = clock();
 		glEnable(GL_DEPTH_TEST);
 		if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - fps_counter < 1000) {
 			fps++;
@@ -1526,7 +1555,7 @@ int main() {
 					animated = false;
 					distance = 0;
 					i = 0;
-					uint64_t start = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+					//uint64_t start = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
 					return 0;
 				}
@@ -1545,21 +1574,22 @@ int main() {
 
 		}
 		
-
+		std::cout << "Calculate FPS and Update Animation: " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
+		start = clock();
 
 		//texture.Bind();
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		//render(model, &sp);
 		//render(light, &light_sp);
 
-		glm::mat4 transformation = glm::translate(glm::mat4(1), glm::vec3(80.8, 31.9, 1) + w.translate);
-		transformation = glm::scale(transformation, scale * .01f * glm::vec3(1.3, 1.6, 2.1));// glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
+		glm::mat4 transformation = glm::translate(glm::mat4(1), glm::vec3(75, 40.7, .9));
+		transformation = glm::scale(transformation,   glm::vec3(0.00996, 0.012782, 0.0155));// glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
 		//transformation = glm::rotate(transformation, glm::radians(180.0f), glm::vec3(0, 1, 0));
 
 
 
 
-		campusTransform = glm::translate(glm::mat4(1), glm::vec3(0, 0, 0) + w.translate);
+		campusTransform = glm::translate(glm::mat4(1), glm::vec3(0, 0, 0));
 		campusTransform = glm::scale(campusTransform, scale * glm::vec3(100, 100, 100));
 
 
@@ -1569,6 +1599,8 @@ int main() {
 		glDepthMask(GL_FALSE);
 		render(skybox, &skybox_shader);
 		glDepthMask(GL_TRUE);
+		std::cout << "Render Skybox " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
+		start = clock();
 		sp.SetUniform4fv("model", transformation);
 		sp.SetUniform3fv("normalMatrix", glm::mat3(glm::transpose(glm::inverse(transformation * camera.getView()))));
 		sp.SetUniform4fv("camera", camera.getView());
@@ -1576,16 +1608,21 @@ int main() {
 		sp.SetLights(lights);
 		sp.SetUniform3f("viewPos", camera.getPosition());
 		render(model, &sp);
+		std::cout << "Render Campus Model " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
+		start = clock();
 		campus_map_sp.SetUniform4fv("model", campusTransform);
 		campus_map_sp.SetUniform4fv("camera", camera.getView());
 		campus_map_sp.SetUniform4fv("projection", camera.getProjection());
 		render(campusMap, &campus_map_sp);
-
+		std::cout << "Render Campus Map " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
+		start = clock();
 		instance_shader.Use();
 		instance_shader.SetUniform4fv("projection", camera.getProjection());
 		instance_shader.SetUniform4fv("view", camera.getView());
-		instance_shader.SetUniform4fv("transform", glm::scale(glm::translate(glm::mat4(1), glm::vec3(78.899, 61, 0) + w.translate), w.scale));
+		instance_shader.SetUniform4fv("transform", glm::scale(glm::translate(glm::mat4(1), glm::vec3(72.099, 63.9, 0) + w.translate), glm::vec3(.00095, .00159, .00129) + w.scale));
 		render(Tree, &instance_shader);
+		std::cout << "Render Trees " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
+		start = clock();
 
 		GLfloat* depths = new GLfloat[w.width * w.height];
 
@@ -1618,31 +1655,12 @@ int main() {
 				std::cout << "shit" << std::endl;
 			}
 		}
-		
-		
-		glBindTexture(GL_TEXTURE_3D, random_texture_id);
-		
-		
-		
-		// create optix 2D texture sampler
-		
-		float* randData = new float[rand_dim.x * rand_dim.y * rand_dim.z]; //100 is a magic number here and will fail. Need to figure out something better
-		for (unsigned int j = 0; j < rand_dim.x*rand_dim.y * rand_dim.z; ++j) {
-			randData[j] = generator();	//[0,1]
-		}
-		
 
 		
 		glBindTexture(GL_TEXTURE_2D, depth_mask_id);
 		if (num_frames == 0) {
 			
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, resolution.x, resolution.y, 0, GL_RED, GL_FLOAT, (void*)depths);
-			glTexImage3D(GL_TEXTURE_3D, 0, GL_R32F, rand_dim.x, rand_dim.y, rand_dim.z, 0, GL_RED, GL_FLOAT, (void*)randData);
-			random_texture = context->createTextureSamplerFromGLImage(random_texture_id, RT_TARGET_GL_TEXTURE_3D);
-			random_texture->setFilteringModes(RT_FILTER_NEAREST, RT_FILTER_NEAREST, RT_FILTER_NONE);
-			random_texture->setWrapMode(0, RT_WRAP_REPEAT);
-			random_texture->setWrapMode(1, RT_WRAP_REPEAT);
-			random_texture->setWrapMode(2, RT_WRAP_REPEAT);
 			depth_mask = context->createTextureSamplerFromGLImage(depth_mask_id, RT_TARGET_GL_TEXTURE_2D);
 			depth_mask->setFilteringModes(RT_FILTER_LINEAR, RT_FILTER_LINEAR, RT_FILTER_NONE);
 			depth_mask->setWrapMode(0, RT_WRAP_CLAMP_TO_EDGE);
@@ -1650,16 +1668,16 @@ int main() {
 			context["depth_mask_id"]->setInt(depth_mask->getId());
 
 			glBindTexture(GL_TEXTURE_3D, 0);
-			context["random_texture"]->setInt(random_texture->getId());
+			
 			
 		}
 		else {
 			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, resolution.x, resolution.y, GL_RED, GL_FLOAT, (void*)depths);
-			glTexSubImage3D(GL_TEXTURE_3D, 0, 0, 0, 0, rand_dim.x, rand_dim.y, rand_dim.z, GL_RED, GL_FLOAT, (void*)randData);
 		}
 		glBindTexture(GL_TEXTURE_2D, 0);
 		
-		delete[] randData;
+		std::cout << "Update Depth Buffer: " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
+		start = clock();
 
 		
 
@@ -1670,6 +1688,19 @@ int main() {
 		optix::float3 camera_up = optix::make_float3(camera.getUp().x, camera.getUp().y, camera.getUp().z);
 		updateCamera(w, context, camera_eye, camera_lookat, camera_up, optix::Matrix4x4().identity());
 		//updateCamera(w, context, camera);
+		//context["lightPos"]->setFloat(make_float3(camera.getPosition()));
+		glm::vec3 CameraDir = (-normalize(camera.getDirection()));
+		context["CameraDir"]->setFloat(make_float3(CameraDir));
+		glm::vec2 CameraDirP = glm::vec2(acos(CameraDir.z), atan2(CameraDir.y, CameraDir.x));
+		context["CameraDirP"]->setFloat(make_float2(CameraDirP));
+		glm::vec2 sincosCameraDir = glm::vec2(sin(CameraDir.y), cos(CameraDir.y));
+		context["sincosCameraDir"]->setFloat(make_float2(sincosCameraDir));
+		glm::vec3 halfwayVec = normalize(CameraDir + lightDir);
+		glm::vec2 halfwayVecP = glm::vec2(acos(halfwayVec.z), atan2(halfwayVec.y, halfwayVec.x));
+		context["halfwayVecP"]->setFloat(make_float2(halfwayVecP));
+		context["sincosHalfwayTheta"]->setFloat(optix::make_float2(sin(halfwayVecP.y), cos(halfwayVecP.y)));
+		std::cout << "Update OptiX " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
+		start = clock();
 		try {
 			if (update) {
 				context->launch(0, resolution.x, resolution.y);
@@ -1679,6 +1710,8 @@ int main() {
 		catch (optix::Exception e) {
 			std::cout << e.getErrorString() << std::endl;
 		}
+		std::cout << "Optix Render " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
+		start = clock();
 		hdr_texture.SetTextureID(optixBufferToGLTexture(amplitude_buffer));
 		RayTraced.getMeshes().at(0)->setTexture(hdr_texture, 0);
 		delete[] depths;
@@ -1686,7 +1719,9 @@ int main() {
 
 		glDisable(GL_DEPTH_TEST);
 		screen_shader.Use();
-		render(RayTraced, &screen_shader);
+		//render(RayTraced, &screen_shader);
+		std::cout << "Render Volume to Screen " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
+		start = clock();
 		filename = std::string(foldername + "/");
 		filename.append(std::to_string(num_frames++));
 		filename.append(".bmp");
@@ -1711,6 +1746,8 @@ int main() {
 		
 		//render(vol, &sp);
 		w.ProcessFrame(&camera);
+		std::cout << "Full frame " << (double)((clock() - per_frame)) / CLOCKS_PER_SEC << " seconds" << std::endl;
+		start = clock();
 	}
 	glfwTerminate(); //Shut it down!
 

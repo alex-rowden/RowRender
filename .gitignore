@@ -339,3 +339,11 @@ ASALocalRun/
 # BeatPulse healthcheck temp database
 healthchecksdb
 /RowdenRender/Output
+*.raw
+/RowdenRender/normals_sphere_scaled512.raw1_1
+/RowdenRender/normals_2_5
+/RowdenRender/normals_1_8
+/RowdenRender/normals_1_5
+/RowdenRender/normals_1_100
+/RowdenRender/sphere_smooth_512.uvf
+/RowdenRender/sphere_scaled512.uvf

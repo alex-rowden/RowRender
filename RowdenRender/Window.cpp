@@ -134,7 +134,8 @@ void Window::standardInputProcessor(GLFWwindow* window) { //Go to processInputFu
 		j += 1;
 		j %= 2;
 	}if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-		signal = true;
+		std::cout << camera->getPosition().x << ", " << camera->getPosition().y << "," << camera->getPosition().z << std::endl;
+		//signal = true;
 	}
 	else {
 		pressed = false;

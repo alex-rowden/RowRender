@@ -67,6 +67,7 @@ RT_PROGRAM void box_intersect(int primIdx) {
 		bool check_second = true;
 		// ray intersects volume, enters at t_min, exits at t_max
 		if (rtPotentialIntersection(t_min)) {
+			check_second = false;
 			//rtPrintf("%f, %f\n", t_min, t_max);
 			front_hit_point = ray.origin + (t_min + scene_epsilon) * ray.direction;
 			back_hit_point = ray.origin + (t_max - scene_epsilon) * ray.direction;
@@ -74,7 +75,7 @@ RT_PROGRAM void box_intersect(int primIdx) {
 		}
 		if (check_second) {
 			if (rtPotentialIntersection(t_max)) {
-				front_hit_point = ray.origin + (scene_epsilon)* ray.direction;
+				front_hit_point = ray.origin + ( scene_epsilon)* ray.direction;
 				back_hit_point = ray.origin + (t_max - scene_epsilon) * ray.direction;
 				rtReportIntersection(0);
 			}
