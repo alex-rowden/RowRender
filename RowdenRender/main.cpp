@@ -782,8 +782,8 @@ void LoadCampusModel(Model *completeCampus) {
 	}
 	*/
 	
-completeCampus->addModel(new Model("Content/Models/Buildings/flat_campus.fbx"));
-completeCampus->setModel();
+	completeCampus->addModel(new Model("Content/Models/Buildings/flat_campus.fbx"));
+	completeCampus->setModel();
 }
 
 int get3DIndex(int i, int j, int k, int x_dim, int y_dim, int num_cells) {
@@ -817,159 +817,6 @@ glm::vec3 vertexInterp(float isolevel, glm::vec3 p0, glm::vec3 p1, float f0, flo
 	}
 	float t = (isolevel - f0) / (f1 - f0);
 	return glm::lerp(p0, p1, t);
-}
-
-void makeVolumetricShapeGPU(Shape* shape, std::vector<float> intensities, WifiData wifiData, int num_cells, float isoVal) {
-	int numLonCells = wifiData.numLonCells;
-	int numLatCells = wifiData.numLatCells;
-	int index = 0;
-	int threads = 1024;
-	int h = 1024 / 4;
-	int w = 1024 / 4;
-
-	for (int h = 0; h < num_cells; h++) {
-		for (int i = 0; i < numLonCells; i++) {
-			for (int j = 0; j < numLatCells; j++) {
-				float field[8];
-
-				field[0] = getIntensity(intensities, numLonCells * numLatCells * num_cells, get3DIndex(i, j, h, numLatCells, numLonCells, num_cells));
-				field[1] = getIntensity(intensities, numLonCells * numLatCells * num_cells, get3DIndex(i + 1, j, h, numLatCells, numLonCells, num_cells));
-				field[2] = getIntensity(intensities, numLonCells * numLatCells * num_cells, get3DIndex(i + 1, j + 1, h, numLatCells, numLonCells, num_cells));
-				field[3] = getIntensity(intensities, numLonCells * numLatCells * num_cells, get3DIndex(i, j + 1, h, numLatCells, numLonCells, num_cells));
-				field[4] = getIntensity(intensities, numLonCells * numLatCells * num_cells, get3DIndex(i, j, h + 1, numLatCells, numLonCells, num_cells));
-				field[5] = getIntensity(intensities, numLonCells * numLatCells * num_cells, get3DIndex(i + 1, j, h + 1, numLatCells, numLonCells, num_cells));
-				field[6] = getIntensity(intensities, numLonCells * numLatCells * num_cells, get3DIndex(i + 1, j + 1, h + 1, numLatCells, numLonCells, num_cells));
-				field[7] = getIntensity(intensities, numLonCells * numLatCells * num_cells, get3DIndex(i, j + 1, h + 1, numLatCells, numLonCells, num_cells));
-
-
-				unsigned int cube_index = 0;
-				for (int bit = 0; bit < 8; bit++) {
-					cube_index += unsigned int(field[bit] < isoVal) << bit;
-				}
-				glm::vec3 v[8];
-				v[0] = glm::vec3(i, j, h);
-				v[1] = glm::vec3(i + 1, j, h);
-				v[2] = glm::vec3(i + 1, j + 1, h);
-				v[3] = glm::vec3(i, j + 1, h);
-				v[4] = glm::vec3(i, j, h + 1);
-				v[5] = glm::vec3(i + 1, j, h + 1);
-				v[6] = glm::vec3(i + 1, j + 1, h + 1);
-				v[7] = glm::vec3(i, j + 1, h + 1);
-
-				glm::vec3 vertlist[12];
-				vertlist[0] = vertexInterp(isoVal, v[0], v[1], field[0], field[1]);
-				vertlist[1] = vertexInterp(isoVal, v[1], v[2], field[1], field[2]);
-				vertlist[2] = vertexInterp(isoVal, v[2], v[3], field[2], field[3]);
-				vertlist[3] = vertexInterp(isoVal, v[3], v[0], field[3], field[0]);
-
-				vertlist[4] = vertexInterp(isoVal, v[4], v[5], field[4], field[5]);
-				vertlist[5] = vertexInterp(isoVal, v[5], v[6], field[5], field[6]);
-				vertlist[6] = vertexInterp(isoVal, v[6], v[7], field[6], field[7]);
-				vertlist[7] = vertexInterp(isoVal, v[7], v[4], field[7], field[4]);
-
-				vertlist[8] = vertexInterp(isoVal, v[0], v[4], field[0], field[4]);
-				vertlist[9] = vertexInterp(isoVal, v[1], v[5], field[1], field[5]);
-				vertlist[10] = vertexInterp(isoVal, v[2], v[6], field[2], field[6]);
-				vertlist[11] = vertexInterp(isoVal, v[3], v[7], field[3], field[7]);
-
-				int num_verts = wifiData.numVertsTable[cube_index];
-				for (int i = 0; i < num_verts; i += 3)
-				{
-					glm::vec3 v[3];
-					v[0] = vertlist[wifiData.triTable[cube_index][i]];
-					v[1] = vertlist[wifiData.triTable[cube_index][i + 1]];
-					v[2] = vertlist[wifiData.triTable[cube_index][i + 2]];
-					shape->addVertex(v[0]);
-					shape->addVertex(v[1]);
-					shape->addVertex(v[2]);
-					shape->addTexCoord(glm::vec2(0, 0));
-					shape->addTexCoord(glm::vec2(1, 0));
-					shape->addTexCoord(glm::vec2(0, 1));
-					shape->addNormal(calcNormal(v[0], v[1], v[2]));
-					shape->addNormal(calcNormal(v[0], v[1], v[2]));
-					shape->addNormal(calcNormal(v[0], v[1], v[2]));
-					shape->addIndex(index, index + 1, index + 2);
-
-					index += 3;
-				}
-			}
-		}
-	}
-}
-
-void makeVolumetricShape(Shape* shape, std::vector<float> intensities, WifiData wifiData, int num_cells, float isoVal) {
-	int numLonCells = wifiData.numLonCells;
-	int numLatCells = wifiData.numLatCells;
-	int index = 0;
-	int threads = 1024;
-	int h = 1024 / 4;
-	int w = 1024 / 4;
-
-	for (int h = 0; h < num_cells; h++) {
-		for (int i = 0; i < numLonCells; i++) {
-			for (int j = 0; j < numLatCells; j++) {
-				float field[8];
-
-				field[0] = getIntensity(intensities, numLonCells * numLatCells * num_cells, get3DIndex(i, j, h, numLatCells, numLonCells, num_cells));
-				field[1] = getIntensity(intensities, numLonCells * numLatCells * num_cells, get3DIndex(i + 1, j, h, numLatCells, numLonCells, num_cells));
-				field[2] = getIntensity(intensities, numLonCells * numLatCells * num_cells, get3DIndex(i + 1, j + 1, h, numLatCells, numLonCells, num_cells));
-				field[3] = getIntensity(intensities, numLonCells * numLatCells * num_cells, get3DIndex(i, j + 1, h, numLatCells, numLonCells, num_cells));
-				field[4] = getIntensity(intensities, numLonCells * numLatCells * num_cells, get3DIndex(i, j, h + 1, numLatCells, numLonCells, num_cells));
-				field[5] = getIntensity(intensities, numLonCells * numLatCells * num_cells, get3DIndex(i + 1, j, h + 1, numLatCells, numLonCells, num_cells));
-				field[6] = getIntensity(intensities, numLonCells * numLatCells * num_cells, get3DIndex(i + 1, j + 1, h + 1, numLatCells, numLonCells, num_cells));
-				field[7] = getIntensity(intensities, numLonCells * numLatCells * num_cells, get3DIndex(i, j + 1, h + 1, numLatCells, numLonCells, num_cells));
-
-
-				unsigned int cube_index = 0;
-				for (int bit = 0; bit < 8; bit++) {
-					cube_index += unsigned int(field[bit] < isoVal) << bit;
-				}
-				glm::vec3 v[8];
-				v[0] = glm::vec3(i, j, h);
-				v[1] = glm::vec3(i + 1, j, h);
-				v[2] = glm::vec3(i + 1, j + 1, h);
-				v[3] = glm::vec3(i, j + 1, h);
-				v[4] = glm::vec3(i, j, h + 1);
-				v[5] = glm::vec3(i + 1, j, h + 1);
-				v[6] = glm::vec3(i + 1, j + 1, h + 1);
-				v[7] = glm::vec3(i, j + 1, h + 1);
-
-				glm::vec3 vertlist[12];
-				vertlist[0] = vertexInterp(isoVal, v[0], v[1], field[0], field[1]);
-				vertlist[1] = vertexInterp(isoVal, v[1], v[2], field[1], field[2]);
-				vertlist[2] = vertexInterp(isoVal, v[2], v[3], field[2], field[3]);
-				vertlist[3] = vertexInterp(isoVal, v[3], v[0], field[3], field[0]);
-
-				vertlist[4] = vertexInterp(isoVal, v[4], v[5], field[4], field[5]);
-				vertlist[5] = vertexInterp(isoVal, v[5], v[6], field[5], field[6]);
-				vertlist[6] = vertexInterp(isoVal, v[6], v[7], field[6], field[7]);
-				vertlist[7] = vertexInterp(isoVal, v[7], v[4], field[7], field[4]);
-
-				vertlist[8] = vertexInterp(isoVal, v[0], v[4], field[0], field[4]);
-				vertlist[9] = vertexInterp(isoVal, v[1], v[5], field[1], field[5]);
-				vertlist[10] = vertexInterp(isoVal, v[2], v[6], field[2], field[6]);
-				vertlist[11] = vertexInterp(isoVal, v[3], v[7], field[3], field[7]);
-
-				int num_verts = wifiData.numVertsTable[cube_index];
-				for (int i = 0; i < num_verts; i+=3)
-				{
-					glm::vec3 v[3];
-					v[0] = vertlist[wifiData.triTable[cube_index][i]];
-					v[1] = vertlist[wifiData.triTable[cube_index][i + 1]];
-					v[2] = vertlist[wifiData.triTable[cube_index][i + 2]];
-					shape->addVertex(v[0]);
-					shape->addVertex(v[1]);
-					shape->addVertex(v[2]);
-					shape->addNormal(calcNormal(v[0], v[1], v[2]));
-					shape->addNormal(calcNormal(v[0], v[1], v[2]));
-					shape->addNormal(calcNormal(v[0], v[1], v[2]));
-					shape->addIndex(index, index + 1, index + 2);
-
-					index += 3;
-				}
-			}
-		}
-	}
 }
 
 GLenum glFormatFromBufferFormat(bufferPixelFormat pixel_format, RTformat buffer_format)
@@ -1111,10 +958,6 @@ void updateCamera(Window& w, optix::Context& context, Camera& camera) {
 	context["U"]->setFloat(make_float3(camera_u));
 	context["V"]->setFloat(make_float3(camera_v));
 	context["W"]->setFloat(make_float3(camera_w));
-
-
-
-	
 }
 
 void updateCamera(Window&w, optix::Context&context, optix::float3 camera_eye, optix::float3 camera_lookat, optix::float3 camera_up, optix::Matrix4x4 camera_rotate)
@@ -1178,6 +1021,55 @@ void printMemUsage() {
 		used_db / 1024.0 / 1024.0, free_db / 1024.0 / 1024.0, total_db / 1024.0 / 1024.0);
 }
 
+void cudaPrint() {
+	unsigned int numberOfDevices = 0;
+	RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetDeviceCount(&numberOfDevices));
+	std::cout << "Number of Devices = " << numberOfDevices << std::endl << std::endl;
+
+	for (unsigned int i = 0; i < numberOfDevices; ++i)
+	{
+		char name[256];
+		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_NAME, sizeof(name), name));
+		std::cout << "Device " << i << ": " << name << std::endl;
+
+		int computeCapability[2] = { 0, 0 };
+		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY, sizeof(computeCapability), &computeCapability));
+		std::cout << "  Compute Support: " << computeCapability[0] << "." << computeCapability[1] << std::endl;
+
+		RTsize totalMemory = 0;
+		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_TOTAL_MEMORY, sizeof(totalMemory), &totalMemory));
+		std::cout << "  Total Memory: " << (unsigned long long) totalMemory << std::endl;
+
+		int clockRate = 0;
+		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_CLOCK_RATE, sizeof(clockRate), &clockRate));
+		std::cout << "  Clock Rate: " << clockRate << " Hz" << std::endl;
+
+		int maxThreadsPerBlock = 0;
+		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK, sizeof(maxThreadsPerBlock), &maxThreadsPerBlock));
+		std::cout << "  Max. Threads per Block: " << maxThreadsPerBlock << std::endl;
+
+		int smCount = 0;
+		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT, sizeof(smCount), &smCount));
+		std::cout << "  Streaming Multiprocessor Count: " << smCount << std::endl;
+
+		int executionTimeoutEnabled = 0;
+		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_EXECUTION_TIMEOUT_ENABLED, sizeof(executionTimeoutEnabled), &executionTimeoutEnabled));
+		std::cout << "  Execution Timeout Enabled: " << executionTimeoutEnabled << std::endl;
+
+		int maxHardwareTextureCount = 0;
+		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_MAX_HARDWARE_TEXTURE_COUNT, sizeof(maxHardwareTextureCount), &maxHardwareTextureCount));
+		std::cout << "  Max. Hardware Texture Count: " << maxHardwareTextureCount << std::endl;
+
+		int tccDriver = 0;
+		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_TCC_DRIVER, sizeof(tccDriver), &tccDriver));
+		std::cout << "  TCC Driver enabled: " << tccDriver << std::endl;
+
+		int cudaDeviceOrdinal = 0;
+		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_CUDA_DEVICE_ORDINAL, sizeof(cudaDeviceOrdinal), &cudaDeviceOrdinal));
+		std::cout << "  CUDA Device Ordinal: " << cudaDeviceOrdinal << std::endl << std::endl;
+	}
+}
+
 
 int main() {
 	clock_t start = clock();
@@ -1186,8 +1078,8 @@ int main() {
 	WifiData wifi;
 	int dialation = 1;
 	int num_smooths = 1;
-	//std::string filename = "sphere_scaled512";
-	std::string filename = "umd-secure-biharmonic";
+	std::string filename = "sphere_scaled512";
+	//std::string filename = "umd-secure-biharmonic";
 	wifi.loadBinary((filename + ".raw").c_str(), use_intensities, normal_x, normal_y);
 	WifiData wifi2;
 	//wifi2.loadBinary("sphere_scaled512.raw", use_intensities2, normal2_x, normal2_y);
@@ -1260,7 +1152,7 @@ int main() {
 	glm::mat4 transformation = glm::scale(glm::mat4(1), scale * glm::vec3(-1, 1, -1));// glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
 	
 	struct TreeEntry {
-		double lat, lon, height, diameter;
+		double lat, lon;
 		int objID;
 	};
 
@@ -1294,11 +1186,11 @@ int main() {
 
 		std::string diameter_str;
 		getline(tree_file, diameter_str, ',');
-		curr_tree->diameter = atof(diameter_str.c_str());
+		//curr_tree->diameter = atof(diameter_str.c_str());
 
 		std::string height_str;
 		getline(tree_file, height_str, ',');
-		curr_tree->height = atof(height_str.c_str());
+		//curr_tree->height = atof(height_str.c_str());
 
 		getline(tree_file, skip, ','); //CRADAVG
 		getline(tree_file, skip, ','); //TRUNKHEIGHT
@@ -1340,9 +1232,9 @@ int main() {
 	wifi.loadBinary("sphere_scaled512.raw", use_intensities, normal_x, normal_y, normal_z);
 	*/
 
-	std::vector<short> normals, normals2;
+	std::vector<short> normals;//, normals2;
 	normals.resize(2 * use_intensities.size());
-	normals2.resize(2 * use_intensities2.size());
+	//normals2.resize(2 * use_intensities2.size());
 	for (unsigned long i = 0; i < use_intensities.size(); i++) {
 		normals[i * 2] = normal_x.at(i);
 		normals[i * 2 + 1] = normal_y.at(i);
@@ -1364,52 +1256,7 @@ int main() {
 	}
 	Shape myShape;
 	//makeVolumetricShapeGPU(&myShape, use_intensities, wifi, num_cells, .65f);
-	unsigned int numberOfDevices = 0;
-	RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetDeviceCount(&numberOfDevices));
-	std::cout << "Number of Devices = " << numberOfDevices << std::endl << std::endl;
-
-	for (unsigned int i = 0; i < numberOfDevices; ++i)
-	{
-		char name[256];
-		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_NAME, sizeof(name), name));
-		std::cout << "Device " << i << ": " << name << std::endl;
-
-		int computeCapability[2] = { 0, 0 };
-		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY, sizeof(computeCapability), &computeCapability));
-		std::cout << "  Compute Support: " << computeCapability[0] << "." << computeCapability[1] << std::endl;
-
-		RTsize totalMemory = 0;
-		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_TOTAL_MEMORY, sizeof(totalMemory), &totalMemory));
-		std::cout << "  Total Memory: " << (unsigned long long) totalMemory << std::endl;
-
-		int clockRate = 0;
-		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_CLOCK_RATE, sizeof(clockRate), &clockRate));
-		std::cout << "  Clock Rate: " << clockRate << " Hz" << std::endl;
-
-		int maxThreadsPerBlock = 0;
-		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK, sizeof(maxThreadsPerBlock), &maxThreadsPerBlock));
-		std::cout << "  Max. Threads per Block: " << maxThreadsPerBlock << std::endl;
-
-		int smCount = 0;
-		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT, sizeof(smCount), &smCount));
-		std::cout << "  Streaming Multiprocessor Count: " << smCount << std::endl;
-
-		int executionTimeoutEnabled = 0;
-		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_EXECUTION_TIMEOUT_ENABLED, sizeof(executionTimeoutEnabled), &executionTimeoutEnabled));
-		std::cout << "  Execution Timeout Enabled: " << executionTimeoutEnabled << std::endl;
-
-		int maxHardwareTextureCount = 0;
-		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_MAX_HARDWARE_TEXTURE_COUNT, sizeof(maxHardwareTextureCount), &maxHardwareTextureCount));
-		std::cout << "  Max. Hardware Texture Count: " << maxHardwareTextureCount << std::endl;
-
-		int tccDriver = 0;
-		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_TCC_DRIVER, sizeof(tccDriver), &tccDriver));
-		std::cout << "  TCC Driver enabled: " << tccDriver << std::endl;
-
-		int cudaDeviceOrdinal = 0;
-		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_CUDA_DEVICE_ORDINAL, sizeof(cudaDeviceOrdinal), &cudaDeviceOrdinal));
-		std::cout << "  CUDA Device Ordinal: " << cudaDeviceOrdinal << std::endl << std::endl;
-	}
+	cudaPrint();
 #if(false)
 		std::fstream out = std::fstream("wifi_data.raw", std::ios::binary | std::ios::out);
 
@@ -1448,10 +1295,10 @@ int main() {
 	float shininess = 256;
 
 	context["ambientStrength"]->setFloat(ambientStrength);
-
 	context["specularStrength"]->setFloat(specularStrength);
 	context["diffuseStrength"]->setFloat(diffuseStrength);
 	context["shininess"]->setFloat(shininess);
+
 	//setup camera
 	Camera camera = Camera(glm::vec3(25, 25, 50), glm::vec3(25, 24.999, 0), 90.0f, w.width / w.height);
 	//Camera camera = Camera(glm::vec3(61.5, 41.5, .5), glm::vec3(50, 49, 0), 90.0f, w.width / w.height);
@@ -1460,7 +1307,7 @@ int main() {
 	context["lightDir"]->setFloat(make_float3(lightDir));
 	optix::float2 lightDirP = optix::make_float2(acos(lightDir.z), atan2(lightDir.y, lightDir.x));
 	context["lightDirP"]->setFloat(lightDirP);
-	glm::vec2 sincosLightTheta = glm::vec2(sin(lightDirP.y), cos(lightDirP.y));
+	glm::vec2 sincosLightTheta = glm::vec2(sin(lightDirP.x), cos(lightDirP.x));
 	context["sincosLightTheta"]->setFloat(make_float2(sincosLightTheta));
 	
 
@@ -1594,9 +1441,6 @@ int main() {
 		transformation = glm::scale(transformation,   glm::vec3(0.00996, 0.012782, 0.0155));// glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
 		//transformation = glm::rotate(transformation, glm::radians(180.0f), glm::vec3(0, 1, 0));
 
-
-
-
 		campusTransform = glm::translate(glm::mat4(1), glm::vec3(0, 0, 0));
 		campusTransform = glm::scale(campusTransform, scale * glm::vec3(100, 100, 100));
 
@@ -1708,12 +1552,12 @@ int main() {
 		context["CameraDir"]->setFloat(make_float3(CameraDir));
 		glm::vec2 CameraDirP = glm::vec2(acos(CameraDir.z), atan2(CameraDir.y, CameraDir.x));
 		context["CameraDirP"]->setFloat(make_float2(CameraDirP));
-		glm::vec2 sincosCameraDir = glm::vec2(sin(CameraDir.y), cos(CameraDir.y));
+		glm::vec2 sincosCameraDir = glm::vec2(sin(CameraDir.x), cos(CameraDir.x));
 		context["sincosCameraDir"]->setFloat(make_float2(sincosCameraDir));
 		glm::vec3 halfwayVec = normalize(CameraDir + lightDir);
 		glm::vec2 halfwayVecP = glm::vec2(acos(halfwayVec.z), atan2(halfwayVec.y, halfwayVec.x));
 		context["halfwayVecP"]->setFloat(make_float2(halfwayVecP));
-		context["sincosHalfwayTheta"]->setFloat(optix::make_float2(sin(halfwayVecP.y), cos(halfwayVecP.y)));
+		context["sincosHalfwayTheta"]->setFloat(optix::make_float2(sin(halfwayVecP.x), cos(halfwayVecP.x)));
 		if (BENCHMARK) {
 			std::cout << "Update OptiX " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
