@@ -349,8 +349,8 @@ bool WifiData::loadBinary(const char* filename, std::vector<unsigned char>& inte
 			return false;
 		unsigned int dims[3];
 		file.read(reinterpret_cast<char*>(dims), 3 * 4 * sizeof(char)); //I know that uint is 4 bytes in matlab and I'm not sure about it here so this is how I am doing it
-		numLatCells = dims[1];//1
-		numLonCells = dims[0];//0
+		numLatCells = dims[0];//1
+		numLonCells = dims[1];//0
 		numSlices = dims[2];
 		unsigned long total_size = numLatCells * numLonCells * numSlices;
 		intensities.resize(total_size);

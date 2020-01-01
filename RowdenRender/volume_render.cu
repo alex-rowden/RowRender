@@ -119,8 +119,8 @@ RT_PROGRAM void closest_hit() {
 			case 0:
 				sample = optix::rtTex3D<float2>(normalTextureId1, vol_u, vol_v, vol_w);
 				volume_scalar = optix::rtTex3D<float>(volumeTextureId1, vol_u, vol_v, vol_w);
-				//color = make_float4(253/255.0f, 117/255.0f, 0/255.0f, 1.0f);
-				color = make_float4(0, 0, 1, 1.0f);
+				color = make_float4(253/255.0f, 117/255.0f, 0/255.0f, 1.0f);
+				//color = make_float4(0, 0, 1, 1.0f);
 				break;
 			case 1:
 				sample = optix::rtTex3D<float2>(normalTextureId2, vol_u, vol_v, vol_w);
@@ -128,10 +128,10 @@ RT_PROGRAM void closest_hit() {
 				color = make_float4(51 / 255.0f, 160 / 255.0f, 0 / 255.0f, .99f);
 				break;
 			}
-			//float top_val = .565;
-			float top_val = .215;
-			//float bottom_val = .555;
-			float bottom_val = .2;
+			float top_val = .565;
+			//float top_val = .215;
+			float bottom_val = .555;
+			//float bottom_val = .2;
 			float4 voxel_val_tf;// = optix::rtTex2D<float4>(transferFunction_texId, volume_scalar, volume_scalar);
 
 			if (volume_scalar < top_val && volume_scalar > bottom_val) {
@@ -189,8 +189,8 @@ RT_PROGRAM void closest_hit() {
 				float spec = pow(fmax(sin(theta) * sincosHalfwayTheta.x * cos(phi - sincosHalfwayTheta.x) + cos(theta) * sincosHalfwayTheta.y, 0), shininess);
 					
 				
-				color_self = make_float3(voxel_val_tf);
-				//color_self = (ambientStrength)*make_float3(voxel_val_tf) + diffuse * make_float3(voxel_val_tf) + specularStrength * spec * make_float3(1, 1, 1);
+				//color_self = make_float3(voxel_val_tf);
+				color_self = (ambientStrength)*make_float3(voxel_val_tf) + diffuse * make_float3(voxel_val_tf) + specularStrength * spec * make_float3(1, 1, 1);
 				//color_self = make_float3(fabs(normal.x), fabs(normal.y), fabs(normal.z));
 				
 				float bubble_coefficient =  1-(fabs(sin(theta) * sincosCameraDirTheta.x * cos(phi - sincosCameraDirTheta.x) + cos(theta) * sincosCameraDirTheta.y));
@@ -210,9 +210,9 @@ RT_PROGRAM void closest_hit() {
 
 					float norm = (((bubble_coefficient - bottom) / (top - bottom)));
 					bubble_coefficient = (norm * (max_oppac - min_oppac)) + min_oppac;
-					voxel_val_tf.w = 0.05f;
+					//voxel_val_tf.w = 0.05f;
 
-					//voxel_val_tf.w = 1.0f;
+					voxel_val_tf.w = 1.0f;
 				}
 				//bubble_coefficient /= 4;
 				//bubble_coefficient += .75;
