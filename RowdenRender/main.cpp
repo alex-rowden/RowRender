@@ -26,6 +26,7 @@
 #include <stb_image_write.h>
 
 #define DEBUG true
+#define BENCHMARK false
 #define MY_PI 3.1415926535897932384626433
 int counter = 10;
 float increment = 0.05;
@@ -1190,8 +1191,10 @@ int main() {
 	wifi.loadBinary((filename + ".raw").c_str(), use_intensities, normal_x, normal_y);
 	WifiData wifi2;
 	//wifi2.loadBinary("sphere_scaled512.raw", use_intensities2, normal2_x, normal2_y);
-	std::cout << "Loading Data: " << (start - clock()) / CLOCKS_PER_SEC << " seconds"<< std::endl;
-	start = clock();
+	if (BENCHMARK) {
+		std::cout << "Loading Data: " << (start - clock()) / CLOCKS_PER_SEC << " seconds" << std::endl;
+		start = clock();
+	}
 
 	std::mt19937::result_type seed = time(0);
 	auto generator = std::bind(std::uniform_real_distribution<float>(-1, 1),
@@ -1216,8 +1219,10 @@ int main() {
 
 	w.SetFramebuferSizeCallback();
 	glfwSwapInterval(0);
-	std::cout << "GLFW INIT " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
-	start = clock();
+	if (BENCHMARK) {
+		std::cout << "GLFW INIT " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
+		start = clock();
+	}
 	ShaderProgram sp = ShaderProgram({ShaderProgram::Shaders::FRAGMENT, ShaderProgram::Shaders::VERTEX});
 	ShaderProgram campus_map_sp = ShaderProgram({ShaderProgram::Shaders::NO_LIGHT_FRAG, ShaderProgram::Shaders::NO_LIGHT_VERT});
 	ShaderProgram screen_shader = ShaderProgram({ ShaderProgram::Shaders::SCREEN_FRAG, ShaderProgram::Shaders::SCREEN_VERT });
@@ -1323,8 +1328,10 @@ int main() {
 	}
 
 	Tree.getMeshes().at(0)->SetInstanceTransforms(treeTransforms);
-	std::cout << "Model Loading " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
-	start = clock();
+	if (BENCHMARK) {
+		std::cout << "Model Loading " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
+		start = clock();
+	}
 	/*
 	WifiData wifi;
 
@@ -1529,9 +1536,10 @@ int main() {
 	uint64_t fps_counter = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 	//uint64_t start = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 	unsigned long int num_frames = 0;
-	std::cout << "Setup OptiX " << (double)(clock() - start) / CLOCKS_PER_SEC << " seconds" << std::endl;
-	start = clock();
-	
+	if (BENCHMARK) {
+		std::cout << "Setup OptiX " << (double)(clock() - start) / CLOCKS_PER_SEC << " seconds" << std::endl;
+		start = clock();
+	}
 	while (!glfwWindowShouldClose(w.getWindow())) //main render loop
 	{
 		clock_t per_frame = clock();
@@ -1573,10 +1581,10 @@ int main() {
 			update = true;
 
 		}
-		
-		std::cout << "Calculate FPS and Update Animation: " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
-		start = clock();
-
+		if (BENCHMARK) {
+			std::cout << "Calculate FPS and Update Animation: " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
+			start = clock();
+		}
 		//texture.Bind();
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		//render(model, &sp);
@@ -1599,8 +1607,10 @@ int main() {
 		glDepthMask(GL_FALSE);
 		render(skybox, &skybox_shader);
 		glDepthMask(GL_TRUE);
-		std::cout << "Render Skybox " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
-		start = clock();
+		if (BENCHMARK) {
+			std::cout << "Render Skybox " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
+			start = clock();
+		}
 		sp.SetUniform4fv("model", transformation);
 		sp.SetUniform3fv("normalMatrix", glm::mat3(glm::transpose(glm::inverse(transformation * camera.getView()))));
 		sp.SetUniform4fv("camera", camera.getView());
@@ -1608,22 +1618,27 @@ int main() {
 		sp.SetLights(lights);
 		sp.SetUniform3f("viewPos", camera.getPosition());
 		render(model, &sp);
-		std::cout << "Render Campus Model " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
-		start = clock();
+		if (BENCHMARK) {
+			std::cout << "Render Campus Model " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
+			start = clock();
+		}
 		campus_map_sp.SetUniform4fv("model", campusTransform);
 		campus_map_sp.SetUniform4fv("camera", camera.getView());
 		campus_map_sp.SetUniform4fv("projection", camera.getProjection());
 		render(campusMap, &campus_map_sp);
-		std::cout << "Render Campus Map " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
-		start = clock();
+		if (BENCHMARK) {
+			std::cout << "Render Campus Map " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
+			start = clock();
+		}
 		instance_shader.Use();
 		instance_shader.SetUniform4fv("projection", camera.getProjection());
 		instance_shader.SetUniform4fv("view", camera.getView());
 		instance_shader.SetUniform4fv("transform", glm::scale(glm::translate(glm::mat4(1), glm::vec3(72.099, 63.9, 0) + w.translate), glm::vec3(.00095, .00159, .00129) + w.scale));
 		render(Tree, &instance_shader);
-		std::cout << "Render Trees " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
-		start = clock();
-
+		if (BENCHMARK) {
+			std::cout << "Render Trees " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
+			start = clock();
+		}
 		GLfloat* depths = new GLfloat[w.width * w.height];
 
 		glReadPixels(0, 0, w.width, w.height, GL_DEPTH_COMPONENT, GL_FLOAT, depths);
@@ -1675,10 +1690,10 @@ int main() {
 			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, resolution.x, resolution.y, GL_RED, GL_FLOAT, (void*)depths);
 		}
 		glBindTexture(GL_TEXTURE_2D, 0);
-		
-		std::cout << "Update Depth Buffer: " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
-		start = clock();
-
+		if (BENCHMARK) {
+			std::cout << "Update Depth Buffer: " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
+			start = clock();
+		}
 		
 
 		optix::float3  camera_eye = optix::make_float3(camera.getPosition().x, camera.getPosition().y, camera.getPosition().z);
@@ -1699,8 +1714,10 @@ int main() {
 		glm::vec2 halfwayVecP = glm::vec2(acos(halfwayVec.z), atan2(halfwayVec.y, halfwayVec.x));
 		context["halfwayVecP"]->setFloat(make_float2(halfwayVecP));
 		context["sincosHalfwayTheta"]->setFloat(optix::make_float2(sin(halfwayVecP.y), cos(halfwayVecP.y)));
-		std::cout << "Update OptiX " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
-		start = clock();
+		if (BENCHMARK) {
+			std::cout << "Update OptiX " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
+			start = clock();
+		}
 		try {
 			if (update) {
 				context->launch(0, resolution.x, resolution.y);
@@ -1710,8 +1727,10 @@ int main() {
 		catch (optix::Exception e) {
 			std::cout << e.getErrorString() << std::endl;
 		}
-		std::cout << "Optix Render " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
-		start = clock();
+		if (BENCHMARK) {
+			std::cout << "Optix Render " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
+			start = clock();
+		}
 		hdr_texture.SetTextureID(optixBufferToGLTexture(amplitude_buffer));
 		RayTraced.getMeshes().at(0)->setTexture(hdr_texture, 0);
 		delete[] depths;
@@ -1720,8 +1739,10 @@ int main() {
 		glDisable(GL_DEPTH_TEST);
 		screen_shader.Use();
 		//render(RayTraced, &screen_shader);
-		std::cout << "Render Volume to Screen " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
-		start = clock();
+		if (BENCHMARK) {
+			std::cout << "Render Volume to Screen " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
+			start = clock();
+		}
 		filename = std::string(foldername + "/");
 		filename.append(std::to_string(num_frames++));
 		filename.append(".bmp");
@@ -1746,8 +1767,10 @@ int main() {
 		
 		//render(vol, &sp);
 		w.ProcessFrame(&camera);
-		std::cout << "Full frame " << (double)((clock() - per_frame)) / CLOCKS_PER_SEC << " seconds" << std::endl;
-		start = clock();
+		if (BENCHMARK) {
+			std::cout << "Full frame " << (double)((clock() - per_frame)) / CLOCKS_PER_SEC << " seconds" << std::endl;
+			start = clock();
+		}
 	}
 	glfwTerminate(); //Shut it down!
 
