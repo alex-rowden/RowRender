@@ -179,7 +179,7 @@ glm::ivec3 getTrip(unsigned long indx, int numLatCells, int numLonCells, int num
 
 bool WifiData::loadBinary(const char* filename, std::vector<unsigned char>& intensities, std::vector<short>& phi, std::vector<short>&theta, unsigned int sample_step) {
 	int dialation = 3;
-	int num_smooths = 1;
+	int num_smooths = 10;
 	std::string outputf = std::to_string(dialation) + "_" + std::to_string(num_smooths) + std::string(filename);
 	std::ifstream f(outputf.c_str(), std::ios::in|std::ios::binary);
 	if (f.good()) {
@@ -233,7 +233,7 @@ bool WifiData::loadBinary(const char* filename, std::vector<unsigned char>& inte
 	for (unsigned long i = 0; i < intensities.size(); i++) {
 		glm::ivec3 indices = getTrip(i, numLatCells, numLonCells, numSlices);
 		calculate_neighbors(neighbors, intensities, indices.x, indices.y, indices.z, 1);
-		glm::vec3 normal = glm::vec3(((neighbors.right) - neighbors.left)/(float)numLonCells, ((neighbors.up) - neighbors.down)/(float)numLatCells, ((neighbors.front) - neighbors.back))/(float)numSlices;
+		glm::vec3 normal = glm::vec3(((neighbors.right) - neighbors.left), ((neighbors.up) - neighbors.down), ((neighbors.front) - neighbors.back));
 		normal /= (dialation * 2);
 		if (glm::length(normal) != 0) {
 			normal = glm::normalize(normal);

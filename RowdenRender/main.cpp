@@ -61,13 +61,13 @@ void createGeometry(optix::Context& context, glm::vec3 volume_size, glm::mat4 tr
 
 		//optix::float3 box_min = optix::make_float3(-volume_size.x / 2.f, -volume_size.y / 2.f, 0.f - volume_size.z / 2.f);	// volume is at origin
 		//optix::float3 box_max = optix::make_float3(volume_size.x / 2.f, volume_size.y / 2.f, 0.f + volume_size.z / 2.f);
-		optix::float3 box_min = optix::make_float3(20, 20, 0);	// volume is at origin
-		optix::float3 box_max = optix::make_float3(70, 70, 50);
+		optix::float3 box_min = optix::make_float3(25, 25, 0);	// volume is at origin
+		optix::float3 box_max = optix::make_float3(75, 75, 50);
 
 
 		optix::float3 volume_v1 = optix::make_float3(50, 0.f, 0.f); //scaling factors
 		optix::float3 volume_v2 = optix::make_float3(0.f, 50, 0.f);
-		optix::float3 volume_v3 = optix::make_float3(0.f, 0.f, 3);
+		optix::float3 volume_v3 = optix::make_float3(0.f, 0.f, 50);
 		//optix::float3 volume_v3 = optix::make_float3(0.f, 0.f, 3.0);
 		/*
 		optix::float3 volume_v1 = optix::make_float3(50.0f, 0.f, 0.f);
@@ -1288,8 +1288,8 @@ int main() {
 	//createOptixTextures(context, glm::vec3(wifi2.numLatCells, wifi2.numLonCells, wifi2.numSlices), use_intensities2, normals2, 2);
 	//createOptixTextures(context, glm::vec3(wifi.numLatCells, wifi.numLonCells, wifi.numSlices), use_intensities);
 	printMemUsage();
-	float ambientStrength = .1;
-	glm::vec3 lightDir = normalize(glm::vec3(0.5, 0.5, 0.5));
+	float ambientStrength = .1f;
+	glm::vec3 lightDir = normalize(-glm::vec3(0.5, 0.5, 0.5));
 	float specularStrength = .4;
 	float diffuseStrength = .5;
 	float shininess = 256;
@@ -1300,14 +1300,14 @@ int main() {
 	context["shininess"]->setFloat(shininess);
 
 	//setup camera
-	Camera camera = Camera(glm::vec3(25, 25, 50), glm::vec3(25, 24.999, 0), 90.0f, w.width / w.height);
+	Camera camera = Camera(glm::vec3(25, 25, 50), glm::vec3(50, 49.999, 0), 90.0f, w.width / w.height);
 	//Camera camera = Camera(glm::vec3(61.5, 41.5, .5), glm::vec3(50, 49, 0), 90.0f, w.width / w.height);
 	w.SetCamera(&camera);
 
 	context["lightDir"]->setFloat(make_float3(lightDir));
 	optix::float2 lightDirP = optix::make_float2(acos(lightDir.z), atan2(lightDir.y, lightDir.x));
 	context["lightDirP"]->setFloat(lightDirP);
-	glm::vec2 sincosLightTheta = glm::vec2(sin(lightDirP.x), cos(lightDirP.x));
+	glm::vec2 sincosLightTheta = glm::vec2(sin(lightDirP.y), cos(lightDirP.y));
 	context["sincosLightTheta"]->setFloat(make_float2(sincosLightTheta));
 	
 
@@ -1548,13 +1548,14 @@ int main() {
 		updateCamera(w, context, camera_eye, camera_lookat, camera_up, optix::Matrix4x4().identity());
 		//updateCamera(w, context, camera);
 		//context["lightPos"]->setFloat(make_float3(camera.getPosition()));
-		glm::vec3 CameraDir = (-normalize(camera.getDirection()));
+		glm::vec3 CameraDir = (normalize(camera.getDirection()));
 		context["CameraDir"]->setFloat(make_float3(CameraDir));
 		glm::vec2 CameraDirP = glm::vec2(acos(CameraDir.z), atan2(CameraDir.y, CameraDir.x));
 		context["CameraDirP"]->setFloat(make_float2(CameraDirP));
 		glm::vec2 sincosCameraDir = glm::vec2(sin(CameraDir.x), cos(CameraDir.x));
 		context["sincosCameraDir"]->setFloat(make_float2(sincosCameraDir));
 		glm::vec3 halfwayVec = normalize(CameraDir + lightDir);
+		context["HalfwayVec"]->setFloat(make_float3(halfwayVec));
 		glm::vec2 halfwayVecP = glm::vec2(acos(halfwayVec.z), atan2(halfwayVec.y, halfwayVec.x));
 		context["halfwayVecP"]->setFloat(make_float2(halfwayVecP));
 		context["sincosHalfwayTheta"]->setFloat(optix::make_float2(sin(halfwayVecP.x), cos(halfwayVecP.x)));
@@ -1582,7 +1583,7 @@ int main() {
 
 		glDisable(GL_DEPTH_TEST);
 		screen_shader.Use();
-		//render(RayTraced, &screen_shader);
+		render(RayTraced, &screen_shader);
 		if (BENCHMARK) {
 			std::cout << "Render Volume to Screen " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();

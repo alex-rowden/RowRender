@@ -48,6 +48,7 @@ rtDeclareVariable(float2, lightDirP, , );
 rtDeclareVariable(float3, lightDir, , );
 rtDeclareVariable(float2, sincosLightTheta, , );
 rtDeclareVariable(float3, CameraDir, , );
+rtDeclareVariable(float3, HalfwayVec, , );
 rtDeclareVariable(float3, sincosCameraDirTheta, , );
 rtDeclareVariable(float2, CamearDirP, , );
 rtDeclareVariable(float2, HalfwayVecP, , );
@@ -145,26 +146,7 @@ RT_PROGRAM void closest_hit() {
 			}
 			float phi = sample.x * M_PIf;
 			float theta = sample.y * M_PIf * 2 - M_PIf;
-			//rtPrintf("%f, %f\n", phi, theta);
-			//rtPrintf("%f, %f", normal.x, normal.y);
-			//normal.z = sqrtf(1 - sample.x * sample.x - sample.y * sample.y);
-			//rtPrintf("%f, %f, %f\n", normal.x, normal.y, normal.z);
-			//normal = v1 * normal.x + v2 * normal.y + v3 * normal.z;
-			//rtPrintf("%f, %f, %f / %f, %f, %f\n", normal.x, normal.y, normal.z, normal_old.x, normal_old.y, normal_old.z);
-			//normal =  optix::normalize(normal);
 			
-			
-
-			//float3 color_self = make_float3(fabs(normal.x), fabs(normal.y), fabs(normal.z));//make_float3(voxel_val_tf);
-			
-
-			
-			//rtPrintf("%f, %f, %f\n", launch_index.x / amplitude_buffer.size().x, launch_index.y / amplitude_buffer.size().y, depth);
-			if (depth != -1 && depth != 1) {
-				//rtPrintf("%f\n", depth);
-			}
-			//if(depth < 1)
-				//rtPrintf("%f\n", depth);
 			float distance = 0;
 			//if ((zFar + zNear - depth * (zFar - zNear)) > 0) {
 			distance = (2.0 * zNear * zFar) / (zFar + zNear - depth * (zFar - zNear));
@@ -172,56 +154,52 @@ RT_PROGRAM void closest_hit() {
 
 			float3 color_self = make_float3(0);
 			float opaque_self = 0;
-			//rtPrintf("%f\n", lightDir.x * lightDir.x + lightDir.y * lightDir.y + lightDir.z * lightDir.z);
-			if (lightDir.x * lightDir.x + lightDir.y * lightDir.y + lightDir.z * lightDir.z < -1) {
-				color_self = make_float3(0, 1, 0);
-				opaque_self = 1;
-			}
-			else {
-				//sin(theta1)sin(theta2)cos(phi1 - pih2) + cos(theta1)cos(theta2)
-				float diffuse = diffuseStrength * fmax(0, sin(theta) * sincosLightTheta.x * cos(phi - lightDirP.x) + cos(theta) * sincosLightTheta.y);
-
-				//float3 viewDir = CameraDir;
+			
+			float sinphi = sin(phi);
+			float3 normal = make_float3(sinphi * cos(theta), sinphi * sin(theta), cos(phi));
+			//sin(theta1)sin(theta2)cos(phi1 - pih2) + cos(theta1)cos(theta2)
+			//float diffuse = diffuseStrength * fmax(0, sin(theta) * sincosLightTheta.x * cos(phi - lightDirP.x) + cos(theta) * sincosLightTheta.y);
+			float diffuse = diffuseStrength * fmax(0, dot(lightDir, normal));
+			//float3 viewDir = CameraDir;
 				
-				float sinphi = sin(phi);
-				float3 normal = make_float3(sinphi * cos(theta), sinphi * sin(theta), cos(phi));
 				
-				float spec = pow(fmax(sin(theta) * sincosHalfwayTheta.x * cos(phi - sincosHalfwayTheta.x) + cos(theta) * sincosHalfwayTheta.y, 0), shininess);
-					
 				
-				//color_self = make_float3(voxel_val_tf);
-				color_self = (ambientStrength)*make_float3(voxel_val_tf) + diffuse * make_float3(voxel_val_tf) + specularStrength * spec * make_float3(1, 1, 1);
-				//color_self = make_float3(fabs(normal.x), fabs(normal.y), fabs(normal.z));
 				
-				float bubble_coefficient =  1-(fabs(sin(theta) * sincosCameraDirTheta.x * cos(phi - sincosCameraDirTheta.x) + cos(theta) * sincosCameraDirTheta.y));
+			//float spec = specularStrength * pow(fmax(sin(theta) * sincosHalfwayTheta.x * cos(phi - sincosHalfwayTheta.x) + cos(theta) * sincosHalfwayTheta.y, 0), shininess);
+			float spec = specularStrength * pow(fabs(dot(normal, HalfwayVec)), shininess);
+			//rtPrintf("%f\n", spec);
+			color_self = ambientStrength * make_float3(voxel_val_tf) + diffuse * make_float3(voxel_val_tf) + spec * make_float3(1, 1, 1);
+			//color_self = make_float3(fabs(normal.x), fabs(normal.y), fabs(normal.z));
 				
-				float top = .99;
-				float bottom = .9;
-				float max_oppac = .2f;
-				float min_oppac = .02f;
+			float bubble_coefficient =  1-(fabs(sin(theta) * sincosCameraDirTheta.x * cos(phi - sincosCameraDirTheta.x) + cos(theta) * sincosCameraDirTheta.y));
 				
-				if (voxel_val_tf.w > 1e-5	) {
-					if (bubble_coefficient > top) {
-						bubble_coefficient = top;
-					}
-					else if (bubble_coefficient < bottom) {
-						bubble_coefficient = bottom;
-					}
-
-					float norm = (((bubble_coefficient - bottom) / (top - bottom)));
-					bubble_coefficient = (norm * (max_oppac - min_oppac)) + min_oppac;
-					//voxel_val_tf.w = 0.05f;
-
-					voxel_val_tf.w = 1.0f;
+			float top = .99;
+			float bottom = .9;
+			float max_oppac = .2f;
+			float min_oppac = .02f;
+				
+			if (voxel_val_tf.w > 1e-5	) {
+				if (bubble_coefficient > top) {
+					bubble_coefficient = top;
 				}
-				//bubble_coefficient /= 4;
-				//bubble_coefficient += .75;
-				//bubble_coefficient = 0 ;
-				//if(spec != 0)
-					//rtPrintf("%f\n", spec);
-				float weight = .5;
-				opaque_self = voxel_val_tf.w;// +((0 * bubble_coefficient) + ((weight)*spec));// 0.5f);
+				else if (bubble_coefficient < bottom) {
+					bubble_coefficient = bottom;
+				}
+
+				float norm = (((bubble_coefficient - bottom) / (top - bottom)));
+				bubble_coefficient = (norm * (max_oppac - min_oppac)) + min_oppac;
+				//voxel_val_tf.w = 0.05f;
+
+				voxel_val_tf.w = 1.0f;
 			}
+			//bubble_coefficient /= 4;
+			//bubble_coefficient += .75;
+			//bubble_coefficient = 0 ;
+			//if(spec != 0)
+				//rtPrintf("%f\n", spec);
+			float weight = .5;
+			opaque_self = voxel_val_tf.w;// +((0 * bubble_coefficient) + ((weight)*spec));// 0.5f);
+			
 
 			/*
 			if (opaque_self > .01) {
