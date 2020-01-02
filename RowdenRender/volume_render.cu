@@ -50,7 +50,7 @@ rtDeclareVariable(float2, sincosLightTheta, , );
 rtDeclareVariable(float3, CameraDir, , );
 rtDeclareVariable(float3, HalfwayVec, , );
 rtDeclareVariable(float3, sincosCameraDirTheta, , );
-rtDeclareVariable(float2, CamearDirP, , );
+rtDeclareVariable(float2, CameraDirP, , );
 rtDeclareVariable(float2, HalfwayVecP, , );
 
 rtDeclareVariable(float2, sincosHalfwayTheta, , );
@@ -164,7 +164,7 @@ RT_PROGRAM void closest_hit() {
 			float opaque_self = 0;
 			
 			float sinphi = sin(phi);
-			//float3 normal = make_float3(sinphi * cos(theta), sinphi * sin(theta), cos(phi));
+			float3 normal = make_float3(sinphi * cos(theta), sinphi * sin(theta), cos(phi));
 			float2 normalP = make_float2(phi, theta);
 			float2 sincosnorm = make_float2(sin(phi), cos(phi));
 			
@@ -184,12 +184,13 @@ RT_PROGRAM void closest_hit() {
 			color_self = ambientStrength * make_float3(voxel_val_tf) + diffuse * make_float3(voxel_val_tf) + spec * make_float3(1, 1, 1);
 			//color_self = make_float3(fabs(normal.x), fabs(normal.y), fabs(normal.z));
 				
-			float bubble_coefficient = 1;// -(fabs(dot(cameraDir, normal));
+			//float bubble_coefficient = 1 - (fabs(dot(ray.direction, normal)));
+			float bubble_coefficient = 1 - (fabs(sdot(CameraDirP, normalP)));
 				
 			float top = .99;
-			float bottom = .9;
-			float max_oppac = .2f;
-			float min_oppac = .02f;
+			float bottom = .95;
+			float max_oppac = .1f;
+			float min_oppac = .025f;
 				
 			if (voxel_val_tf.w > 1e-5	) {
 				if (bubble_coefficient > top) {
@@ -201,17 +202,17 @@ RT_PROGRAM void closest_hit() {
 
 				float norm = (((bubble_coefficient - bottom) / (top - bottom)));
 				bubble_coefficient = (norm * (max_oppac - min_oppac)) + min_oppac;
-				//voxel_val_tf.w = 0.05f;
+				voxel_val_tf.w = 0.0f;
 
-				voxel_val_tf.w = 1.0f;
+				//voxel_val_tf.w = 1.0f;
 			}
 			//bubble_coefficient /= 4;
 			//bubble_coefficient += .75;
 			//bubble_coefficient = 0 ;
 			//if(spec != 0)
 				//rtPrintf("%f\n", spec);
-			float weight = .5;
-			opaque_self = voxel_val_tf.w;// +((0 * bubble_coefficient) + ((weight)*spec));// 0.5f);
+			float weight = .05;
+			opaque_self = voxel_val_tf.w + ((1-weight) * bubble_coefficient + ((weight)*spec));// 0.5f);
 			
 
 			/*

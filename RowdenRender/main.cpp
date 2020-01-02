@@ -1288,10 +1288,10 @@ int main() {
 	//createOptixTextures(context, glm::vec3(wifi2.numLatCells, wifi2.numLonCells, wifi2.numSlices), use_intensities2, normals2, 2);
 	//createOptixTextures(context, glm::vec3(wifi.numLatCells, wifi.numLonCells, wifi.numSlices), use_intensities);
 	printMemUsage();
-	float ambientStrength = .1f;
+	float ambientStrength = .15f;
 	glm::vec3 lightDir = normalize(-glm::vec3(0.5, 0.5, 0.5));
 	float specularStrength = .4;
-	float diffuseStrength = .5;
+	float diffuseStrength = .45;
 	float shininess = 256;
 
 	context["ambientStrength"]->setFloat(ambientStrength);
