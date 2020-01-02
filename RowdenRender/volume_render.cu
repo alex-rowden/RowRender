@@ -69,6 +69,14 @@ RT_PROGRAM void dummy() {
 
 
 rtDeclareVariable(float3, hg_normal, , );	// normalized
+//For use on two vectors with radius 1 in spherical coordinates
+inline float sdot(float2 a, float2 b) {
+	return  sin(a.x) * sin(b.x) * cos(a.y - b.y) + cos(a.x) * cos(b.x);
+}
+//For use on a sincos vector and the normal vector. Uses precomputed sines and cosines
+inline float sdot(float2 sincosa, float2 sincosnorm, float a, float phi) {
+	return sincosa.x * sincosnorm.x * cos(a - phi) + sincosa.y * sincosnorm.y;
+}
 
 RT_PROGRAM void closest_hit() {
 	float2 sample;
@@ -156,22 +164,27 @@ RT_PROGRAM void closest_hit() {
 			float opaque_self = 0;
 			
 			float sinphi = sin(phi);
-			float3 normal = make_float3(sinphi * cos(theta), sinphi * sin(theta), cos(phi));
+			//float3 normal = make_float3(sinphi * cos(theta), sinphi * sin(theta), cos(phi));
+			float2 normalP = make_float2(phi, theta);
+			float2 sincosnorm = make_float2(sin(phi), cos(phi));
+			
 			//sin(theta1)sin(theta2)cos(phi1 - pih2) + cos(theta1)cos(theta2)
 			//float diffuse = diffuseStrength * fmax(0, sin(theta) * sincosLightTheta.x * cos(phi - lightDirP.x) + cos(theta) * sincosLightTheta.y);
-			float diffuse = diffuseStrength * fmax(0, dot(lightDir, normal));
+			//float diffuse = diffuseStrength * fmax(0, sdot(lightDirP, normalP));
+			float diffuse = diffuseStrength * fmax(0, sdot(sincosLightTheta, sincosnorm, lightDirP.y, theta));
 			//float3 viewDir = CameraDir;
 				
 				
 				
 				
 			//float spec = specularStrength * pow(fmax(sin(theta) * sincosHalfwayTheta.x * cos(phi - sincosHalfwayTheta.x) + cos(theta) * sincosHalfwayTheta.y, 0), shininess);
-			float spec = specularStrength * pow(fabs(dot(normal, HalfwayVec)), shininess);
-			//rtPrintf("%f\n", spec);
+			//float spec = specularStrength * pow(fabs(sdot(normalP, HalfwayVecP)), shininess);
+			float spec = specularStrength * pow(fabs(sdot(sincosHalfwayTheta, sincosnorm, theta, HalfwayVecP.y)), shininess);
+			//rtPrintf("%f, %f\n", HalfwayVecP.x, HalfwayVecP.y);
 			color_self = ambientStrength * make_float3(voxel_val_tf) + diffuse * make_float3(voxel_val_tf) + spec * make_float3(1, 1, 1);
 			//color_self = make_float3(fabs(normal.x), fabs(normal.y), fabs(normal.z));
 				
-			float bubble_coefficient =  1-(fabs(sin(theta) * sincosCameraDirTheta.x * cos(phi - sincosCameraDirTheta.x) + cos(theta) * sincosCameraDirTheta.y));
+			float bubble_coefficient = 1;// -(fabs(dot(cameraDir, normal));
 				
 			float top = .99;
 			float bottom = .9;

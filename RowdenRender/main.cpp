@@ -1307,7 +1307,7 @@ int main() {
 	context["lightDir"]->setFloat(make_float3(lightDir));
 	optix::float2 lightDirP = optix::make_float2(acos(lightDir.z), atan2(lightDir.y, lightDir.x));
 	context["lightDirP"]->setFloat(lightDirP);
-	glm::vec2 sincosLightTheta = glm::vec2(sin(lightDirP.y), cos(lightDirP.y));
+	glm::vec2 sincosLightTheta = glm::vec2(sin(lightDirP.x), cos(lightDirP.x));
 	context["sincosLightTheta"]->setFloat(make_float2(sincosLightTheta));
 	
 
@@ -1557,7 +1557,8 @@ int main() {
 		glm::vec3 halfwayVec = normalize(CameraDir + lightDir);
 		context["HalfwayVec"]->setFloat(make_float3(halfwayVec));
 		glm::vec2 halfwayVecP = glm::vec2(acos(halfwayVec.z), atan2(halfwayVec.y, halfwayVec.x));
-		context["halfwayVecP"]->setFloat(make_float2(halfwayVecP));
+		//std::cout << halfwayVecP.x << ", " << halfwayVecP.y << std::endl;
+		context["HalfwayVecP"]->setFloat(make_float2(halfwayVecP));
 		context["sincosHalfwayTheta"]->setFloat(optix::make_float2(sin(halfwayVecP.x), cos(halfwayVecP.x)));
 		if (BENCHMARK) {
 			std::cout << "Update OptiX " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
