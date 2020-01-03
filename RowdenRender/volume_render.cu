@@ -183,9 +183,9 @@ RT_PROGRAM void closest_hit() {
 			//rtPrintf("%f, %f\n", HalfwayVecP.x, HalfwayVecP.y);
 			color_self = ambientStrength * make_float3(voxel_val_tf) + diffuse * make_float3(voxel_val_tf) + spec * make_float3(1, 1, 1);
 			//color_self = make_float3(fabs(normal.x), fabs(normal.y), fabs(normal.z));
-				
-			//float bubble_coefficient = 1 - (fabs(dot(ray.direction, normal)));
-			float bubble_coefficient = 1 - (fabs(sdot(CameraDirP, normalP)));
+			
+			float bubble_coefficient = 1 - (fabs(dot(ray.direction, normal)));
+			//float bubble_coefficient = 1 - (fabs(sdot(CameraDirP, normalP)));
 				
 			float top = .99;
 			float bottom = .95;
