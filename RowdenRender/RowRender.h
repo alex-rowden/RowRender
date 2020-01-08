@@ -1,4 +1,7 @@
 #pragma once
+#include <imgui.h>
+#include <examples/imgui_impl_glfw.h>
+#include <examples/imgui_impl_opengl3.h>
 #include <iostream>
 #include <vector>
 #include <string>
@@ -11,6 +14,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm\gtx\compatibility.hpp>
+#include <glm/gtx/string_cast.hpp>
 
 #define RT_CHECK_ERROR_NO_CONTEXT( func ) \
   do { \

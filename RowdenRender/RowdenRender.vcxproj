@@ -21,6 +21,12 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\..\Documents\CLibs\src\glad.c" />
     <ClCompile Include="..\..\..\..\Documents\CLibs\src\tinyxml2.cpp" />
+    <ClCompile Include="..\..\imgui\examples\imgui_impl_glfw.cpp" />
+    <ClCompile Include="..\..\imgui\examples\imgui_impl_opengl3.cpp" />
+    <ClCompile Include="..\..\imgui\imgui.cpp" />
+    <ClCompile Include="..\..\imgui\imgui_demo.cpp" />
+    <ClCompile Include="..\..\imgui\imgui_draw.cpp" />
+    <ClCompile Include="..\..\imgui\imgui_widgets.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="Lights.cpp" />
     <ClCompile Include="main.cpp" />
@@ -34,6 +40,14 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\Documents\CLibs\Simple OpenGL Image Library\src\SOIL.h" />
+    <ClInclude Include="..\..\imgui\examples\imgui_impl_glfw.h" />
+    <ClInclude Include="..\..\imgui\examples\imgui_impl_opengl3.h" />
+    <ClInclude Include="..\..\imgui\imconfig.h" />
+    <ClInclude Include="..\..\imgui\imgui.h" />
+    <ClInclude Include="..\..\imgui\imgui_internal.h" />
+    <ClInclude Include="..\..\imgui\imstb_rectpack.h" />
+    <ClInclude Include="..\..\imgui\imstb_textedit.h" />
+    <ClInclude Include="..\..\imgui\imstb_truetype.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="common.h" />
     <ClInclude Include="Lights.h" />
@@ -44,6 +58,7 @@
     <ClInclude Include="Shape.h" />
     <ClInclude Include="Texture2D.h" />
     <ClInclude Include="tutorial.h" />
+    <ClInclude Include="volume_render.h" />
     <ClInclude Include="WifiData.h" />
     <ClInclude Include="Window.h" />
   </ItemGroup>
@@ -129,7 +144,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>$(USERPROFILE)\Documents\CLibs\include;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.1\include;C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\SDK;C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\include;$(IncludePath)</IncludePath>
     <LibraryPath>$(USERPROFILE)\Documents\CLibs\Libs\Debug;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.1\lib\x64;C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\lib64;$(LibraryPath)</LibraryPath>
-    <SourcePath>$(USERPROFILE)\Documents\CLibs\src;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.1\src;C:\Users\alrowden\Documents\CLibs\sutil;$(SourcePath)</SourcePath>
+    <SourcePath>$(USERPROFILE)\Documents\CLibs\src;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.1\src;C:\Users\alrowden\Documents\CLibs\sutil;C:\Users\alrowden\source\repos\imgui;$(SourcePath)</SourcePath>
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -180,6 +195,7 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\alrowden\source\repos\imgui</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

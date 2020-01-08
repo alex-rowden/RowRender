@@ -943,21 +943,29 @@ optix::float2 make_float2(glm::vec2 a) {
 }optix::float4 make_float4(glm::vec4 a) {
 	return optix::make_float4(a.x, a.y, a.z, a.w);
 }
+optix::Matrix4x4 make_mat4(glm::mat4 mat) {
+	return optix::Matrix4x4(glm::value_ptr(mat));
+}
 
 void updateCamera(Window& w, optix::Context& context, Camera& camera) {
-	glm::vec3 camera_u, camera_v, camera_w;
+	glm::vec4 camera_u, camera_v, camera_w, camera_x;
 	
-	glm::mat4 ModelToView = camera.getView();
+	glm::mat4 ModelToView = glm::inverse( camera.getView());
+	//optix::Matrix4x4 modelToView = make_mat4(ModelToView);
+	//std::cout << glm::to_string(ModelToView * glm::vec4(0, 0, 0, 1));
 	camera_u = glm::column(ModelToView, 0);
 	camera_v = glm::column(ModelToView, 1);
 	camera_w = glm::column(ModelToView, 2);
-
-	camera_w =  (-w.width / 2.0f ) * camera_u + (-w.height / 2.0f) * camera_v + ((w.height / 2.0f) / tan(glm::radians(90.0f) * 0.5f) * camera_w);
+	camera_x = glm::column(ModelToView, 3);
+	//camera_w =  (-w.width / 2.0f ) * camera_u + (-w.height / 2.0f) * camera_v + ((w.height / 2.0f) / tan(glm::radians(90.0f) * 0.5f) * camera_w);
 
 	context["eye"]->setFloat(make_float3(camera.getPosition()));
-	context["U"]->setFloat(make_float3(camera_u));
-	context["V"]->setFloat(make_float3(camera_v));
-	context["W"]->setFloat(make_float3(camera_w));
+	context["m1"]->setFloat(make_float4(camera_u));
+	context["m2"]->setFloat(make_float4(camera_v));
+	context["m3"]->setFloat(make_float4(camera_w));
+	context["m4"]->setFloat(make_float4(camera_x));
+	
+
 }
 
 void updateCamera(Window&w, optix::Context&context, optix::float3 camera_eye, optix::float3 camera_lookat, optix::float3 camera_up, optix::Matrix4x4 camera_rotate)
@@ -985,7 +993,13 @@ void updateCamera(Window&w, optix::Context&context, optix::float3 camera_eye, op
 		camera_u, camera_v, camera_w, true);
 
 	//camera_rotate = optix::Matrix4x4::identity();
-
+	std::cout << camera_u.x << ', ' <<camera_u.y << ', ' << camera_u.z << std::endl;
+	std::cout << camera_v.x << camera_v.y << camera_v.z << std::endl;
+	std::cout << camera_w.x << camera_w.y << camera_w.z << std::endl;
+	std::cout << std::endl;
+	std::cout << glm::to_string(w.camera->getView()) << std::endl;
+	std::cout << std::endl;
+	std::cout << std::endl;
 
 	context["eye"]->setFloat(camera_eye);
 	context["U"]->setFloat(camera_u);
@@ -1070,8 +1084,24 @@ void cudaPrint() {
 	}
 }
 
+void setupDearIMGUI(GLFWwindow *window) {
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+	// Setup Dear ImGui style
+	ImGui::StyleColorsDark();
+	//ImGui::StyleColorsClassic();
+
+	// Setup Platform/Renderer bindings
+	ImGui_ImplGlfw_InitForOpenGL(window, true);
+	ImGui_ImplOpenGL3_Init("#version 330");
+}
 
 int main() {
+	
 	clock_t start = clock();
 	std::vector<short> normal_x, normal_y, normal2_x, normal2_y;
 	std::vector<unsigned char> use_intensities, use_intensities2;
@@ -1100,6 +1130,7 @@ int main() {
 		std::cout << "Failed to initialize GLAD" << std::endl;
 		return false;
 	}
+	setupDearIMGUI(w.window);
 	// During init, enable debug output
 	glEnable(GL_DEBUG_OUTPUT);
 	
@@ -1277,6 +1308,7 @@ int main() {
 	createContext(context, w);
 	glm::mat4 volume_transform = glm::rotate(glm::mat4(1), glm::radians(90.0f), glm::vec3(0, 1, 0));
 	createGeometry(context, glm::vec3(wifi.numLatCells, wifi.numLonCells, wifi.numSlices), glm::mat4(1));
+	context["fov"]->setFloat(glm::radians(90.0f));
 	try {
 		context->validate();
 	}
@@ -1300,7 +1332,7 @@ int main() {
 	context["shininess"]->setFloat(shininess);
 
 	//setup camera
-	Camera camera = Camera(glm::vec3(25, 25, 50), glm::vec3(50, 49.999, 0), 90.0f, w.width / w.height);
+	Camera camera = Camera(glm::vec3(25, 25, 50), glm::vec3(50, 49.999, 0), glm::radians(90.0f), w.width / w.height);
 	//Camera camera = Camera(glm::vec3(61.5, 41.5, .5), glm::vec3(50, 49, 0), 90.0f, w.width / w.height);
 	w.SetCamera(&camera);
 
@@ -1387,8 +1419,47 @@ int main() {
 		std::cout << "Setup OptiX " << (double)(clock() - start) / CLOCKS_PER_SEC << " seconds" << std::endl;
 		start = clock();
 	}
+	//Rendering Parameters
+	float center = .56; //.2075
+	float width = .01;//.015
+	float base_opac = 0;
+	float bubble_top = .99;
+	float bubble_bottom = .95;
+	float bubble_max_opac = .1f;
+	float bubble_min_opac = .025f;
+	float spec_term = .05;
+	float sil_term = .95;
+	bool color_aug = false;
+	float tune = 1.0f;
 	while (!glfwWindowShouldClose(w.getWindow())) //main render loop
 	{
+		glfwPollEvents();
+
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+		ImGui::Begin("Rendering Terms");
+		
+		ImGui::SliderFloat("IsoVal Center", &center, 0.0f, 1.0f);
+		ImGui::SliderFloat("IsoVal width", &width, 0.0f, fmin(center/2.0, 1-center/2.0));
+
+		ImGui::SliderFloat("Base Opacity", &base_opac, 0.0f, 1.0f);
+		ImGui::SliderFloat("Sillhoutte Term", &sil_term, 0.0f, 1.0f);
+		ImGui::SliderFloat("bubble top", &bubble_top, 0.0f, 1.0f);
+		ImGui::SliderFloat("bubble bottom", &bubble_bottom, 0.0f, bubble_top);
+		ImGui::SliderFloat("bubble max opac", &bubble_max_opac, 0.0f, 1.0f);
+		ImGui::SliderFloat("bubble min opac", &bubble_min_opac, 0.0f, bubble_max_opac);
+		ImGui::SliderFloat("Debug", &tune, 0.0f, 1.0f);
+		ImGui::Checkbox("Shade sillhouette", &color_aug);
+		ImGui::SliderFloat("Specular Term", &spec_term, 0.0f, 1.0f);
+		
+		ImGui::End();
+
+		context["IsoValRange"]->setFloat(optix::make_float2(center-width/2.0f, center+width/2.0f));
+		context["ShadingTerms"]->setFloat(optix::make_float3(base_opac, color_aug ? sil_term: -sil_term, spec_term));
+		context["BubbleTerms"]->setFloat(optix::make_float4(bubble_top, bubble_bottom, bubble_max_opac, bubble_min_opac));
+		context["tune"]->setFloat(tune);
+		
 		clock_t per_frame = clock();
 		glEnable(GL_DEPTH_TEST);
 		if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - fps_counter < 1000) {
@@ -1433,7 +1504,7 @@ int main() {
 			start = clock();
 		}
 		//texture.Bind();
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		
 		//render(model, &sp);
 		//render(light, &light_sp);
 
@@ -1541,12 +1612,11 @@ int main() {
 		
 
 		optix::float3  camera_eye = optix::make_float3(camera.getPosition().x, camera.getPosition().y, camera.getPosition().z);
-		//TODO:
-		//Multiply the direction by the projection matrix to make the rays in the same projected space
+		
 		optix::float3 camera_lookat = camera_eye - optix::make_float3(camera.getDirection().x, camera.getDirection().y, camera.getDirection().z);
 		optix::float3 camera_up = optix::make_float3(camera.getUp().x, camera.getUp().y, camera.getUp().z);
-		updateCamera(w, context, camera_eye, camera_lookat, camera_up, optix::Matrix4x4().identity());
-		//updateCamera(w, context, camera);
+		//updateCamera(w, context, camera_eye, camera_lookat, camera_up, optix::Matrix4x4().identity());
+		updateCamera(w, context, camera);
 		//context["lightPos"]->setFloat(make_float3(camera.getPosition()));
 		glm::vec3 CameraDir = (normalize(camera.getDirection()));
 		context["CameraDir"]->setFloat(make_float3(CameraDir));
@@ -1610,14 +1680,21 @@ int main() {
 			}
 			delete[] pixels;
 		}
+		ImGui::Render();
 		
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 		//render(vol, &sp);
 		w.ProcessFrame(&camera);
 		if (BENCHMARK) {
 			std::cout << "Full frame " << (double)((clock() - per_frame)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
 		}
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	}
+	ImGui_ImplOpenGL3_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
+	ImGui::DestroyContext();
+
 	glfwTerminate(); //Shut it down!
 
 	return 1;

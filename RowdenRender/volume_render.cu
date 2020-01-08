@@ -1,6 +1,7 @@
 #include <optix.h>
 #include <optixu/optixu_math_namespace.h>
 #include <optix_device.h>
+#include "volume_render.h"
 
 
 
@@ -61,6 +62,12 @@ rtDeclareVariable(float, diffuseStrength, , );
 rtDeclareVariable(float, zFar, , );
 rtDeclareVariable(float, zNear, , );
 
+rtDeclareVariable(float2, IsoValRange, , );
+rtDeclareVariable(float3, ShadingTerms, , );
+rtDeclareVariable(float4, BubbleTerms, , );
+rtDeclareVariable(float, tune, , );
+
+
 RT_PROGRAM void dummy() {
 	//rtPrintf("%d, %d\n", launch_index.x, launch_index.y);
 	amplitude_buffer[launch_index] = make_float4(.7, 0, .9, .6);
@@ -79,6 +86,7 @@ inline float sdot(float2 sincosa, float2 sincosnorm, float a, float phi) {
 }
 
 RT_PROGRAM void closest_hit() {
+	
 	float2 sample;
 	/*
 	float max_theta = -3.15f;
@@ -137,13 +145,13 @@ RT_PROGRAM void closest_hit() {
 				color = make_float4(51 / 255.0f, 160 / 255.0f, 0 / 255.0f, .99f);
 				break;
 			}
-			float top_val = .565;
+			//float top_val = .565;
 			//float top_val = .215;
-			float bottom_val = .555;
+			//float bottom_val = .555;
 			//float bottom_val = .2;
 			float4 voxel_val_tf;// = optix::rtTex2D<float4>(transferFunction_texId, volume_scalar, volume_scalar);
 
-			if (volume_scalar < top_val && volume_scalar > bottom_val) {
+			if (volume_scalar <= IsoValRange.y && volume_scalar >= IsoValRange.x) {
 				voxel_val_tf = color;
 				//voxel_val_tf = make_float4(fabs(normal.x), fabs(normal.y), fabs(normal.z), .99);
 				//rtPrintf("%f, %f, %f\n", voxel_val_tf.x, voxel_val_tf.y, voxel_val_tf.z);
@@ -187,22 +195,18 @@ RT_PROGRAM void closest_hit() {
 			float bubble_coefficient = 1 - (fabs(dot(ray.direction, normal)));
 			//float bubble_coefficient = 1 - (fabs(sdot(CameraDirP, normalP)));
 				
-			float top = .99;
-			float bottom = .95;
-			float max_oppac = .1f;
-			float min_oppac = .025f;
-				
+			
 			if (voxel_val_tf.w > 1e-5	) {
-				if (bubble_coefficient > top) {
-					bubble_coefficient = top;
+				if (bubble_coefficient > BubbleTerms.x) {
+					bubble_coefficient = BubbleTerms.x;
 				}
-				else if (bubble_coefficient < bottom) {
-					bubble_coefficient = bottom;
+				else if (bubble_coefficient < BubbleTerms.y) {
+					bubble_coefficient = BubbleTerms.y;
 				}
 
-				float norm = (((bubble_coefficient - bottom) / (top - bottom)));
-				bubble_coefficient = (norm * (max_oppac - min_oppac)) + min_oppac;
-				voxel_val_tf.w = 0.0f;
+				float norm = (((bubble_coefficient - BubbleTerms.y) / (BubbleTerms.x - BubbleTerms.y)));
+				bubble_coefficient = (norm * (BubbleTerms.z - BubbleTerms.w)) + BubbleTerms.w;
+				voxel_val_tf.w = ShadingTerms.x;
 
 				//voxel_val_tf.w = 1.0f;
 			}
@@ -211,9 +215,11 @@ RT_PROGRAM void closest_hit() {
 			//bubble_coefficient = 0 ;
 			//if(spec != 0)
 				//rtPrintf("%f\n", spec);
-			float weight = .05;
-			opaque_self = voxel_val_tf.w + ((1-weight) * bubble_coefficient + ((weight)*spec));// 0.5f);
 			
+			opaque_self = voxel_val_tf.w + (abs(ShadingTerms.y) * bubble_coefficient + ((ShadingTerms.z)*spec));// 0.5f);
+			if (ShadingTerms.y > 0) {
+				color_self *=  powf(1-bubble_coefficient, 1/tune);
+			}
 
 			/*
 			if (opaque_self > .01) {
@@ -244,7 +250,7 @@ RT_PROGRAM void closest_hit() {
 				//flag = true;
 				//rtPrintf("%f\n", length(texPoint-box_min));
 				//amplitude_buffer[launch_index] = make_float4(length(texPoint-ray.origin)/50.0f, length(texPoint-ray.origin) /50.0f, length(texPoint-ray.origin) /50.0f, 1.0f);
-				//break;
+				break;
 			}
 			if (opaque_composited > 0.99) break;
 	}
@@ -273,12 +279,13 @@ rtDeclareVariable(float3, U, , );
 rtDeclareVariable(float3, V, , );
 rtDeclareVariable(float3, W, , );
 
-rtDeclareVariable(float3, m1, , );
-rtDeclareVariable(float3, m2, , );
-rtDeclareVariable(float3, m3, , );
+rtDeclareVariable(float4, m1, , );
+rtDeclareVariable(float4, m2, , );
+rtDeclareVariable(float4, m3, , );
 rtDeclareVariable(float4, m4, , );
 
 
+rtDeclareVariable(float, fov, , );
 
 RT_PROGRAM void camera() {
 	// if outside buffer range, paint it black
@@ -287,13 +294,18 @@ RT_PROGRAM void camera() {
 	//initPhase_buffer[launch_index] = -1.f;
 	size_t2 screen = amplitude_buffer.size();
 
-	float2 d = make_float2(launch_index) / make_float2(screen) * 2.f - 1.f;
+	float2 d = (make_float2(launch_index) + make_float2(.5f)) / make_float2(screen) * 2.f - 1.f;
+	d.x *= tanf(fov / 2.0f) * screen.x / (float)screen.y;
+	d.y *= 1* tanf(fov / 2.0f);
 	//float3 angle = make_float3(cos(d.x) * sin(d.y), -cos(d.y), sin(d.x) * sin(d.y));
 	float3 ray_origin = eye;
-	float3 ray_direction = normalize(-d.x * (U) + -d.y * (V) + -(W));
-	//rtPrintf("U: %f, %f, %f; %f, %f, %f\n", U.x, U.y, U.z, m1.x, m1.y, m1.z);
-	//rtPrintf("V: %f, %f, %f; %f, %f, %f\n", V.x, V.y, V.z, m2.x, m2.y, m2.z);
-	//rtPrintf("W: %f, %f, %f; %f, %f, %f\n", W.x, W.y, W.z, m3.x, m3.y, m3.z);
+	//float3 ray_direction = normalize(-d.x * (U) + -d.y * (V) + -(W));
+	float4 ray_dir = make_float4(d.x, -d.y, -1, 0);
+	ray_dir = ray_dir.x * m1 + ray_dir.y * m2 + ray_dir.z * m3 + ray_dir.w * m4;
+	float3 ray_direction = normalize(make_float3(ray_dir));
+	//rtPrintf("m1: %f, %f, %f\n", m1.x, m1.y, m1.z);
+	//rtPrintf("m2: %f, %f, %f\n", m2.x, m2.y, m2.z);
+	//rtPrintf("m3: %f, %f, %f\n\n", m3.x, m3.y, m3.z);
 	//float3 ray_direction = normalize(make_float3((d.x * normalize(m1) + d.y * normalize(m2) + normalize(m3) + normalize(m4))));
 	optix::Ray ray(ray_origin, ray_direction, radiance_ray_type, scene_epsilon);
 	//rtPrintf("%f, %f, %f\n", rayDirection.x, rayDirection.y, rayDirection.z);
@@ -304,7 +316,7 @@ RT_PROGRAM void camera() {
 	rtTrace(top_object, ray, prd);
 }
 
-rtDeclareVariable(float, fov, , );
+
 
 
 
