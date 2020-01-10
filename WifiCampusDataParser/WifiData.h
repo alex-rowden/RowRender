@@ -18,6 +18,7 @@ public:
 	long long unixTime;
 };
 private:
+	
 	std::map<std::string, std::vector<WifiEntry*>> NetIDToWifiEntries;
 	std::map <std::string,
 		std::map <std::string, std::vector<WifiEntry*>>> NetIDToMacToEntries;
@@ -27,12 +28,14 @@ private:
 
 	
 public:
+	std::vector<int> frequencies;
 	float minLat = std::numeric_limits<float>::max();
 	float minLon = std::numeric_limits<float>::max();
 	float maxLat = std::numeric_limits<float>::lowest();
 	float maxLon = std::numeric_limits<float>::lowest();
 	WifiData() {};
 	void Finalize(float latLonDist);
+	void ComputeIDIntensities(std::string netID, int frequency);
 	void ComputeIDIntensities(std::string netID);
 	bool loadCSV(const char*);
 	float **GetIDIntensities(std::string, std::string mac = "");

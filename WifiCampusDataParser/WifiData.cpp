@@ -94,7 +94,9 @@ bool WifiData::loadCSV(const char* str) {
 			//Add the new entry for the ID
 			NetIDToWifiEntries[id].emplace_back(entry);
 			NetIDToMacToEntries.at(id).at(BSSIDStr).emplace_back(entry);
-
+			if (std::find(frequencies.begin(), frequencies.end(), entry->frequency) == frequencies.end()) {
+				frequencies.emplace_back(entry->frequency);
+			}
 		}
 
 	}
@@ -127,10 +129,14 @@ float **WifiData::GetIDIntensities(std::string netID, std::string mac)
 		return netIDToMacToIntensities.at(netID).at(mac);
 }
 
-void WifiData::ComputeIDIntensities(std::string netID)
+void WifiData::ComputeIDIntensities(std::string netID) {
+	ComputeIDIntensities(netID, 0);
+}
+
+void WifiData::ComputeIDIntensities(std::string netID, int frequency)
 {
 	if (netIDToIntensities.find(netID) != netIDToIntensities.end())
-		return;
+		netIDToIntensities.erase(netIDToIntensities.find(netID));
 	//Create counter arrays
 	int** numEntries = new int* [numLonCells]();
 	float** intensities = new float* [numLonCells]();
@@ -164,9 +170,10 @@ void WifiData::ComputeIDIntensities(std::string netID)
 
 		int latIndex = (int)(latPer * (float)(numLatCells - 1));
 		int lonIndex = (int)(lonPer * (float)(numLonCells - 1));
-
-		numEntries[lonIndex][latIndex] ++;
-		intensities[lonIndex][latIndex] += abs(intensity);
+		if (frequency == entry->frequency || frequency == 0) {
+			numEntries[lonIndex][latIndex] ++;
+			intensities[lonIndex][latIndex] += abs(intensity);
+		}
 	}
 
 	//Normalize intensities

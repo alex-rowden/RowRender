@@ -57,55 +57,60 @@ int main() {
 	wifi.loadCSV("../RowdenRender/Content/Data/EricWifi-2-27-19(2).csv");
 	
 	wifi.Finalize(.00001f);
-	wifi.ComputeIDIntensities("umd");
+	for (auto freq : wifi.frequencies) {
+		wifi.ComputeIDIntensities("umd", freq);
 
-	float ** intensities = wifi.GetIDIntensities("umd");
+		float** intensities = wifi.GetIDIntensities("umd");
 
-	float maxIntensity = 0;
+		float maxIntensity = 0;
+		
+		int num_cells = 1;
+		std::vector<glm::vec4> pixels;
+		std::vector<float> use_intensities;
+		use_intensities.resize(wifi.numLonCells * wifi.numLatCells * num_cells);
 
-	int num_cells = 25;
-	std::vector<glm::vec4> pixels;
-	std::vector<float> use_intensities;
-	use_intensities.resize(wifi.numLonCells * wifi.numLatCells * num_cells);
-
-	for (int i = 0; i < wifi.numLonCells; i++)
-	{
-		for (int j = 0; j < wifi.numLatCells; j++)
-		{
-			float intensity = intensities[i][j];
-			if (intensity > maxIntensity)
-				maxIntensity = intensity;
-		}
-	}
-
-	int curr_height = 0;//(num_cells - 1) / 2.0; //Just do the top half
-	for (int h = 0; h < num_cells; h++) {
 		for (int i = 0; i < wifi.numLonCells; i++)
 		{
 			for (int j = 0; j < wifi.numLatCells; j++)
 			{
-				float intensity = intensities[i][j] / maxIntensity;
-				intensity = intensity - (increment * fabs(h - curr_height));
-				if (intensity <= 0.0f)
+				float intensity = intensities[i][j];
+				if (intensity > maxIntensity)
+					maxIntensity = intensity;
+			}
+		}
+		if (maxIntensity == 0){
+			continue;
+		}
+		int curr_height = 0;//(num_cells - 1) / 2.0; //Just do the top half
+		for (int h = 0; h < num_cells; h++) {
+			for (int i = 0; i < wifi.numLonCells; i++)
+			{
+				for (int j = 0; j < wifi.numLatCells; j++)
 				{
-					use_intensities.at(j + wifi.numLatCells * i + wifi.numLatCells * wifi.numLonCells * h) = 0;				}
-				else
-				{
-					use_intensities.at(j + wifi.numLatCells * i + wifi.numLatCells * wifi.numLonCells * h) = intensity;
+					float intensity = intensities[i][j] / maxIntensity;
+					intensity = intensity - (increment * fabs(h - curr_height));
+					if (intensity <= 0.0f)
+					{
+						use_intensities.at(j + wifi.numLatCells * i + wifi.numLatCells * wifi.numLonCells * h) = 0;
+					}
+					else
+					{
+						use_intensities.at(j + wifi.numLatCells * i + wifi.numLatCells * wifi.numLonCells * h) = intensity;
+					}
 				}
 			}
 		}
-	}
 
-	std::fstream out = std::fstream("umd.raw", std::ios::out|std::ios::binary);
-	out.write(reinterpret_cast<char *>(&wifi.numLatCells), sizeof(int));
-	out.write(reinterpret_cast<char *>(&wifi.numLonCells), sizeof(int));
-	out.write(reinterpret_cast<char *>(&num_cells), sizeof(int));
-	for (int i = 0; i < use_intensities.size(); i++) {
-		UINT8 test = (UINT8)(use_intensities.at(i) * 255);
-		out << test;
+		std::fstream out = std::fstream("umd" +std::to_string(freq)+ ".raw", std::ios::out | std::ios::binary);
+		out.write(reinterpret_cast<char*>(&wifi.numLatCells), sizeof(int));
+		out.write(reinterpret_cast<char*>(&wifi.numLonCells), sizeof(int));
+		out.write(reinterpret_cast<char*>(&num_cells), sizeof(int));
+		for (int i = 0; i < use_intensities.size(); i++) {
+			UINT8 test = (UINT8)(use_intensities.at(i) * 255);
+			out << test;
+		}
+		out.close();
 	}
-	out.close();
 	/*
 	out = std::fstream("uninterpolated_big_all.ppm", std::ios::out);
 	out << "P3" << std::endl;
