@@ -3,7 +3,7 @@
 Window::Window(const char *name, int resolution_x, int resolution_y) {
 	SetVersion(3, 3);
 
-	bool window_made = makeWindow(resolution_y, resolution_x, name);
+	bool window_made = makeWindow(resolution_x, resolution_y, name);
 	glfwSetWindowUserPointer(window, this);
 	glfwSetCursorPos(window, width / 2.0f, height / 2.0f);
 	if (!window_made) {

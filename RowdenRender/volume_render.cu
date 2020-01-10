@@ -21,6 +21,7 @@ rtBuffer<float4, 2> amplitude_buffer;
 
 
 rtDeclareVariable(int, volumeTextureId1, , );
+rtDeclareVariable(int, rayTextureId, , );
 rtDeclareVariable(int, normalTextureId1, , );
 rtDeclareVariable(int, volumeTextureId2, , );
 rtDeclareVariable(int, normalTextureId2, , );
@@ -66,6 +67,7 @@ rtDeclareVariable(float2, IsoValRange, , );
 rtDeclareVariable(float3, ShadingTerms, , );
 rtDeclareVariable(float4, BubbleTerms, , );
 rtDeclareVariable(float, tune, , );
+rtDeclareVariable(float3, color1, , );
 
 
 RT_PROGRAM void dummy() {
@@ -86,7 +88,7 @@ inline float sdot(float2 sincosa, float2 sincosnorm, float a, float phi) {
 }
 
 RT_PROGRAM void closest_hit() {
-	
+
 	float2 sample;
 	/*
 	float max_theta = -3.15f;
@@ -136,7 +138,7 @@ RT_PROGRAM void closest_hit() {
 			case 0:
 				sample = optix::rtTex3D<float2>(normalTextureId1, vol_u, vol_v, vol_w);
 				volume_scalar = optix::rtTex3D<float>(volumeTextureId1, vol_u, vol_v, vol_w);
-				color = make_float4(253/255.0f, 117/255.0f, 0/255.0f, 1.0f);
+				color = make_float4(color1, 1.0f);
 				//color = make_float4(0, 0, 1, 1.0f);
 				break;
 			case 1:
@@ -165,7 +167,7 @@ RT_PROGRAM void closest_hit() {
 			
 			float distance = 0;
 			//if ((zFar + zNear - depth * (zFar - zNear)) > 0) {
-			distance = (2.0 * zNear * zFar) / (zFar + zNear - depth * (zFar - zNear));
+			distance = 2.0 * zNear * zFar / (zFar + zNear - depth * (zFar - zNear));
 			
 
 			float3 color_self = make_float3(0);
@@ -283,6 +285,10 @@ rtDeclareVariable(float4, m1, , );
 rtDeclareVariable(float4, m2, , );
 rtDeclareVariable(float4, m3, , );
 rtDeclareVariable(float4, m4, , );
+rtDeclareVariable(float4, n1, , );
+rtDeclareVariable(float4, n2, , );
+rtDeclareVariable(float4, n3, , );
+rtDeclareVariable(float4, n4, , );
 
 
 rtDeclareVariable(float, fov, , );
@@ -294,15 +300,21 @@ RT_PROGRAM void camera() {
 	//initPhase_buffer[launch_index] = -1.f;
 	size_t2 screen = amplitude_buffer.size();
 
-	float2 d = (make_float2(launch_index) + make_float2(.5f)) / make_float2(screen) * 2.f - 1.f;
-	d.x *= tanf(fov / 2.0f) * screen.x / (float)screen.y;
-	d.y *= 1* tanf(fov / 2.0f);
+	float2 d = (make_float2(launch_index) + make_float2(0.5f)) / make_float2(screen) * 2.f - 1.f;
+	//rtPrintf("%f, %f\n", d.x, d.y);
+	//d.x *= tanf(fov / 2.0f) * screen.x / (float)screen.y;
+	//d.y *= 1* tanf(fov / 2.0f);
 	//float3 angle = make_float3(cos(d.x) * sin(d.y), -cos(d.y), sin(d.x) * sin(d.y));
-	float3 ray_origin = eye;
+	float3 ray_origin = make_float3(m4);
 	//float3 ray_direction = normalize(-d.x * (U) + -d.y * (V) + -(W));
-	float4 ray_dir = make_float4(d.x, -d.y, -1, 0);
+	float4 ray_dir = make_float4(d.x, -d.y, zNear, 1.0f);
+	ray_dir = ray_dir.x * n1 + ray_dir.y * n2 + ray_dir.z * n3 + ray_dir.w * n4;
+	//ray_dir.z = -1.f;
+	//ray_dir.w = 0.f;
+	//rtPrintf("view_only: %f, %f, %f\n", ray_dir);
 	ray_dir = ray_dir.x * m1 + ray_dir.y * m2 + ray_dir.z * m3 + ray_dir.w * m4;
-	float3 ray_direction = normalize(make_float3(ray_dir));
+	float3 ray_direction = normalize(make_float3(ray_dir/ray_dir.w) - ray_origin);
+	//rtPrintf("view_project: %f, %f, %f\n", ray_direction);
 	//rtPrintf("m1: %f, %f, %f\n", m1.x, m1.y, m1.z);
 	//rtPrintf("m2: %f, %f, %f\n", m2.x, m2.y, m2.z);
 	//rtPrintf("m3: %f, %f, %f\n\n", m3.x, m3.y, m3.z);

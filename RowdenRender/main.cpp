@@ -36,14 +36,13 @@ bool update = true;
 bool animated = true;
 const char* animation_file = "test_1.txt";
 float speed = 6.0f;
-glm::vec2 resolution = glm::vec2(1920, 1080);
+glm::vec2 resolution = glm::vec2(2560, 1440);
 glm::vec3 rand_dim = glm::vec3(50, 50, 50);
 
-optix::Buffer amplitude_buffer;
+optix::Buffer amplitude_buffer, ray_buffer;
 
-
-GLuint volume_textureId, volume_textureId2, random_texture_id, transferFunction_textureId, depth_mask_id, normal_textureId;
-optix::TextureSampler volume_texture, volume_texture2, transferFunction_texture, depth_mask, random_texture, normal_texture;
+GLuint volume_textureId, volume_textureId2, random_texture_id, transferFunction_textureId, depth_mask_id, normal_textureId, ray_texId;
+optix::TextureSampler volume_texture, volume_texture2, transferFunction_texture, depth_mask, random_texture, normal_texture, ray_texture;
 
 
 void createGeometry(optix::Context& context, glm::vec3 volume_size, glm::mat4 transform) {
@@ -950,9 +949,32 @@ optix::Matrix4x4 make_mat4(glm::mat4 mat) {
 void updateCamera(Window& w, optix::Context& context, Camera& camera) {
 	glm::vec4 camera_u, camera_v, camera_w, camera_x;
 	
-	glm::mat4 ModelToView = glm::inverse( camera.getView());
+	glm::mat4 ModelToView = glm::inverse(camera.getView());
+	glm::mat4 view = camera.getView();
+	glm::mat4 projection = camera.getProjection();
 	//optix::Matrix4x4 modelToView = make_mat4(ModelToView);
 	//std::cout << glm::to_string(ModelToView * glm::vec4(0, 0, 0, 1));
+	/*
+	int viewport[4];
+	void* ray_dirs;
+	glGetIntegerv(GL_VIEWPORT, viewport);
+	
+	rtBufferMap(ray_buffer->get(), &ray_dirs);
+	//ray_buffer->map()
+	//std::vector<optix::float3>& rays = *reinterpret_cast<std::vector<optix::float3>*>(ray_dirs);
+	//rays.resize(((long)viewport[2] - viewport[0]) * (viewport[3] - viewport[1]));
+	optix::float3* rays = (optix::float3*)ray_dirs;
+	for (int i = viewport[0]; i < viewport[2]; i++) {
+		for (int j = viewport[1]; j < viewport[3]; j++) {
+			glm::vec3 temp = glm::unProject(glm::vec3(i, j, 1), view, projection, glm::vec4(viewport[0], viewport[1], viewport[2], viewport[3]));
+			//std::cout << glm::to_string(temp) << std::endl;
+			rays[i + j * (long)viewport[2]] = (make_float3(temp));
+		}
+	}
+	rtBufferUnmap(ray_buffer->get());	
+	*/
+	
+	//printf("%d, %d, %d, %d\n", viewport[0], viewport[1], viewport[2], viewport[3]);
 	camera_u = glm::column(ModelToView, 0);
 	camera_v = glm::column(ModelToView, 1);
 	camera_w = glm::column(ModelToView, 2);
@@ -964,6 +986,21 @@ void updateCamera(Window& w, optix::Context& context, Camera& camera) {
 	context["m2"]->setFloat(make_float4(camera_v));
 	context["m3"]->setFloat(make_float4(camera_w));
 	context["m4"]->setFloat(make_float4(camera_x));
+	
+	ModelToView = glm::inverse(camera.getProjection());
+	//optix::Matrix4x4 modelToView = make_mat4(ModelToView);
+	//std::cout << glm::to_string(ModelToView * glm::vec4(0, 0, 0, 1));
+	
+	camera_u = glm::column(ModelToView, 0);
+	camera_v = glm::column(ModelToView, 1);
+	camera_w = glm::column(ModelToView, 2);
+	camera_x = glm::column(ModelToView, 3);
+	//camera_w =  (-w.width / 2.0f ) * camera_u + (-w.height / 2.0f) * camera_v + ((w.height / 2.0f) / tan(glm::radians(90.0f) * 0.5f) * camera_w);
+
+	context["n1"]->setFloat(make_float4(camera_u));
+	context["n2"]->setFloat(make_float4(camera_v));
+	context["n3"]->setFloat(make_float4(camera_w));
+	context["n4"]->setFloat(make_float4(camera_x));
 	
 
 }
@@ -1117,13 +1154,13 @@ int main() {
 		std::cout << "Loading Data: " << (start - clock()) / CLOCKS_PER_SEC << " seconds" << std::endl;
 		start = clock();
 	}
-
+	
 	std::mt19937::result_type seed = time(0);
 	auto generator = std::bind(std::uniform_real_distribution<float>(-1, 1),
 		std::mt19937(seed));  // mt19937 is a standard mersenne_twister_engin
 	glfwInit();
 	glfwSetErrorCallback(error_callback);
-	Window w = Window("Better Window", resolution.y, resolution.x);
+	Window w = Window("Better Window", resolution.x, resolution.y);
 	
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) //load GLAD
 	{
@@ -1298,15 +1335,17 @@ int main() {
 		out.close();
 #endif	
 
-	GLuint output_buffer = 0;
-	glGenBuffers(1, &output_buffer);
-	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, output_buffer);
-	glBufferData(GL_PIXEL_UNPACK_BUFFER, 4 * w.width * w.height * sizeof(float), 0, GL_STREAM_READ);
-	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 
 	optix::Context context;
 	createContext(context, w);
 	glm::mat4 volume_transform = glm::rotate(glm::mat4(1), glm::radians(90.0f), glm::vec3(0, 1, 0));
+	//RTresult ret = rtBufferCreate(context->get(), RT_BUFFER_INPUT, &ray_buffer);
+	ray_buffer = context->createBuffer(RT_BUFFER_INPUT);
+	
+	rtBufferSetFormat(ray_buffer->get(), RT_FORMAT_USER);
+	rtBufferSetElementSize(ray_buffer->get(), sizeof(optix::float3));
+	rtBufferSetSize2D(ray_buffer->get(), w.width, w.height);
+	context["ray_buffer"]->setBuffer(ray_buffer);
 	createGeometry(context, glm::vec3(wifi.numLatCells, wifi.numLonCells, wifi.numSlices), glm::mat4(1));
 	context["fov"]->setFloat(glm::radians(90.0f));
 	try {
@@ -1332,7 +1371,7 @@ int main() {
 	context["shininess"]->setFloat(shininess);
 
 	//setup camera
-	Camera camera = Camera(glm::vec3(25, 25, 50), glm::vec3(50, 49.999, 0), glm::radians(90.0f), w.width / w.height);
+	Camera camera = Camera(glm::vec3(25, 25, 50), glm::vec3(50, 49.999, 0), 90.0f, w.width/(float)w.height);
 	//Camera camera = Camera(glm::vec3(61.5, 41.5, .5), glm::vec3(50, 49, 0), 90.0f, w.width / w.height);
 	w.SetCamera(&camera);
 
@@ -1431,6 +1470,8 @@ int main() {
 	float sil_term = .95;
 	bool color_aug = false;
 	float tune = 1.0f;
+	float fov = 90;
+	optix::float3 color = optix::make_float3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
 	while (!glfwWindowShouldClose(w.getWindow())) //main render loop
 	{
 		glfwPollEvents();
@@ -1452,6 +1493,9 @@ int main() {
 		ImGui::SliderFloat("Debug", &tune, 0.0f, 1.0f);
 		ImGui::Checkbox("Shade sillhouette", &color_aug);
 		ImGui::SliderFloat("Specular Term", &spec_term, 0.0f, 1.0f);
+		ImGui::SliderFloat("FOV", &fov, 0.0f, 90.0f);
+
+		ImGui::ColorEdit3("Volume Base Color", &color.x);
 		
 		ImGui::End();
 
@@ -1459,7 +1503,8 @@ int main() {
 		context["ShadingTerms"]->setFloat(optix::make_float3(base_opac, color_aug ? sil_term: -sil_term, spec_term));
 		context["BubbleTerms"]->setFloat(optix::make_float4(bubble_top, bubble_bottom, bubble_max_opac, bubble_min_opac));
 		context["tune"]->setFloat(tune);
-		
+		context["color1"]->setFloat(color);
+		camera.fov = fov;
 		clock_t per_frame = clock();
 		glEnable(GL_DEPTH_TEST);
 		if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - fps_counter < 1000) {
@@ -1617,6 +1662,12 @@ int main() {
 		optix::float3 camera_up = optix::make_float3(camera.getUp().x, camera.getUp().y, camera.getUp().z);
 		//updateCamera(w, context, camera_eye, camera_lookat, camera_up, optix::Matrix4x4().identity());
 		updateCamera(w, context, camera);
+		try {
+			context->validate();
+		}
+		catch (optix::Exception e) {
+			std::cerr << e.getErrorString() << std::endl;
+		}
 		//context["lightPos"]->setFloat(make_float3(camera.getPosition()));
 		glm::vec3 CameraDir = (normalize(camera.getDirection()));
 		context["CameraDir"]->setFloat(make_float3(CameraDir));
