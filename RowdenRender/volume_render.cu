@@ -68,6 +68,7 @@ rtDeclareVariable(float3, ShadingTerms, , );
 rtDeclareVariable(float4, BubbleTerms, , );
 rtDeclareVariable(float, tune, , );
 rtDeclareVariable(float3, color1, , );
+rtDeclareVariable(int, numTex, , );
 
 
 RT_PROGRAM void dummy() {
@@ -129,21 +130,21 @@ RT_PROGRAM void closest_hit() {
 
 		float volume_scalar;
 		
-
+		float increment = 1;
 		
 		float4 color;
 		bool flag = false;
 		int i = 0;
 			switch (i) {
 			case 0:
-				sample = optix::rtTex3D<float2>(normalTextureId1, vol_u, vol_v, vol_w);
-				volume_scalar = optix::rtTex3D<float>(volumeTextureId1, vol_u, vol_v, vol_w);
+				sample = optix::rtTex3D<float2>(normalTextureId1, vol_u, vol_v, numTex/5.0f);
+				volume_scalar = optix::rtTex3D<float>(volumeTextureId1, vol_u, vol_v, numTex/5.0f) - increment * vol_w;
 				color = make_float4(color1, 1.0f);
 				//color = make_float4(0, 0, 1, 1.0f);
 				break;
 			case 1:
-				sample = optix::rtTex3D<float2>(normalTextureId2, vol_u, vol_v, vol_w);
-				volume_scalar = optix::rtTex3D<float>(volumeTextureId2, vol_u, vol_v, vol_w);
+				sample = optix::rtTex3D<float2>(normalTextureId2, vol_u, vol_v, 0);
+				volume_scalar = optix::rtTex3D<float>(volumeTextureId2, vol_u, vol_v, 0);
 				color = make_float4(51 / 255.0f, 160 / 255.0f, 0 / 255.0f, .99f);
 				break;
 			}

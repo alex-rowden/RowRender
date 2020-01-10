@@ -223,6 +223,7 @@ void createOptixTextures(optix::Context& context, glm::vec3 volume_size, std::ve
 		
 		glGenTextures(1, &volume_textureId);
 		glBindTexture(GL_TEXTURE_3D, volume_textureId);
+		//context["numTex"]->setFloat(volume_size.z);
 		glTexImage3D(GL_TEXTURE_3D, 0, GL_COMPRESSED_RED, volume_size.x, volume_size.y, volume_size.z, 0, GL_RED, GL_UNSIGNED_BYTE, (void*)volumeRaw.data());
 		//glTexImage3D(GL_TEXTURE_3D, 0, GL_R8, volume_size.x, volume_size.y, volume_size.z, 0, GL_RED, GL_UNSIGNED_BYTE, (void*)volumeRaw.data());
 		glBindTexture(GL_TEXTURE_3D, 0);
@@ -1145,7 +1146,7 @@ int main() {
 	WifiData wifi;
 	int dialation = 1;
 	int num_smooths = 1;
-	std::string filename = "sphere_scaled512";
+	std::string filename = "umd_freqs";
 	//std::string filename = "umd-secure-biharmonic";
 	wifi.loadBinary((filename + ".raw").c_str(), use_intensities, normal_x, normal_y);
 	WifiData wifi2;
@@ -1471,6 +1472,7 @@ int main() {
 	bool color_aug = false;
 	float tune = 1.0f;
 	float fov = 90;
+	int tex_num = 0;
 	optix::float3 color = optix::make_float3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
 	while (!glfwWindowShouldClose(w.getWindow())) //main render loop
 	{
@@ -1496,6 +1498,7 @@ int main() {
 		ImGui::SliderFloat("FOV", &fov, 0.0f, 90.0f);
 
 		ImGui::ColorEdit3("Volume Base Color", &color.x);
+		ImGui::SliderInt("TextureNum", &tex_num, 0, wifi.numSlices);
 		
 		ImGui::End();
 
@@ -1504,6 +1507,7 @@ int main() {
 		context["BubbleTerms"]->setFloat(optix::make_float4(bubble_top, bubble_bottom, bubble_max_opac, bubble_min_opac));
 		context["tune"]->setFloat(tune);
 		context["color1"]->setFloat(color);
+		context["numTex"]->setInt(tex_num);
 		camera.fov = fov;
 		clock_t per_frame = clock();
 		glEnable(GL_DEPTH_TEST);

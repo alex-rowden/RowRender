@@ -233,7 +233,7 @@ bool WifiData::loadBinary(const char* filename, std::vector<unsigned char>& inte
 	for (unsigned long i = 0; i < intensities.size(); i++) {
 		glm::ivec3 indices = getTrip(i, numLatCells, numLonCells, numSlices);
 		calculate_neighbors(neighbors, intensities, indices.x, indices.y, indices.z, 1);
-		glm::vec3 normal = glm::vec3(((neighbors.right) - neighbors.left), ((neighbors.up) - neighbors.down), ((neighbors.front) - neighbors.back));
+		glm::vec3 normal = glm::vec3(((neighbors.right) - neighbors.left), ((neighbors.up) - neighbors.down), 0);
 		normal /= (dialation * 2);
 		if (glm::length(normal) != 0) {
 			normal = glm::normalize(normal);
@@ -250,9 +250,7 @@ bool WifiData::loadBinary(const char* filename, std::vector<unsigned char>& inte
 			temp_x.at(curr_idx) = (neighborsf.right + neighborsf.left + neighborsf.up + neighborsf.down + neighborsf.front + neighborsf.back) / 6.0f;
 			calculate_neighbors(neighborsf, temp_y, indices.x, indices.y, indices.z, dialation);
 			temp_y.at(curr_idx) = (neighborsf.right + neighborsf.left + neighborsf.up + neighborsf.down + neighborsf.front + neighborsf.back) / 6.0f;
-			calculate_neighbors(neighborsf, temp_z, indices.x, indices.y, indices.z, dialation);
-			temp_z.at(curr_idx) = (neighborsf.right + neighborsf.left + neighborsf.up + neighborsf.down + neighborsf.front + neighborsf.back) / 6.0f;
-			glm::vec3 normal = glm::vec3(temp_x.at(curr_idx), temp_y.at(curr_idx), temp_z.at(curr_idx));
+			glm::vec3 normal = glm::vec3(temp_x.at(curr_idx), temp_y.at(curr_idx), .1);
 			if (num_smooths == i - 1) {
 				normal = glm::normalize(normal);
 				temp_x.at(curr_idx) = normal.x;
@@ -349,8 +347,8 @@ bool WifiData::loadBinary(const char* filename, std::vector<unsigned char>& inte
 			return false;
 		unsigned int dims[3];
 		file.read(reinterpret_cast<char*>(dims), 3 * 4 * sizeof(char)); //I know that uint is 4 bytes in matlab and I'm not sure about it here so this is how I am doing it
-		numLatCells = dims[0];//1
-		numLonCells = dims[1];//0
+		numLatCells = dims[1];//1
+		numLonCells = dims[0];//0
 		numSlices = dims[2];
 		unsigned long total_size = numLatCells * numLonCells * numSlices;
 		intensities.resize(total_size);
