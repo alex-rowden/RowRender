@@ -1459,7 +1459,7 @@ int main() {
 		start = clock();
 	}
 	//Rendering Parameters
-	float center = .56; //.2075
+	float center = .56;//.56; //.2075
 	float width = .01;//.015
 	float base_opac = 0;
 	float bubble_top = .99;
