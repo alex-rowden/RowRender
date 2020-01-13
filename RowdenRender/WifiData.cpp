@@ -106,19 +106,19 @@ bool WifiData::loadCSV(const char* str) {
 }
 
 unsigned long WifiData::get_indx(int x, int y, int z) {
-	return x + y * this->numLonCells + this->numLonCells * this->numLatCells * z;
+	return x + y * this->numLatCells + this->numLonCells * this->numLatCells * z;
 }
 
 unsigned char WifiData::sample_tex(std::vector<unsigned char>& intensities, int x, int y, int z) {
 	if (x < 0) {
 		x = 0;
 	}
-	else if (x >= numLonCells) {
-		x = numLonCells - 1;
+	else if (x >= numLatCells) {
+		x = numLatCells - 1;
 	}if (y < 0) {
 		y = 0;
-	}else if (y >= numLatCells) {
-		y = numLatCells - 1;
+	}else if (y >= numLonCells) {
+		y = numLonCells - 1;
 	}if (z < 0) {
 		z = 0;
 	}
@@ -131,12 +131,12 @@ float WifiData::sample_tex(std::vector<float>& intensities, int x, int y, int z)
 	if (x < 0) {
 		x = 0;
 	}
-	else if (x >= numLonCells) {
-		x = numLonCells - 1;
+	else if (x >= numLatCells) {
+		x = numLatCells - 1;
 	}if (y < 0) {
 		y = 0;
-	}else if (y >= numLatCells) {
-		y = numLatCells - 1;
+	}else if (y >= numLonCells) {
+		y = numLonCells - 1;
 	}if (z < 0) {
 		z = 0;
 	}
@@ -172,13 +172,13 @@ short normFloat2Short(float val) {
 glm::ivec3 getTrip(unsigned long indx, int numLatCells, int numLonCells, int numSlices) {
 	glm::ivec3 ret = glm::ivec3();
 	ret.z = indx / (numLatCells * numLonCells);
-	ret.y = (indx - (ret.z * numLatCells * numLonCells)) / numLonCells;
-	ret.x = (indx - (ret.z * numLatCells * numLonCells) - (ret.y * numLonCells));
+	ret.y = (indx - (ret.z * numLatCells * numLonCells)) / numLatCells;
+	ret.x = (indx - (ret.z * numLatCells * numLonCells) - (ret.y * numLatCells));
 	return ret;
 }
 
 bool WifiData::loadBinary(const char* filename, std::vector<unsigned char>& intensities, std::vector<short>& phi, std::vector<short>&theta, unsigned int sample_step) {
-	int dialation = 3;
+	int dialation = 1;
 	int num_smooths = 10;
 	std::string outputf = std::to_string(dialation) + "_" + std::to_string(num_smooths) + std::string(filename);
 	std::ifstream f(outputf.c_str(), std::ios::in|std::ios::binary);
