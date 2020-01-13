@@ -78,6 +78,7 @@ rtDeclareVariable(int, enabledColors, , );
 rtDeclareVariable(float4, intersectionColor, , );
 
 
+
 RT_PROGRAM void dummy() {
 	//rtPrintf("%d, %d\n", launch_index.x, launch_index.y);
 	amplitude_buffer[launch_index] = make_float4(.7, 0, .9, .6);
@@ -144,6 +145,7 @@ RT_PROGRAM void closest_hit() {
 		
 		float4 color;
 		bool flag = false;
+		bool lighting_enabled = enabledColors &(1<<5);
 		for (int i = 0; i < numTex; i++) {
 			if (!(enabledColors & (1 << i)))
 				continue;
@@ -222,7 +224,12 @@ RT_PROGRAM void closest_hit() {
 			//float spec = specularStrength * pow(fabs(sdot(normalP, HalfwayVecP)), shininess);
 			float spec = specularStrength * pow(fabs(sdot(sincosHalfwayTheta, sincosnorm, theta, HalfwayVecP.y)), shininess);
 			//rtPrintf("%f, %f\n", HalfwayVecP.x, HalfwayVecP.y);
-			color_self = ambientStrength * make_float3(voxel_val_tf) + diffuse * make_float3(voxel_val_tf) + spec * make_float3(1, 1, 1);
+			if (lighting_enabled) {
+				color_self = ambientStrength * make_float3(voxel_val_tf) + diffuse * make_float3(voxel_val_tf) + spec * make_float3(1, 1, 1);
+			}
+			else {
+				color_self = .7 * make_float3(voxel_val_tf);
+			}
 			//color_self = make_float3(fabs(normal.x), fabs(normal.y), fabs(normal.z));
 
 			float bubble_coefficient = 1 - (fabs(dot(ray.direction, normal)));

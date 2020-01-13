@@ -1481,6 +1481,7 @@ int main() {
 	optix::float3 color6 = optix::make_float3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
 	optix::float4 intersection_color = optix::make_float4(optix::make_float3(0), 0);
 	bool enable_color[6] = { false, true, true, true, false, false };
+	//bool lighting_enabled = false;
 
 	while (!glfwWindowShouldClose(w.getWindow())) //main render loop
 	{
@@ -1520,6 +1521,7 @@ int main() {
 		if (enable_color[4])
 			ImGui::ColorEdit3("Channel 11", &color5.x);
 		ImGui::ColorEdit4("Intersection Color", &intersection_color.x);
+		ImGui::Checkbox("Enable Lighting", &enable_color[5]);
 		//ImGui::ColorEdit3("Volume Base Color", &color1.x);
 		//ImGui::SliderInt("TextureNum", &tex_num, 0, wifi.numSlices);
 		
@@ -1535,7 +1537,8 @@ int main() {
 		context["color4"]->setFloat(color4);
 		context["color5"]->setFloat(color5);
 		context["color6"]->setFloat(color6);
-		context["intersectionColor"]->setFloat(intersection_color);
+		//context["intersectionColor"]->setFloat(intersection_color);
+		
 		int enabledColors = 0;
 		for (int i = 0; i < 6; i++) {
 			if (enable_color[i]) {
