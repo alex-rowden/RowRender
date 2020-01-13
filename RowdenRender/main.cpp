@@ -223,7 +223,7 @@ void createOptixTextures(optix::Context& context, glm::vec3 volume_size, std::ve
 		
 		glGenTextures(1, &volume_textureId);
 		glBindTexture(GL_TEXTURE_3D, volume_textureId);
-		//context["numTex"]->setFloat(volume_size.z);
+		context["numTex"]->setInt((int)volume_size.z);
 		glTexImage3D(GL_TEXTURE_3D, 0, GL_COMPRESSED_RED, volume_size.x, volume_size.y, volume_size.z, 0, GL_RED, GL_UNSIGNED_BYTE, (void*)volumeRaw.data());
 		//glTexImage3D(GL_TEXTURE_3D, 0, GL_R8, volume_size.x, volume_size.y, volume_size.z, 0, GL_RED, GL_UNSIGNED_BYTE, (void*)volumeRaw.data());
 		glBindTexture(GL_TEXTURE_3D, 0);
@@ -1473,7 +1473,15 @@ int main() {
 	float tune = 1.0f;
 	float fov = 90;
 	int tex_num = 0;
-	optix::float3 color = optix::make_float3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
+	optix::float3 color1 = optix::make_float3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
+	optix::float3 color2 = optix::make_float3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
+	optix::float3 color3 = optix::make_float3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
+	optix::float3 color4 = optix::make_float3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
+	optix::float3 color5 = optix::make_float3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
+	optix::float3 color6 = optix::make_float3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
+	optix::float4 intersection_color = optix::make_float4(optix::make_float3(0), 0);
+	bool enable_color[6] = { false, true, true, true, false, false };
+
 	while (!glfwWindowShouldClose(w.getWindow())) //main render loop
 	{
 		glfwPollEvents();
@@ -1496,9 +1504,24 @@ int main() {
 		ImGui::Checkbox("Shade sillhouette", &color_aug);
 		ImGui::SliderFloat("Specular Term", &spec_term, 0.0f, 1.0f);
 		ImGui::SliderFloat("FOV", &fov, 0.0f, 90.0f);
-
-		ImGui::ColorEdit3("Volume Base Color", &color.x);
-		ImGui::SliderInt("TextureNum", &tex_num, 0, wifi.numSlices);
+		ImGui::Checkbox("Enable Channel 1", &enable_color[0]);
+		if(enable_color[0])
+			ImGui::ColorEdit3("Channel 1", &color1.x);
+		ImGui::Checkbox("Enable Channel 4", &enable_color[1]);
+		if (enable_color[1])
+			ImGui::ColorEdit3("Channel 4", &color2.x);
+		ImGui::Checkbox("Enable Channel 6", &enable_color[2]);
+		if (enable_color[2])
+			ImGui::ColorEdit3("Channel 6", &color3.x);
+		ImGui::Checkbox("Enable Channel 9", &enable_color[3]);
+		if (enable_color[3])
+			ImGui::ColorEdit3("Channel 9", &color4.x);
+		ImGui::Checkbox("Enable Channel 11", &enable_color[4]);
+		if (enable_color[4])
+			ImGui::ColorEdit3("Channel 11", &color5.x);
+		ImGui::ColorEdit4("Intersection Color", &intersection_color.x);
+		//ImGui::ColorEdit3("Volume Base Color", &color1.x);
+		//ImGui::SliderInt("TextureNum", &tex_num, 0, wifi.numSlices);
 		
 		ImGui::End();
 
@@ -1506,8 +1529,20 @@ int main() {
 		context["ShadingTerms"]->setFloat(optix::make_float3(base_opac, color_aug ? sil_term: -sil_term, spec_term));
 		context["BubbleTerms"]->setFloat(optix::make_float4(bubble_top, bubble_bottom, bubble_max_opac, bubble_min_opac));
 		context["tune"]->setFloat(tune);
-		context["color1"]->setFloat(color);
-		context["numTex"]->setInt(tex_num);
+		context["color1"]->setFloat(color1);
+		context["color2"]->setFloat(color2);
+		context["color3"]->setFloat(color3);
+		context["color4"]->setFloat(color4);
+		context["color5"]->setFloat(color5);
+		context["color6"]->setFloat(color6);
+		context["intersectionColor"]->setFloat(intersection_color);
+		int enabledColors = 0;
+		for (int i = 0; i < 6; i++) {
+			if (enable_color[i]) {
+				enabledColors |= 1 << i;
+			}
+		}
+		context["enabledColors"]->setInt(enabledColors);
 		camera.fov = fov;
 		clock_t per_frame = clock();
 		glEnable(GL_DEPTH_TEST);

@@ -68,7 +68,14 @@ rtDeclareVariable(float3, ShadingTerms, , );
 rtDeclareVariable(float4, BubbleTerms, , );
 rtDeclareVariable(float, tune, , );
 rtDeclareVariable(float3, color1, , );
+rtDeclareVariable(float3, color2, , );
+rtDeclareVariable(float3, color3, , );
+rtDeclareVariable(float3, color4, , );
+rtDeclareVariable(float3, color5, , );
+rtDeclareVariable(float3, color6, , );
 rtDeclareVariable(int, numTex, , );
+rtDeclareVariable(int, enabledColors, , );
+rtDeclareVariable(float4, intersectionColor, , );
 
 
 RT_PROGRAM void dummy() {
@@ -120,6 +127,9 @@ RT_PROGRAM void closest_hit() {
 	//float epsilon = .1f * volumeRaytraceStepSize;
 	//bool show_spec = true;
 	float depth = optix::rtTex2D<float>(depth_mask_id, launch_index.x / (float)amplitude_buffer.size().x, (amplitude_buffer.size().y - launch_index.y) / (float)amplitude_buffer.size().y) * 2.0f - 1;
+	float distance = 0;
+	//if ((zFar + zNear - depth * (zFar - zNear)) > 0) {
+	distance = 2.0 * zNear * zFar / (zFar + zNear - depth * (zFar - zNear));
 	for (unsigned int s = 0; s < num_steps; ++s) {
 		float3 texPoint = fhp + (s)*volumeRaytraceStepSize * ray.direction;// +(epsilon) * (optix::rtTex3D<float>(random_texture, launch_index.x / amplitude_buffer.size().x, launch_index.y / amplitude_buffer.size().y, s / num_steps));
 
@@ -134,28 +144,41 @@ RT_PROGRAM void closest_hit() {
 		
 		float4 color;
 		bool flag = false;
-		int i = 0;
+		for (int i = 0; i < numTex; i++) {
+			if (!(enabledColors & (1 << i)))
+				continue;
+			
+			bool shade_intersection = false;
 			switch (i) {
 			case 0:
-				sample = optix::rtTex3D<float2>(normalTextureId1, vol_u, vol_v, numTex/5.0f);
-				volume_scalar = optix::rtTex3D<float>(volumeTextureId1, vol_u, vol_v, numTex/5.0f) - increment * vol_w;
 				color = make_float4(color1, 1.0f);
 				//color = make_float4(0, 0, 1, 1.0f);
 				break;
 			case 1:
-				sample = optix::rtTex3D<float2>(normalTextureId2, vol_u, vol_v, 0);
-				volume_scalar = optix::rtTex3D<float>(volumeTextureId2, vol_u, vol_v, 0);
-				color = make_float4(51 / 255.0f, 160 / 255.0f, 0 / 255.0f, .99f);
+				color = make_float4(color2, 1.0f);
 				break;
+			case 2:
+				color = make_float4(color3, 1.0f);
+				break;
+			case 3:
+				color = make_float4(color4, 1.0f);
+				break;
+			case 4:
+				color = make_float4(color5, 1.0f);
+				break;
+			default:
+				color = make_float4(1.0);
 			}
-			//float top_val = .565;
-			//float top_val = .215;
-			//float bottom_val = .555;
-			//float bottom_val = .2;
-			float4 voxel_val_tf;// = optix::rtTex2D<float4>(transferFunction_texId, volume_scalar, volume_scalar);
-
+			volume_scalar = optix::rtTex3D<float>(volumeTextureId1, vol_u, vol_v, i / 5.0f) - increment * vol_w;
+			float4 voxel_val_tf;
 			if (volume_scalar <= IsoValRange.y && volume_scalar >= IsoValRange.x) {
 				voxel_val_tf = color;
+				if (flag == true) {
+					voxel_val_tf = intersectionColor;
+					shade_intersection = true;
+					//return;
+				}
+				flag = true;
 				//voxel_val_tf = make_float4(fabs(normal.x), fabs(normal.y), fabs(normal.z), .99);
 				//rtPrintf("%f, %f, %f\n", voxel_val_tf.x, voxel_val_tf.y, voxel_val_tf.z);
 			}
@@ -163,65 +186,76 @@ RT_PROGRAM void closest_hit() {
 				//voxel_val_tf = make_float4(0, 0, 0, 0);
 				continue;
 			}
+			sample = optix::rtTex3D<float2>(normalTextureId1, vol_u, vol_v, i / 5.0f);
+			
+			//float top_val = .565;
+			//float top_val = .215;
+			//float bottom_val = .555;
+			//float bottom_val = .2;
+			// = optix::rtTex2D<float4>(transferFunction_texId, volume_scalar, volume_scalar);
+
+			
 			float phi = sample.x * M_PIf;
 			float theta = sample.y * M_PIf * 2 - M_PIf;
+
 			
-			float distance = 0;
-			//if ((zFar + zNear - depth * (zFar - zNear)) > 0) {
-			distance = 2.0 * zNear * zFar / (zFar + zNear - depth * (zFar - zNear));
-			
+
 
 			float3 color_self = make_float3(0);
 			float opaque_self = 0;
-			
+
 			float sinphi = sin(phi);
 			float3 normal = make_float3(sinphi * cos(theta), sinphi * sin(theta), cos(phi));
 			float2 normalP = make_float2(phi, theta);
 			float2 sincosnorm = make_float2(sin(phi), cos(phi));
-			
+
 			//sin(theta1)sin(theta2)cos(phi1 - pih2) + cos(theta1)cos(theta2)
 			//float diffuse = diffuseStrength * fmax(0, sin(theta) * sincosLightTheta.x * cos(phi - lightDirP.x) + cos(theta) * sincosLightTheta.y);
 			//float diffuse = diffuseStrength * fmax(0, sdot(lightDirP, normalP));
 			float diffuse = diffuseStrength * fmax(0, sdot(sincosLightTheta, sincosnorm, lightDirP.y, theta));
 			//float3 viewDir = CameraDir;
-				
-				
-				
-				
+
+
+
+
 			//float spec = specularStrength * pow(fmax(sin(theta) * sincosHalfwayTheta.x * cos(phi - sincosHalfwayTheta.x) + cos(theta) * sincosHalfwayTheta.y, 0), shininess);
 			//float spec = specularStrength * pow(fabs(sdot(normalP, HalfwayVecP)), shininess);
 			float spec = specularStrength * pow(fabs(sdot(sincosHalfwayTheta, sincosnorm, theta, HalfwayVecP.y)), shininess);
 			//rtPrintf("%f, %f\n", HalfwayVecP.x, HalfwayVecP.y);
 			color_self = ambientStrength * make_float3(voxel_val_tf) + diffuse * make_float3(voxel_val_tf) + spec * make_float3(1, 1, 1);
 			//color_self = make_float3(fabs(normal.x), fabs(normal.y), fabs(normal.z));
-			
+
 			float bubble_coefficient = 1 - (fabs(dot(ray.direction, normal)));
 			//float bubble_coefficient = 1 - (fabs(sdot(CameraDirP, normalP)));
-				
-			
-			if (voxel_val_tf.w > 1e-5	) {
-				if (bubble_coefficient > BubbleTerms.x) {
-					bubble_coefficient = BubbleTerms.x;
-				}
-				else if (bubble_coefficient < BubbleTerms.y) {
-					bubble_coefficient = BubbleTerms.y;
-				}
 
-				float norm = (((bubble_coefficient - BubbleTerms.y) / (BubbleTerms.x - BubbleTerms.y)));
-				bubble_coefficient = (norm * (BubbleTerms.z - BubbleTerms.w)) + BubbleTerms.w;
-				voxel_val_tf.w = ShadingTerms.x;
+			if (!shade_intersection) {
+				if (voxel_val_tf.w > 1e-5) {
+					if (bubble_coefficient > BubbleTerms.x) {
+						bubble_coefficient = BubbleTerms.x;
+					}
+					else if (bubble_coefficient < BubbleTerms.y) {
+						bubble_coefficient = BubbleTerms.y;
+					}
 
-				//voxel_val_tf.w = 1.0f;
+					float norm = (((bubble_coefficient - BubbleTerms.y) / (BubbleTerms.x - BubbleTerms.y)));
+					bubble_coefficient = (norm * (BubbleTerms.z - BubbleTerms.w)) + BubbleTerms.w;
+					voxel_val_tf.w = ShadingTerms.x;
+
+					//voxel_val_tf.w = 1.0f;
+				}
+				//bubble_coefficient /= 4;
+				//bubble_coefficient += .75;
+				//bubble_coefficient = 0 ;
+				//if(spec != 0)
+					//rtPrintf("%f\n", spec);
+
+				opaque_self = voxel_val_tf.w + (abs(ShadingTerms.y) * bubble_coefficient + ((ShadingTerms.z) * spec));// 0.5f);
+				if (ShadingTerms.y > 0) {
+					color_self *= powf(1 - bubble_coefficient, 1 / tune);
+				}
 			}
-			//bubble_coefficient /= 4;
-			//bubble_coefficient += .75;
-			//bubble_coefficient = 0 ;
-			//if(spec != 0)
-				//rtPrintf("%f\n", spec);
-			
-			opaque_self = voxel_val_tf.w + (abs(ShadingTerms.y) * bubble_coefficient + ((ShadingTerms.z)*spec));// 0.5f);
-			if (ShadingTerms.y > 0) {
-				color_self *=  powf(1-bubble_coefficient, 1/tune);
+			else {
+				opaque_self = intersectionColor.w;
 			}
 
 			/*
@@ -237,25 +271,30 @@ RT_PROGRAM void closest_hit() {
 			// amp = amp_in + (1-opaque) * amp_self
 			// opqaue = opaque_in + (1-opqaue) * opqaue_self
 			//rtPrintf("%f, %f, %f\n", color_self.x, color_self.y, color_self.z);
-			color_composited = (color_composited + (1.f - opaque_composited) * color_self * opaque_self);
-			opaque_composited = opaque_composited + (1.f - opaque_composited) * opaque_self;
+			color_composited += ( (1.f - opaque_composited) * color_self * opaque_self);
+			opaque_composited +=  (1.f - opaque_composited) * opaque_self;
 			//color_composited = color_self;
-			
-			
+
+
 			//if (counter	 < 300 && opaque_composited > 1e-3 ) {
 				//opacities[counter] = opaque_self;
 				//counter++;
 			//}
-			if (length(texPoint-ray.origin) > distance) {
+			if (length(texPoint - ray.origin) > distance) {
 				//color_composited = make_float3(1, 0, 0);
 				//color_composited = make_float3(0, 0, 0);
 				//opaque_composited = 0;
 				//flag = true;
 				//rtPrintf("%f\n", length(texPoint-box_min));
 				//amplitude_buffer[launch_index] = make_float4(length(texPoint-ray.origin)/50.0f, length(texPoint-ray.origin) /50.0f, length(texPoint-ray.origin) /50.0f, 1.0f);
-				break;
+				amplitude_buffer[launch_index] = make_float4((color_composited.x), (color_composited.y), (color_composited.z), (opaque_composited));
+				return;
 			}
-			if (opaque_composited > 0.99) break;
+			if (opaque_composited > 0.99) {
+				amplitude_buffer[launch_index] = make_float4((color_composited.x), (color_composited.y), (color_composited.z), (opaque_composited));
+				return;
+			}
+		}
 	}
 	
 	amplitude_buffer[launch_index] = make_float4((color_composited.x), (color_composited.y), (color_composited.z), (opaque_composited));
