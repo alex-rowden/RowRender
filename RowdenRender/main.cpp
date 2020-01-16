@@ -26,7 +26,7 @@
 #include <stb_image_write.h>
 
 #define DEBUG true
-#define BENCHMARK false
+#define BENCHMARK true
 #define MY_PI 3.1415926535897932384626433
 int counter = 10;
 float increment = 0.05;
@@ -177,7 +177,21 @@ void createContext(optix::Context&context, Window&w) {
 	context["scene_epsilon"]->setFloat(1.e-4f);
 	context["opacity_correction"]->setFloat(.65f);
 	optix::float2 output_buffer_dim = optix::make_float2(resolution.x, resolution.y);
-	amplitude_buffer = sutil::createOutputBuffer(context, RT_FORMAT_FLOAT4, output_buffer_dim.x, output_buffer_dim.y, false);
+
+	//Directly use sutil createOutputBuffer here. for some reason it doesn't like issueing the memory through sutil. 
+	unsigned int elmt_size = 16;
+
+	GLuint vbo = 0;
+	glGenBuffers(1, &vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBufferData(GL_ARRAY_BUFFER, elmt_size * resolution.x * resolution.y, 0, GL_STREAM_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	amplitude_buffer = context->createBufferFromGLBO(RT_BUFFER_OUTPUT, vbo);
+	amplitude_buffer->setFormat(RT_FORMAT_FLOAT4);
+	amplitude_buffer->setSize(resolution.x, resolution.y);
+	//end sutil function
+	//amplitude_buffer = sutil::createOutputBuffer(context, RT_FORMAT_FLOAT4, output_buffer_dim.x, output_buffer_dim.y, true);
 	context["amplitude_buffer"]->set(amplitude_buffer);
 	float volumeRaytraceStepSize = .11;
 	optix::float3 volume_size = optix::make_float3(.01f, .01f, .01f);
@@ -943,6 +957,9 @@ optix::float2 make_float2(glm::vec2 a) {
 }optix::float4 make_float4(glm::vec4 a) {
 	return optix::make_float4(a.x, a.y, a.z, a.w);
 }
+glm::vec3 make_vec3(optix::float3 a) {
+	return glm::vec3(a.x, a.y, a.z);
+}
 optix::Matrix4x4 make_mat4(glm::mat4 mat) {
 	return optix::Matrix4x4(glm::value_ptr(mat));
 }
@@ -1031,13 +1048,7 @@ void updateCamera(Window&w, optix::Context&context, optix::float3 camera_eye, op
 		camera_u, camera_v, camera_w, true);
 
 	//camera_rotate = optix::Matrix4x4::identity();
-	std::cout << camera_u.x << ', ' <<camera_u.y << ', ' << camera_u.z << std::endl;
-	std::cout << camera_v.x << camera_v.y << camera_v.z << std::endl;
-	std::cout << camera_w.x << camera_w.y << camera_w.z << std::endl;
-	std::cout << std::endl;
-	std::cout << glm::to_string(w.camera->getView()) << std::endl;
-	std::cout << std::endl;
-	std::cout << std::endl;
+
 
 	context["eye"]->setFloat(camera_eye);
 	context["U"]->setFloat(camera_u);
@@ -1373,7 +1384,7 @@ int main() {
 
 	//setup camera
 	Camera camera = Camera(glm::vec3(25, 25, 50), glm::vec3(50, 49.999, 0), 90.0f, w.width/(float)w.height);
-	//Camera camera = Camera(glm::vec3(61.5, 41.5, .5), glm::vec3(50, 49, 0), 90.0f, w.width / w.height);
+	//Camera camera = Camera(glm::vec3(34,37.5, .5), glm::vec3(35, 37.5, 0.5), 90.0f, w.width / w.height);
 	w.SetCamera(&camera);
 
 	context["lightDir"]->setFloat(make_float3(lightDir));
@@ -1447,6 +1458,14 @@ int main() {
 		animated = false;
 	}
 	glGenTextures(1, &depth_mask_id);
+	glBindTexture(GL_TEXTURE_2D, depth_mask_id);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+	glBindTexture(GL_TEXTURE_2D, 0);
 	glGenTextures(1, &random_texture_id);
 	context["zFar"]->setFloat(1000.0f);
 	context["zNear"]->setFloat(.1f);
@@ -1480,9 +1499,16 @@ int main() {
 	optix::float3 color5 = optix::make_float3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
 	optix::float3 color6 = optix::make_float3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
 	optix::float4 intersection_color = optix::make_float4(optix::make_float3(0), 0);
-	bool enable_color[6] = { false, true, true, true, false, false };
+	bool enable_color[6] = { false, true, false, false, false, false };
 	//bool lighting_enabled = false;
-
+	GLuint temp_tex;
+	glGenTextures(1, &temp_tex);
+	glBindTexture(GL_TEXTURE_2D, temp_tex);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, resolution.x, resolution.y, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	while (!glfwWindowShouldClose(w.getWindow())) //main render loop
 	{
 		glfwPollEvents();
@@ -1641,15 +1667,16 @@ int main() {
 			std::cout << "Render Trees " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
 		}
-		GLfloat* depths = new GLfloat[w.width * w.height];
+		//GLfloat* depths = new GLfloat[w.width * w.height];
 
-		glReadPixels(0, 0, w.width, w.height, GL_DEPTH_COMPONENT, GL_FLOAT, depths);
+		//glReadPixels(0, 0, w.width, w.height, GL_DEPTH_COMPONENT, GL_FLOAT, depths);
 
 		//glBindTexture(GL_TEXTURE_2D, depth_mask_id);
 		//glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, w.width, w.height, 0, GL_RED, GL_FLOAT, (void*)depths);
 		//glBindTexture(GL_TEXTURE_2D, 0);
 
 		std::string filename;
+		/*
 		if (false) {
 			BYTE* depth_pix = new BYTE[w.width * w.height];
 
@@ -1672,25 +1699,32 @@ int main() {
 				std::cout << "shit" << std::endl;
 			}
 		}
-
+		*/
 		
 		glBindTexture(GL_TEXTURE_2D, depth_mask_id);
 		if (num_frames == 0) {
 			
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, resolution.x, resolution.y, 0, GL_RED, GL_FLOAT, (void*)depths);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, resolution.x, resolution.y, 0, GL_RED, GL_FLOAT, NULL);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
 			depth_mask = context->createTextureSamplerFromGLImage(depth_mask_id, RT_TARGET_GL_TEXTURE_2D);
-			depth_mask->setFilteringModes(RT_FILTER_LINEAR, RT_FILTER_LINEAR, RT_FILTER_NONE);
+			depth_mask->setFilteringModes(RT_FILTER_NEAREST, RT_FILTER_NEAREST, RT_FILTER_NONE);
 			depth_mask->setWrapMode(0, RT_WRAP_CLAMP_TO_EDGE);
 			depth_mask->setWrapMode(1, RT_WRAP_CLAMP_TO_EDGE);
 			context["depth_mask_id"]->setInt(depth_mask->getId());
 
-			glBindTexture(GL_TEXTURE_3D, 0);
+			glBindTexture(GL_TEXTURE_2D, 0);
 			
 			
 		}
 		else {
-			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, resolution.x, resolution.y, GL_RED, GL_FLOAT, (void*)depths);
+			//glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, resolution.x, resolution.y, GL_RED, GL_FLOAT, (void*)depths);
 		}
+		glBindTexture(GL_TEXTURE_2D, temp_tex);
+		glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, w.width, w.height);
+		glCopyImageSubData(temp_tex, GL_TEXTURE_2D, 0, 0, 0, 0,
+							depth_mask_id, GL_TEXTURE_2D, 0, 0, 0, 0, 
+							resolution.x, resolution.y, 1);
 		glBindTexture(GL_TEXTURE_2D, 0);
 		if (BENCHMARK) {
 			std::cout << "Update Depth Buffer: " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
@@ -1702,8 +1736,8 @@ int main() {
 		
 		optix::float3 camera_lookat = camera_eye - optix::make_float3(camera.getDirection().x, camera.getDirection().y, camera.getDirection().z);
 		optix::float3 camera_up = optix::make_float3(camera.getUp().x, camera.getUp().y, camera.getUp().z);
-		//updateCamera(w, context, camera_eye, camera_lookat, camera_up, optix::Matrix4x4().identity());
-		updateCamera(w, context, camera);
+		updateCamera(w, context, camera_eye, camera_lookat, camera_up, optix::Matrix4x4().identity());
+		//updateCamera(w, context, camera);
 		try {
 			context->validate();
 		}
@@ -1740,9 +1774,12 @@ int main() {
 			std::cout << "Optix Render " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
 		}
+		
+		//hdr_texture.SetTextureID(depth_mask_id);
+		
 		hdr_texture.SetTextureID(optixBufferToGLTexture(amplitude_buffer));
 		RayTraced.getMeshes().at(0)->setTexture(hdr_texture, 0);
-		delete[] depths;
+		//delete[] depths;
 		
 
 		glDisable(GL_DEPTH_TEST);

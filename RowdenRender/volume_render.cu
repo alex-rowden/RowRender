@@ -76,7 +76,7 @@ rtDeclareVariable(float3, color6, , );
 rtDeclareVariable(int, numTex, , );
 rtDeclareVariable(int, enabledColors, , );
 rtDeclareVariable(float4, intersectionColor, , );
-
+rtDeclareVariable(float, debug, , );
 
 
 RT_PROGRAM void dummy() {
@@ -129,6 +129,7 @@ RT_PROGRAM void closest_hit() {
 	//bool show_spec = true;
 	float depth = optix::rtTex2D<float>(depth_mask_id, launch_index.x / (float)amplitude_buffer.size().x, (amplitude_buffer.size().y - launch_index.y) / (float)amplitude_buffer.size().y) * 2.0f - 1;
 	float distance = 0;
+	
 	//if ((zFar + zNear - depth * (zFar - zNear)) > 0) {
 	distance = 2.0 * zNear * zFar / (zFar + zNear - depth * (zFar - zNear));
 	for (unsigned int s = 0; s < num_steps; ++s) {
@@ -149,7 +150,7 @@ RT_PROGRAM void closest_hit() {
 		for (int i = 0; i < numTex; i++) {
 			if (!(enabledColors & (1 << i)))
 				continue;
-			
+
 			bool shade_intersection = false;
 			switch (i) {
 			case 0:
@@ -188,6 +189,7 @@ RT_PROGRAM void closest_hit() {
 				//voxel_val_tf = make_float4(0, 0, 0, 0);
 				continue;
 			}
+
 			sample = optix::rtTex3D<float2>(normalTextureId1, vol_u, vol_v, i / 5.0f);
 			
 			//float top_val = .565;
@@ -328,6 +330,7 @@ rtDeclareVariable(float3, U, , );
 rtDeclareVariable(float3, V, , );
 rtDeclareVariable(float3, W, , );
 
+/*
 rtDeclareVariable(float4, m1, , );
 rtDeclareVariable(float4, m2, , );
 rtDeclareVariable(float4, m3, , );
@@ -336,7 +339,7 @@ rtDeclareVariable(float4, n1, , );
 rtDeclareVariable(float4, n2, , );
 rtDeclareVariable(float4, n3, , );
 rtDeclareVariable(float4, n4, , );
-
+*/
 
 rtDeclareVariable(float, fov, , );
 
@@ -352,15 +355,16 @@ RT_PROGRAM void camera() {
 	//d.x *= tanf(fov / 2.0f) * screen.x / (float)screen.y;
 	//d.y *= 1* tanf(fov / 2.0f);
 	//float3 angle = make_float3(cos(d.x) * sin(d.y), -cos(d.y), sin(d.x) * sin(d.y));
-	float3 ray_origin = make_float3(m4);
-	//float3 ray_direction = normalize(-d.x * (U) + -d.y * (V) + -(W));
-	float4 ray_dir = make_float4(d.x, -d.y, zNear, 1.0f);
-	ray_dir = ray_dir.x * n1 + ray_dir.y * n2 + ray_dir.z * n3 + ray_dir.w * n4;
+	//float3 ray_origin = make_float3(m4);
+	float3 ray_origin = eye;
+	float3 ray_direction = normalize(-d.x * (U) + -d.y * (V) + -(W));
+	//float4 ray_dir = make_float4(d.x, -d.y, zNear, 1.0f);
+	//ray_dir = ray_dir.x * n1 + ray_dir.y * n2 + ray_dir.z * n3 + ray_dir.w * n4;
 	//ray_dir.z = -1.f;
 	//ray_dir.w = 0.f;
-	//rtPrintf("view_only: %f, %f, %f\n", ray_dir);
-	ray_dir = ray_dir.x * m1 + ray_dir.y * m2 + ray_dir.z * m3 + ray_dir.w * m4;
-	float3 ray_direction = normalize(make_float3(ray_dir/ray_dir.w) - ray_origin);
+	//rtPrintf("help: %f, %f, %f\n", ray_direction.x, ray_direction.y, ray_direction.z);
+	//ray_dir = ray_dir.x * m1 + ray_dir.y * m2 + ray_dir.z * m3 + ray_dir.w * m4;
+	//float3 ray_direction = normalize(make_float3(ray_dir/ray_dir.w) - ray_origin);
 	//rtPrintf("view_project: %f, %f, %f\n", ray_direction);
 	//rtPrintf("m1: %f, %f, %f\n", m1.x, m1.y, m1.z);
 	//rtPrintf("m2: %f, %f, %f\n", m2.x, m2.y, m2.z);
