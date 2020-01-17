@@ -56,6 +56,7 @@ void standard_mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 	int state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
 	if (state == GLFW_PRESS && !ImGui::GetIO().WantCaptureMouse)
 	{
+
 		if (win->firstMouse) // this bool variable is initially set to true
 		{
 			win->lastX = xpos;

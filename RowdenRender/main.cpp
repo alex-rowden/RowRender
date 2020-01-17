@@ -39,10 +39,29 @@ float speed = 6.0f;
 glm::vec2 resolution = glm::vec2(2560, 1440);
 glm::vec3 rand_dim = glm::vec3(50, 50, 50);
 
+optix::float3 volume_v1 = optix::make_float3(50, 0.f, 0.f); //scaling factors
+optix::float3 volume_v2 = optix::make_float3(0.f, 50, 0.f);
+optix::float3 volume_v3 = optix::make_float3(0.f, 0.f, 50);
+
+optix::float3 box_min = optix::make_float3(25, 25, 0);	// volume is at origin
+optix::float3 box_max = optix::make_float3(75, 75, 50);
+
 optix::Buffer amplitude_buffer, ray_buffer;
 
-GLuint volume_textureId, volume_textureId2, random_texture_id, transferFunction_textureId, depth_mask_id, normal_textureId, ray_texId;
-optix::TextureSampler volume_texture, volume_texture2, transferFunction_texture, depth_mask, random_texture, normal_texture, ray_texture;
+GLuint volume_textureId, depth_mask_id, normal_textureId, max_volumeId;
+optix::TextureSampler volume_texture, depth_mask, normal_texture, max_volume_texture;
+
+glm::vec3 iso_grid_size = glm::vec3(16, 16, 4);
+//std::vector<optix::Geometry>
+optix::Geometry box;
+
+void calculate_bounds(std::vector<unsigned char>& max_volume, float isoval, optix::float3& lower, optix::float3& upper) {
+	unsigned char max_element = *std::max_element(max_volume.begin(), max_volume.end());
+	float top = max_element / (float)255.0f - isoval;
+	upper.x = lower.x + volume_v1.x;
+	upper.y = lower.y + volume_v2.y;
+	upper.z = lower.z + volume_v3.z * top;
+}
 
 
 void createGeometry(optix::Context& context, glm::vec3 volume_size, glm::mat4 transform) {
@@ -53,87 +72,40 @@ void createGeometry(optix::Context& context, glm::vec3 volume_size, glm::mat4 tr
 		optix::Program box_intersect = context->createProgramFromPTXString(ptx, "box_intersect");
 	
 		// Create box
-		optix::Geometry box = context->createGeometry();
+		box= context->createGeometry();
 		box->setPrimitiveCount(1u);
 		box->setBoundingBoxProgram(box_bounds);
 		box->setIntersectionProgram(box_intersect);
 
 		//optix::float3 box_min = optix::make_float3(-volume_size.x / 2.f, -volume_size.y / 2.f, 0.f - volume_size.z / 2.f);	// volume is at origin
 		//optix::float3 box_max = optix::make_float3(volume_size.x / 2.f, volume_size.y / 2.f, 0.f + volume_size.z / 2.f);
-		optix::float3 box_min = optix::make_float3(25, 25, 0);	// volume is at origin
-		optix::float3 box_max = optix::make_float3(75, 75, 50);
+		
 
 
-		optix::float3 volume_v1 = optix::make_float3(50, 0.f, 0.f); //scaling factors
-		optix::float3 volume_v2 = optix::make_float3(0.f, 50, 0.f);
-		optix::float3 volume_v3 = optix::make_float3(0.f, 0.f, 50);
+		
 		//optix::float3 volume_v3 = optix::make_float3(0.f, 0.f, 3.0);
 		/*
 		optix::float3 volume_v1 = optix::make_float3(50.0f, 0.f, 0.f);
 		optix::float3 volume_v2 = optix::make_float3(0.f, 50.0f, 0.f);
 		optix::float3 volume_v3 = optix::make_float3(0.f, 0.f, 25.0f);
 		*/
-		volume_v1 *= 1.0f / dot(volume_v1, volume_v1);
-		volume_v2 *= 1.0f / dot(volume_v2, volume_v2);
-		volume_v3 *= 1.0f / dot(volume_v3, volume_v3);
-		std::cout << volume_v1.x << ", " << volume_v1.y << ", " << volume_v1.z << std::endl;
-		std::cout << volume_v2.x << ", " << volume_v2.y << ", " << volume_v2.z << std::endl;
-		std::cout << volume_v3.x << ", " << volume_v3.y << ", " << volume_v3.z << std::endl;
+		//volume_v1 *= 1.0f / dot(volume_v1, volume_v1);
+		//volume_v2 *= 1.0f / dot(volume_v2, volume_v2);
+		//volume_v3 *= 1.0f / dot(volume_v3, volume_v3);
+
 		box["box_min"]->setFloat(box_min);
 		box["box_max"]->setFloat(box_max);
-		box["v1"]->setFloat(volume_v1);
-		box["v2"]->setFloat(volume_v2);
-		box["v3"]->setFloat(volume_v3);
-		box["voxel_size"]->setFloat(.01, .01, .01);
+	
 
 		box["scene_epsilon"]->setFloat(1e-4f);
 		box["volumeRaytraceStepSize"]->setFloat(.11/3.0f);
 
 		context["box_min"]->setFloat(box_min);
 		context["box_max"]->setFloat(box_max);
-		context["v1"]->setFloat(volume_v1);
-		context["v2"]->setFloat(volume_v2);
-		context["v3"]->setFloat(volume_v3);
-		context["volumeRaytraceStepSize"]->setFloat(.11/10.0f);
-
-		//context["hg_anchor"]->setFloat( 0, 0, 0);
-		context["hg_anchor"]->setFloat( -(float)1024 *  .0037/ 2.f, -(float)1024 *.0037 / 2.f, -5.0f );
-		context["hg_v1"]->setFloat(1, 0, 0);
-		context["hg_v2"]->setFloat(0, 1, 0);	// axis aligned
-		context["hg_normal"]->setFloat(0, 0, 1);
-
-
-		
-		optix::float3 volume_end_points[8];
-		// voxel size
-		optix::float3 voxel_size = optix::make_float3(.01,.01,.01);
-
-		// determine end points of the volume
-		float volume_x[2] = { -0.5f * volume_size.x, 0.5f * volume_size.x };
-		float volume_y[2] = { -0.5f * volume_size.y, 0.5f * volume_size.y };
-		float volume_z[2] = { -0.5f * volume_size.z, 0.5f * volume_size.z };
-		for (unsigned int it_x = 0; it_x < 2; ++it_x) {
-			for (unsigned int it_y = 0; it_y < 2; ++it_y) {
-				for (unsigned int it_z = 0; it_z < 2; ++it_z) {
-					unsigned int idx = it_z * 4 + it_y * 2 + it_x;
-					volume_end_points[idx] = optix::make_float3(volume_x[it_x], volume_y[it_y], volume_z[it_z]);
-				}
-			}
-		}
-
-		optix::float3 hg_normal = optix::normalize(optix::make_float3(0,0,1));
-		optix::float3 hg_anchor = optix::make_float3(0, 0, 0);
-		//optix::float3 hg_anchor = optix::make_float3(-(float)1024* .0037 / 2.f, -(float)1024 * .0037 / 2.f, 5.0f);
-		float min_dist = 1e10;
-		float max_dist = 0;
-		for (unsigned int it_v = 0; it_v < 8; ++it_v) {
-			float dist = dot(volume_end_points[it_v] - hg_anchor, hg_normal);
-			if (dist > max_dist) max_dist = dist;
-			if (dist < min_dist) min_dist = dist;
-		}
-
-
-		context["vol_hg_dist"]->setFloat(min_dist, max_dist);
+		context["v1"]->setFloat(volume_v1 * 1.0f / dot(volume_v1, volume_v1));
+		context["v2"]->setFloat(volume_v2 * 1.0f / dot(volume_v2, volume_v2));
+		context["v3"]->setFloat(volume_v3 * 1.0f / dot(volume_v3, volume_v3));
+		context["volumeRaytraceStepSize"]->setFloat(.11/3.0f);
 		
 		
 		ptx = sutil::getPtxStringDirect("RowdenRender", "volume_render.cu");
@@ -232,7 +204,7 @@ void createContext(optix::Context&context, Window&w) {
 	const glm::vec3 default_color = glm::vec3(1.0f, 1.0f, 1.0f);
 }
 
-void createOptixTextures(optix::Context& context, glm::vec3 volume_size, std::vector<unsigned char> volumeRaw, std::vector<short> normals, int tex_num = 1) {
+void createOptixTextures(optix::Context& context, glm::vec3 volume_size, std::vector<unsigned char> volumeRaw, std::vector<short> normals, std::vector<unsigned char> max_volume) {
 	try {
 		
 		glGenTextures(1, &volume_textureId);
@@ -244,12 +216,27 @@ void createOptixTextures(optix::Context& context, glm::vec3 volume_size, std::ve
 		// create optix 3D texture sampler
 
 		volume_texture = context->createTextureSamplerFromGLImage(volume_textureId, RT_TARGET_GL_TEXTURE_3D);
-		volume_texture->setFilteringModes(RT_FILTER_LINEAR, RT_FILTER_LINEAR, RT_FILTER_LINEAR);
+		volume_texture->setFilteringModes(RT_FILTER_LINEAR, RT_FILTER_LINEAR, RT_FILTER_NONE);
 		volume_texture->setWrapMode(0, RT_WRAP_CLAMP_TO_BORDER);
 		volume_texture->setWrapMode(1, RT_WRAP_CLAMP_TO_BORDER);
 		volume_texture->setWrapMode(2, RT_WRAP_CLAMP_TO_BORDER);
 		
-		context["volumeTextureId" + std::to_string(tex_num)]->setInt(volume_texture->getId());
+		context["volumeTextureId1"]->setInt(volume_texture->getId());
+		
+		glGenTextures(1, &max_volumeId);
+		glBindTexture(GL_TEXTURE_2D, max_volumeId);
+		
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, volume_size.x, volume_size.y, 0, GL_RED, GL_UNSIGNED_BYTE, (void*)max_volume.data());
+		//glTexImage3D(GL_TEXTURE_3D, 0, GL_R8, volume_size.x, volume_size.y, volume_size.z, 0, GL_RED, GL_UNSIGNED_BYTE, (void*)volumeRaw.data());
+		glBindTexture(GL_TEXTURE_2D, 0);
+		// create optix 3D texture sampler
+
+		max_volume_texture = context->createTextureSamplerFromGLImage(max_volumeId, RT_TARGET_GL_TEXTURE_2D);
+		max_volume_texture->setFilteringModes(RT_FILTER_LINEAR, RT_FILTER_LINEAR, RT_FILTER_NONE);
+		max_volume_texture->setWrapMode(0, RT_WRAP_CLAMP_TO_BORDER);
+		max_volume_texture->setWrapMode(1, RT_WRAP_CLAMP_TO_BORDER);
+		
+		context["max_volume"]->setInt(max_volume_texture->getId());
 
 		glGenTextures(1, &normal_textureId);
 		glBindTexture(GL_TEXTURE_3D, normal_textureId);
@@ -262,8 +249,8 @@ void createOptixTextures(optix::Context& context, glm::vec3 volume_size, std::ve
 		normal_texture->setWrapMode(0, RT_WRAP_CLAMP_TO_BORDER);
 		normal_texture->setWrapMode(1, RT_WRAP_CLAMP_TO_BORDER);
 		normal_texture->setWrapMode(2, RT_WRAP_CLAMP_TO_BORDER);
-		context["normalTextureId" + std::to_string(tex_num)]->setInt(normal_texture->getId());
-		
+		context["normalTextureId1"]->setInt(normal_texture->getId());
+		/*
 		// 3. create transfer function 1D texture
 		int transferFunctionSize = 2;
 		std::vector<float> transferFunction = std::vector<float>();
@@ -284,6 +271,7 @@ void createOptixTextures(optix::Context& context, glm::vec3 volume_size, std::ve
 				transferFunction.emplace_back( a/1.0f);
 			}
 		}
+		
 		transferFunctionSize = transferFunction.size() / 4;
 		optix::float4* tf_data_dummy2D = new optix::float4[transferFunctionSize * transferFunctionSize];
 		for (unsigned int i = 0; i < transferFunctionSize; ++i) {
@@ -300,7 +288,7 @@ void createOptixTextures(optix::Context& context, glm::vec3 volume_size, std::ve
 		transferFunction_texture->setWrapMode(0, RT_WRAP_CLAMP_TO_EDGE);
 		transferFunction_texture->setWrapMode(1, RT_WRAP_CLAMP_TO_EDGE);
 		context["transferFunction_texId"]->setInt(transferFunction_texture->getId());
-
+		*/
 		
 		
 		
@@ -1147,21 +1135,48 @@ void setupDearIMGUI(GLFWwindow *window) {
 	// Setup Platform/Renderer bindings
 	ImGui_ImplGlfw_InitForOpenGL(window, true);
 	ImGui_ImplOpenGL3_Init("#version 330");
+	return;
+}
+
+unsigned char getMax(long column, std::vector<unsigned char>& intensities, int skip, int numSlices) {
+	unsigned char max = intensities.at(column);
+	for (int i = 1; i < numSlices; i++) {
+		if (max < intensities.at(column + i * skip)) {
+			max = intensities.at(column + i * skip);
+		}
+	}
+	return max;
+}
+
+void create_max_volume(std::vector<unsigned char> &intensities, WifiData &wifi, std::vector<unsigned char>&max_volume) {
+	//glm::vec3 dimensions = glm::vec3(wifi.numLonCells, wifi.numLatCells, wifi.numSlices);
+	for (int i = 0; i < wifi.numLonCells * wifi.numLatCells; i++) {
+		max_volume.emplace_back(getMax(i, intensities, wifi.numLatCells * wifi.numLonCells, wifi.numSlices));
+	}
+	return;
+}
+
+void updateBoundingBox(float isoValMax, std::vector<unsigned char>&max_volume) {
+	optix::float3 upper;
+	calculate_bounds(max_volume, isoValMax, box_min, upper);
+	//std::cout << upper.x << ", " << upper.y << ", " << upper.z << std::endl;
+	box["box_max"]->setFloat(upper);
 }
 
 int main() {
 	
 	clock_t start = clock();
-	std::vector<short> normal_x, normal_y, normal2_x, normal2_y;
-	std::vector<unsigned char> use_intensities, use_intensities2;
+	std::vector<short> normal_x, normal_y;
+	std::vector<unsigned char> use_intensities, max_volume;
 	WifiData wifi;
 	int dialation = 1;
 	int num_smooths = 1;
 	std::string filename = "umd_freqs";
 	//std::string filename = "umd-secure-biharmonic";
 	wifi.loadBinary((filename + ".raw").c_str(), use_intensities, normal_x, normal_y);
-	WifiData wifi2;
-	//wifi2.loadBinary("sphere_scaled512.raw", use_intensities2, normal2_x, normal2_y);
+	create_max_volume(use_intensities, wifi, max_volume);
+	
+
 	if (BENCHMARK) {
 		std::cout << "Loading Data: " << (start - clock()) / CLOCKS_PER_SEC << " seconds" << std::endl;
 		start = clock();
@@ -1313,16 +1328,13 @@ int main() {
 	*/
 
 	std::vector<short> normals;//, normals2;
-	normals.resize(2 * use_intensities.size());
+	normals.resize(2 * normal_x.size());
 	//normals2.resize(2 * use_intensities2.size());
-	for (unsigned long i = 0; i < use_intensities.size(); i++) {
+	for (unsigned long i = 0; i < normal_x.size(); i++) {
 		normals[i * 2] = normal_x.at(i);
 		normals[i * 2 + 1] = normal_y.at(i);
 	}
-	for (unsigned long i = 0; i < use_intensities2.size(); i++) {
-		//normals2[i * 2] = normal2_x.at(i);
-		//normals2[i * 2 + 1] = normal2_y.at(i);
-	}
+	
 	time_t timer = time(NULL);
 	struct tm local_time;
 	localtime_s(&local_time, &timer);
@@ -1352,12 +1364,7 @@ int main() {
 	createContext(context, w);
 	glm::mat4 volume_transform = glm::rotate(glm::mat4(1), glm::radians(90.0f), glm::vec3(0, 1, 0));
 	//RTresult ret = rtBufferCreate(context->get(), RT_BUFFER_INPUT, &ray_buffer);
-	ray_buffer = context->createBuffer(RT_BUFFER_INPUT);
-	
-	rtBufferSetFormat(ray_buffer->get(), RT_FORMAT_USER);
-	rtBufferSetElementSize(ray_buffer->get(), sizeof(optix::float3));
-	rtBufferSetSize2D(ray_buffer->get(), w.width, w.height);
-	context["ray_buffer"]->setBuffer(ray_buffer);
+
 	createGeometry(context, glm::vec3(wifi.numLatCells, wifi.numLonCells, wifi.numSlices), glm::mat4(1));
 	context["fov"]->setFloat(glm::radians(90.0f));
 	try {
@@ -1367,7 +1374,7 @@ int main() {
 		std::cerr << e.getErrorString() << std::endl;
 	}
 	printMemUsage();
-	createOptixTextures(context, glm::vec3(wifi.numLatCells, wifi.numLonCells, wifi.numSlices), use_intensities, normals);
+	createOptixTextures(context, glm::vec3(wifi.numLatCells, wifi.numLonCells, wifi.numSlices), use_intensities, normals, max_volume);
 	//createOptixTextures(context, glm::vec3(wifi2.numLatCells, wifi2.numLonCells, wifi2.numSlices), use_intensities2, normals2, 2);
 	//createOptixTextures(context, glm::vec3(wifi.numLatCells, wifi.numLonCells, wifi.numSlices), use_intensities);
 	printMemUsage();
@@ -1466,7 +1473,7 @@ int main() {
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 	glBindTexture(GL_TEXTURE_2D, 0);
-	glGenTextures(1, &random_texture_id);
+	
 	context["zFar"]->setFloat(1000.0f);
 	context["zNear"]->setFloat(.1f);
 
@@ -1757,6 +1764,8 @@ int main() {
 		//std::cout << halfwayVecP.x << ", " << halfwayVecP.y << std::endl;
 		context["HalfwayVecP"]->setFloat(make_float2(halfwayVecP));
 		context["sincosHalfwayTheta"]->setFloat(optix::make_float2(sin(halfwayVecP.x), cos(halfwayVecP.x)));
+
+		updateBoundingBox(center + width/2.0f, max_volume);
 		if (BENCHMARK) {
 			std::cout << "Update OptiX " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();

@@ -23,10 +23,7 @@ rtBuffer<float4, 2> amplitude_buffer;
 rtDeclareVariable(int, volumeTextureId1, , );
 rtDeclareVariable(int, rayTextureId, , );
 rtDeclareVariable(int, normalTextureId1, , );
-rtDeclareVariable(int, volumeTextureId2, , );
-rtDeclareVariable(int, normalTextureId2, , );
-rtDeclareVariable(int, transferFunction_texId, , );
-rtDeclareVariable(int, random_texture, , );
+rtDeclareVariable(int, max_volume, , );
 rtDeclareVariable(int, depth_mask_id, , );
 
 rtDeclareVariable(float3, texcoord, attribute texcoord, );
@@ -59,6 +56,7 @@ rtDeclareVariable(float2, sincosHalfwayTheta, , );
 rtDeclareVariable(float, specularStrength, , );
 rtDeclareVariable(float, shininess, , );
 rtDeclareVariable(float, diffuseStrength, , );
+
 
 rtDeclareVariable(float, zFar, , );
 rtDeclareVariable(float, zNear, , );
@@ -97,7 +95,7 @@ inline float sdot(float2 sincosa, float2 sincosnorm, float a, float phi) {
 }
 
 RT_PROGRAM void closest_hit() {
-
+	
 	float2 sample;
 	/*
 	float max_theta = -3.15f;
@@ -138,6 +136,7 @@ RT_PROGRAM void closest_hit() {
 		float vol_u = dot(texPoint - box_min, v1);
 		float vol_v = dot(texPoint - box_min, v2);
 		float vol_w = dot(texPoint - box_min, v3);
+		//rtPrintf("%f, %f, %f\n", v1.x, v2.y, v3.z);
 		float3 show = texPoint - box_min;
 
 		float volume_scalar;
@@ -147,6 +146,13 @@ RT_PROGRAM void closest_hit() {
 		float4 color;
 		bool flag = false;
 		bool lighting_enabled = enabledColors &(1<<5);
+		float volume_max = optix::rtTex2D<float>(max_volume, vol_u, vol_v) - increment * vol_w;
+		
+		float4 voxel_val_tf;
+		if (volume_max <= IsoValRange.y) {
+			//rtPrintf("%f\n", volume_scalar);
+			continue;
+		}
 		for (int i = 0; i < numTex; i++) {
 			if (!(enabledColors & (1 << i)))
 				continue;
@@ -172,7 +178,7 @@ RT_PROGRAM void closest_hit() {
 			default:
 				color = make_float4(1.0);
 			}
-			volume_scalar = optix::rtTex3D<float>(volumeTextureId1, vol_u, vol_v, i / 5.0f) - increment * vol_w;
+			volume_scalar = optix::rtTex3D<float>(volumeTextureId1, vol_u, vol_v, i / (float)numTex) - increment * vol_w;
 			float4 voxel_val_tf;
 			if (volume_scalar <= IsoValRange.y && volume_scalar >= IsoValRange.x) {
 				voxel_val_tf = color;

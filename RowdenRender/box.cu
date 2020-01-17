@@ -39,10 +39,8 @@ rtDeclareVariable(optix::Ray, ray, rtCurrentRay, );
 
 rtDeclareVariable(float3, box_min, , );	// also the anchor
 rtDeclareVariable(float3, box_max, , );	// opposite corners of the volume
-rtDeclareVariable(float3, v1, , );		// edges of the plane in which a slice is put, has been scaled by 1/dot(v1, v1)
-rtDeclareVariable(float3, v2, , );
-rtDeclareVariable(float3, v3, , );
-rtDeclareVariable(float3, voxel_size, , );
+
+
 rtDeclareVariable(float, scene_epsilon, , );
 rtDeclareVariable(float, volumeRaytraceStepSize, , );
 
