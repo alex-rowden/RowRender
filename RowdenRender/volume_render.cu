@@ -299,7 +299,7 @@ RT_PROGRAM void closest_hit() {
 				amplitude_buffer[launch_index] = make_float4((color_composited.x), (color_composited.y), (color_composited.z), (opaque_composited));
 				return;
 			}
-			if (opaque_composited > 0.99) {
+			if (opaque_composited > 0.9) {
 				amplitude_buffer[launch_index] = make_float4((color_composited.x), (color_composited.y), (color_composited.z), (opaque_composited));
 				return;
 			}

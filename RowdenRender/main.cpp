@@ -26,7 +26,7 @@
 #include <stb_image_write.h>
 
 #define DEBUG true
-#define BENCHMARK true
+#define BENCHMARK false
 #define MY_PI 3.1415926535897932384626433
 int counter = 10;
 float increment = 0.05;
@@ -1499,7 +1499,7 @@ int main() {
 	optix::float3 color5 = optix::make_float3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
 	optix::float3 color6 = optix::make_float3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
 	optix::float4 intersection_color = optix::make_float4(optix::make_float3(0), 0);
-	bool enable_color[6] = { false, true, false, false, false, false };
+	bool enable_color[6] = { false, false, false, false, false, false };
 	//bool lighting_enabled = false;
 	GLuint temp_tex;
 	glGenTextures(1, &temp_tex);
@@ -1813,6 +1813,10 @@ int main() {
 		ImGui::Render();
 		
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+		if (BENCHMARK) {
+			std::cout << "Render GUI " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
+			start = clock();
+		}
 		//render(vol, &sp);
 		w.ProcessFrame(&camera);
 		if (BENCHMARK) {
