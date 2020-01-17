@@ -1499,6 +1499,8 @@ int main() {
 	float tune = 1.0f;
 	float fov = 90;
 	int tex_num = 0;
+	float max_iso_val = 0;
+	bool iso_change = false;
 	optix::float3 color1 = optix::make_float3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
 	optix::float3 color2 = optix::make_float3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
 	optix::float3 color3 = optix::make_float3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
@@ -1764,8 +1766,11 @@ int main() {
 		//std::cout << halfwayVecP.x << ", " << halfwayVecP.y << std::endl;
 		context["HalfwayVecP"]->setFloat(make_float2(halfwayVecP));
 		context["sincosHalfwayTheta"]->setFloat(optix::make_float2(sin(halfwayVecP.x), cos(halfwayVecP.x)));
-
-		updateBoundingBox(center + width/2.0f, max_volume);
+		
+		if (max_iso_val != center + width / 2.0f) {
+			updateBoundingBox(center + width / 2.0f, max_volume);
+			max_iso_val = center + width / 2.0f;
+		}
 		if (BENCHMARK) {
 			std::cout << "Update OptiX " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
