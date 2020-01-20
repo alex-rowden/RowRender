@@ -66,7 +66,7 @@ void createGeometry(optix::Context& context, glm::vec3 volume_size, glm::mat4 tr
 
 		optix::float3 volume_v1 = optix::make_float3(50, 0.f, 0.f); //scaling factors
 		optix::float3 volume_v2 = optix::make_float3(0.f, 50, 0.f);
-		optix::float3 volume_v3 = optix::make_float3(0.f, 0.f, 50);
+		optix::float3 volume_v3 = optix::make_float3(0.f, 0.f, 3);
 		//optix::float3 volume_v3 = optix::make_float3(0.f, 0.f, 3.0);
 		/*
 		optix::float3 volume_v1 = optix::make_float3(50.0f, 0.f, 0.f);
@@ -1145,8 +1145,8 @@ int main() {
 	WifiData wifi;
 	int dialation = 1;
 	int num_smooths = 1;
-	std::string filename = "sphere_scaled512";
-	//std::string filename = "umd-secure-biharmonic";
+	//std::string filename = "sphere_scaled512";
+	std::string filename = "umd-secure-cubic";
 	wifi.loadBinary((filename + ".raw").c_str(), use_intensities, normal_x, normal_y);
 	WifiData wifi2;
 	//wifi2.loadBinary("sphere_scaled512.raw", use_intensities2, normal2_x, normal2_y);
