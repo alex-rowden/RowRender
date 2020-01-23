@@ -39,6 +39,8 @@ rtDeclareVariable(optix::Ray, ray, rtCurrentRay, );
 
 rtDeclareVariable(float3, box_min, , );	// also the anchor
 rtDeclareVariable(float3, box_max, , );	// opposite corners of the volume
+rtDeclareVariable(float3, gbox_min, , );	// also the anchor
+rtDeclareVariable(float3, gbox_max, , );	// opposite corners of the volume
 
 
 rtDeclareVariable(float, scene_epsilon, , );
@@ -48,11 +50,19 @@ rtDeclareVariable(float3, texcoord, attribute texcoord, );
 rtDeclareVariable(float3, front_hit_point, attribute front_hit_point, );
 rtDeclareVariable(float3, back_hit_point, attribute back_hit_point, );
 
+rtDeclareVariable(int, inRange, , );
+
 
 
 RT_PROGRAM void box_intersect(int primIdx) {
-	float3 rayOrigin_boxMin = box_min - ray.origin;
-	float3 rayOrigin_boxMax = box_max - ray.origin;
+	//rtPrintf("%d\n", inRange);
+	//rtPrintf("%f, %f, %f\n", box_min.x, box_min.y, box_min.z);
+	if (inRange != 1) {
+		return;
+	}
+	//end1 >= start2 and end2 >= start1;
+	float3 rayOrigin_boxMin = gbox_min - ray.origin;
+	float3 rayOrigin_boxMax = gbox_max - ray.origin;
 	float3 t0 = rayOrigin_boxMin / ray.direction;
 	float3 t1 = rayOrigin_boxMax / ray.direction;
 	float3 near = fminf(t0, t1);

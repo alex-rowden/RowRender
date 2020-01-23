@@ -52,7 +52,8 @@ GLuint volume_textureId, depth_mask_id, normal_textureId, max_volumeId;
 optix::TextureSampler volume_texture, depth_mask, normal_texture, max_volume_texture;
 
 glm::vec3 iso_grid_size = glm::vec3(16, 16, 4);
-//std::vector<optix::Geometry>
+std::vector<glm::vec2> isoRangeVolume = std::vector <glm::vec2>();
+std::vector<optix::Geometry> boxes;
 optix::Geometry box;
 
 void calculate_bounds(std::vector<unsigned char>& max_volume, float isoval, optix::float3& lower, optix::float3& upper) {
@@ -63,67 +64,118 @@ void calculate_bounds(std::vector<unsigned char>& max_volume, float isoval, opti
 	upper.z = lower.z + volume_v3.z * top;
 }
 
+void createIsoRangeVolume(std::vector<unsigned char> volume, glm::uvec3 dimensions) {
+	glm::uvec3 index = glm::uvec3(0);
+	isoRangeVolume.resize(iso_grid_size.x * iso_grid_size.y * iso_grid_size.z);
+	glm::uvec2 grid_step = glm::uvec2(ceil(dimensions.x / iso_grid_size.x), ceil(dimensions.y / iso_grid_size.y));
+	for (int i = 0; i < iso_grid_size.x; i++) {
+		for (int j = 0; j < iso_grid_size.y; j++) {
+			isoRangeVolume[i + iso_grid_size.x * j] = glm::vec2(255, 0);
+			for (int k = 0; (k < grid_step.x) && (grid_step.x * i + k < dimensions.x); k++) {
+				for (int l = 0; (l < grid_step.y) && (grid_step.y * j + l < dimensions.y); l++) {
+					if (isoRangeVolume[i + iso_grid_size.x * j].x > volume.at(i * grid_step.x + k + (j * grid_step.y + l) * dimensions.x)) {
+						isoRangeVolume[i + iso_grid_size.x * j].x = volume.at(i * grid_step.x + k + (j * grid_step.y + l) * dimensions.x);
+					}if (isoRangeVolume[i + iso_grid_size.x * j].y < volume.at(i * grid_step.x + k + (j * grid_step.y + l) * dimensions.x)) {
+						isoRangeVolume[i + iso_grid_size.x * j].y = volume.at(i * grid_step.x + k + (j * grid_step.y + l) * dimensions.x);
+					}
+				}
+			}
+		}
+	}
+	
+	for (int i = 0; i < iso_grid_size.z; i++) {
+		for (int j = 0; j < iso_grid_size.x * iso_grid_size.y; j++) {
+			isoRangeVolume[j + i * iso_grid_size.x * iso_grid_size.y].x = (isoRangeVolume[j].x) / 255.0f - (i + 1)/ iso_grid_size.z;
+			isoRangeVolume[j + i * iso_grid_size.x * iso_grid_size.y].y = (isoRangeVolume[j].y) / 255.0f - (i/iso_grid_size.z);
+		}
+	}
+}
+
 
 void createGeometry(optix::Context& context, glm::vec3 volume_size, glm::mat4 transform) {
 	try {
 		const char* ptx = sutil::getPtxStringDirect("RowdenRender", "box.cu");
-	
+		boxes.resize(iso_grid_size.x * iso_grid_size.y * iso_grid_size.z);
 		optix::Program box_bounds = context->createProgramFromPTXString(ptx, "box_bounds");
 		optix::Program box_intersect = context->createProgramFromPTXString(ptx, "box_intersect");
-	
-		// Create box
-		box= context->createGeometry();
-		box->setPrimitiveCount(1u);
-		box->setBoundingBoxProgram(box_bounds);
-		box->setIntersectionProgram(box_intersect);
-
-		//optix::float3 box_min = optix::make_float3(-volume_size.x / 2.f, -volume_size.y / 2.f, 0.f - volume_size.z / 2.f);	// volume is at origin
-		//optix::float3 box_max = optix::make_float3(volume_size.x / 2.f, volume_size.y / 2.f, 0.f + volume_size.z / 2.f);
-		
-
-
-		
-		//optix::float3 volume_v3 = optix::make_float3(0.f, 0.f, 3.0);
-		/*
-		optix::float3 volume_v1 = optix::make_float3(50.0f, 0.f, 0.f);
-		optix::float3 volume_v2 = optix::make_float3(0.f, 50.0f, 0.f);
-		optix::float3 volume_v3 = optix::make_float3(0.f, 0.f, 25.0f);
-		*/
-		//volume_v1 *= 1.0f / dot(volume_v1, volume_v1);
-		//volume_v2 *= 1.0f / dot(volume_v2, volume_v2);
-		//volume_v3 *= 1.0f / dot(volume_v3, volume_v3);
-
-		box["box_min"]->setFloat(box_min);
-		box["box_max"]->setFloat(box_max);
-	
-
-		box["scene_epsilon"]->setFloat(1e-4f);
-		box["volumeRaytraceStepSize"]->setFloat(.11/3.0f);
-
 		context["box_min"]->setFloat(box_min);
 		context["box_max"]->setFloat(box_max);
 		context["v1"]->setFloat(volume_v1 * 1.0f / dot(volume_v1, volume_v1));
 		context["v2"]->setFloat(volume_v2 * 1.0f / dot(volume_v2, volume_v2));
 		context["v3"]->setFloat(volume_v3 * 1.0f / dot(volume_v3, volume_v3));
-		context["volumeRaytraceStepSize"]->setFloat(.11/3.0f);
-		
-		
+		context["volumeRaytraceStepSize"]->setFloat(.11 / 3.0f);
+
 		ptx = sutil::getPtxStringDirect("RowdenRender", "volume_render.cu");
 		optix::Material box_matl = context->createMaterial();
 		optix::Program box_ch = context->createProgramFromPTXString(ptx, "closest_hit");
-		
+
 		box_matl->setClosestHitProgram(0, box_ch);
 
 		// Create GIs for each piece of geometry
 		std::vector<optix::GeometryInstance> gis;
-		gis.push_back(context->createGeometryInstance(box, &box_matl, &box_matl + 1));
+		optix::float3 box_range = box_max - box_min;
+		optix::float3 box_step = optix::make_float3(box_range.x/iso_grid_size.x, box_range.y/iso_grid_size.y, box_range.z/iso_grid_size.z);
+		std::cout << box_range.x << ", " << box_range.y << ", " << box_range.z << std::endl;
+		std::cout << box_step.x << ", " << box_step.y << ", " << box_step.z << std::endl;
+		// Create box
+		glm::uvec3 indices = glm::uvec3(0);
+		for (int i = 0; i < iso_grid_size.x * iso_grid_size.y * iso_grid_size.z; i++) {
+			box = optix::Geometry();
+			box = context->createGeometry();
+			box->setPrimitiveCount(1u);
+			box->setBoundingBoxProgram(box_bounds);
+			box->setIntersectionProgram(box_intersect);
+			optix::float3 temp_min = optix::make_float3(box_min.x + box_step.x * indices.x, box_min.y + box_step.y * indices.y, box_min.z + box_step.z * indices.z);
+			box["box_min"]->setFloat(temp_min);
+			optix::float3 temp_max = optix::make_float3(box_min.x + box_step.x * (indices.x + 1), box_min.y + box_step.y * (indices.y + 1), box_min.z + box_step.z * (indices.z + 1));
+			std::cout << temp_min.x << ", " << temp_min.y << ", " << temp_min.z << std::endl;
+			std::cout << temp_max.x << ", " << temp_max.y << ", " << temp_max.z << std::endl;
+			box["box_max"]->setFloat(temp_max);
+			//optix::float3 box_min = optix::make_float3(-volume_size.x / 2.f, -volume_size.y / 2.f, 0.f - volume_size.z / 2.f);	// volume is at origin
+			//optix::float3 box_max = optix::make_float3(volume_size.x / 2.f, volume_size.y / 2.f, 0.f + volume_size.z / 2.f);
+
+			box["gbox_min"]->setFloat(box_min);
+			box["gbox_max"]->setFloat(box_max);
+
+
+			//optix::float3 volume_v3 = optix::make_float3(0.f, 0.f, 3.0);
+			/*
+			optix::float3 volume_v1 = optix::make_float3(50.0f, 0.f, 0.f);
+			optix::float3 volume_v2 = optix::make_float3(0.f, 50.0f, 0.f);
+			optix::float3 volume_v3 = optix::make_float3(0.f, 0.f, 25.0f);
+			*/
+			//volume_v1 *= 1.0f / dot(volume_v1, volume_v1);
+			//volume_v2 *= 1.0f / dot(volume_v2, volume_v2);
+			//volume_v3 *= 1.0f / dot(volume_v3, volume_v3);
+
+
+			box["inRange"]->setInt(0);
+
+			box["scene_epsilon"]->setFloat(1e-4f);
+			box["volumeRaytraceStepSize"]->setFloat(.11 / 3.0f);
+
+
+
+			boxes[i] = box;
+
+			gis.push_back(context->createGeometryInstance(box, &box_matl, &box_matl + 1));
+			indices.x += 1;
+			if (indices.x >= iso_grid_size.x) {
+				indices.x = 0;
+				indices.y += 1;
+			}
+			if (indices.y >= iso_grid_size.y) {
+				indices.y = 0;
+				indices.z += 1;
+			}
+		}
 
 		// Place all in group
 		optix::GeometryGroup geometrygroup = context->createGeometryGroup(gis.begin(), gis.end());
 		geometrygroup->setChildCount(static_cast<unsigned int>(gis.size()));
 		geometrygroup->setChild(0, gis[0]);
 	
-		geometrygroup->setAcceleration( context->createAcceleration("NoAccel") );
+		geometrygroup->setAcceleration( context->createAcceleration("BVH"));
 
 		context["top_object"]->set(geometrygroup);
 	}
@@ -1163,6 +1215,23 @@ void updateBoundingBox(float isoValMax, std::vector<unsigned char>&max_volume) {
 	box["box_max"]->setFloat(upper);
 }
 
+bool overlap(glm::vec2 a, glm::vec2 b) {
+	return a.y >= b.x && b.y >= a.x;
+}
+
+void updateGeometry(glm::vec2 isoRange) {
+	//glm::uvec2 indices = glm::uvec2(0);
+	int i = 0;
+	for (auto box : boxes) {
+		if (overlap(isoRange, isoRangeVolume.at(i++))) {
+			box["inRange"]->setInt(1);
+		}
+		else {
+			box["inRange"]->setInt(0);
+		}
+	}
+}
+
 int main() {
 	
 	clock_t start = clock();
@@ -1366,6 +1435,8 @@ int main() {
 	//RTresult ret = rtBufferCreate(context->get(), RT_BUFFER_INPUT, &ray_buffer);
 
 	createGeometry(context, glm::vec3(wifi.numLatCells, wifi.numLonCells, wifi.numSlices), glm::mat4(1));
+	createIsoRangeVolume(use_intensities, glm::uvec3(wifi.numLonCells, wifi.numLatCells, wifi.numSlices));
+	
 	context["fov"]->setFloat(glm::radians(90.0f));
 	try {
 		context->validate();
@@ -1563,6 +1634,13 @@ int main() {
 		ImGui::End();
 
 		context["IsoValRange"]->setFloat(optix::make_float2(center-width/2.0f, center+width/2.0f));
+		if (center + width / 2.0f) {
+			iso_change = true;
+		}
+		if (true) {
+			updateGeometry(glm::vec2(center - width / 2.0f, center + width / 2.0f));
+			max_iso_val = center + width / 2.0f;
+		}
 		context["ShadingTerms"]->setFloat(optix::make_float3(base_opac, color_aug ? sil_term: -sil_term, spec_term));
 		context["BubbleTerms"]->setFloat(optix::make_float4(bubble_top, bubble_bottom, bubble_max_opac, bubble_min_opac));
 		context["tune"]->setFloat(tune);
@@ -1581,6 +1659,7 @@ int main() {
 			}
 		}
 		context["enabledColors"]->setInt(enabledColors);
+		
 		camera.fov = fov;
 		clock_t per_frame = clock();
 		glEnable(GL_DEPTH_TEST);

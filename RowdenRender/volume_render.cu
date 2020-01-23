@@ -7,10 +7,8 @@
 
 using namespace optix;
 
-struct PerRayData_hologram {
-	float3 f2b_color;
-	float f2b_opaque;
-	unsigned int depth;
+struct PerRayData {
+	;
 };
 
 rtDeclareVariable(optix::Ray, ray, rtCurrentRay, );
@@ -378,10 +376,7 @@ RT_PROGRAM void camera() {
 	//float3 ray_direction = normalize(make_float3((d.x * normalize(m1) + d.y * normalize(m2) + normalize(m3) + normalize(m4))));
 	optix::Ray ray(ray_origin, ray_direction, radiance_ray_type, scene_epsilon);
 	//rtPrintf("%f, %f, %f\n", rayDirection.x, rayDirection.y, rayDirection.z);
-	PerRayData_hologram prd;
-	prd.f2b_color = make_float3(0.f, 0.f, 0.f);
-	prd.f2b_opaque = 0.f;
-	prd.depth = 0;
+	PerRayData prd;
 	rtTrace(top_object, ray, prd);
 }
 
