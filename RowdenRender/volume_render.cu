@@ -73,6 +73,8 @@ rtDeclareVariable(int, numTex, , );
 rtDeclareVariable(int, enabledColors, , );
 rtDeclareVariable(float4, intersectionColor, , );
 rtDeclareVariable(float, debug, , );
+rtDeclareVariable(float, increment, , );
+rtDeclareVariable(float, step_mod, , );
 
 
 RT_PROGRAM void dummy() {
@@ -93,7 +95,8 @@ inline float sdot(float2 sincosa, float2 sincosnorm, float a, float phi) {
 }
 
 RT_PROGRAM void closest_hit() {
-	
+	//amplitude_buffer[launch_index] = make_float4(1, 0, 1, .5);
+	//return;
 	float2 sample;
 	/*
 	float max_theta = -3.15f;
@@ -118,7 +121,7 @@ RT_PROGRAM void closest_hit() {
 	const float3 fhp = front_hit_point;
 	
 	const float3 bhp = back_hit_point;
-	unsigned int num_steps = floorf(sqrtf(dot(bhp - fhp, bhp - fhp)) / volumeRaytraceStepSize);
+	float total_distance = (sqrtf(dot(bhp - fhp, bhp - fhp)));
 	float3 color_composited = make_float3(0.f, 0.f, 0.f);
 	float opaque_composited = 0.f;
 	//float epsilon = .1f * volumeRaytraceStepSize;
@@ -128,9 +131,13 @@ RT_PROGRAM void closest_hit() {
 	
 	//if ((zFar + zNear - depth * (zFar - zNear)) > 0) {
 	distance = 2.0 * zNear * zFar / (zFar + zNear - depth * (zFar - zNear));
-	for (unsigned int s = 0; s < num_steps; ++s) {
-		float3 texPoint = fhp + (s)*volumeRaytraceStepSize * ray.direction;// +(epsilon) * (optix::rtTex3D<float>(random_texture, launch_index.x / amplitude_buffer.size().x, launch_index.y / amplitude_buffer.size().y, s / num_steps));
-
+	
+	float distance_so_far = 0;
+	//rtPrintf("%f\n", total_distance);
+	while (total_distance > distance_so_far) {
+		//rtPrintf("%f\n", distance_so_far);
+		float3 texPoint = fhp + (distance_so_far) * ray.direction;// +(epsilon) * (optix::rtTex3D<float>(random_texture, launch_index.x / amplitude_buffer.size().x, launch_index.y / amplitude_buffer.size().y, s / num_steps));
+		
 		float vol_u = dot(texPoint - box_min, v1);
 		float vol_v = dot(texPoint - box_min, v2);
 		float vol_w = dot(texPoint - box_min, v3);
@@ -138,14 +145,24 @@ RT_PROGRAM void closest_hit() {
 		float3 show = texPoint - box_min;
 
 		float volume_scalar;
+		if (length(texPoint - ray.origin) > distance) {
+			//color_composited = make_float3(1, 0, 0);
+			//color_composited = make_float3(0, 0, 0);
+			//opaque_composited = 0;
+			//flag = true;
+			//rtPrintf("%f\n", length(texPoint-box_min));
+			//amplitude_buffer[launch_index] = make_float4(length(texPoint-ray.origin)/50.0f, length(texPoint-ray.origin) /50.0f, length(texPoint-ray.origin) /50.0f, 1.0f);
+			amplitude_buffer[launch_index] = make_float4((color_composited.x), (color_composited.y), (color_composited.z), (opaque_composited));
+			return;
+		}
 		
-		float increment = 1;
+		
 		
 		float4 color;
 		bool flag = false;
 		bool lighting_enabled = enabledColors &(1<<5);
 		float volume_max = optix::rtTex2D<float>(max_volume, vol_u, vol_v) - increment * vol_w;
-		
+		distance_so_far += volumeRaytraceStepSize * (1 + step_mod * max(abs(volume_max - IsoValRange.x), abs(volume_max - IsoValRange.y)));
 		float4 voxel_val_tf;
 		if (volume_max <= IsoValRange.y) {
 			//rtPrintf("%f\n", volume_scalar);
@@ -214,13 +231,15 @@ RT_PROGRAM void closest_hit() {
 
 			float sinphi = sin(phi);
 			float3 normal = make_float3(sinphi * cos(theta), sinphi * sin(theta), cos(phi));
+			//normal.z = 1 - increment;
+			//normal = normalize(normal);
 			float2 normalP = make_float2(phi, theta);
-			float2 sincosnorm = make_float2(sin(phi), cos(phi));
+			float2 sincosnorm = make_float2(sin(theta), cos(theta));
 
 			//sin(theta1)sin(theta2)cos(phi1 - pih2) + cos(theta1)cos(theta2)
 			//float diffuse = diffuseStrength * fmax(0, sin(theta) * sincosLightTheta.x * cos(phi - lightDirP.x) + cos(theta) * sincosLightTheta.y);
 			//float diffuse = diffuseStrength * fmax(0, sdot(lightDirP, normalP));
-			float diffuse = diffuseStrength * fmax(0, sdot(sincosLightTheta, sincosnorm, lightDirP.y, theta));
+			float diffuse = diffuseStrength * fmax(0, sdot(sincosLightTheta, sincosnorm, lightDirP.y, phi));
 			//float3 viewDir = CameraDir;
 
 
@@ -228,15 +247,15 @@ RT_PROGRAM void closest_hit() {
 
 			//float spec = specularStrength * pow(fmax(sin(theta) * sincosHalfwayTheta.x * cos(phi - sincosHalfwayTheta.x) + cos(theta) * sincosHalfwayTheta.y, 0), shininess);
 			//float spec = specularStrength * pow(fabs(sdot(normalP, HalfwayVecP)), shininess);
-			float spec = specularStrength * pow(fabs(sdot(sincosHalfwayTheta, sincosnorm, theta, HalfwayVecP.y)), shininess);
+			float spec = specularStrength * pow(fabs(sdot(sincosHalfwayTheta, sincosnorm, HalfwayVecP.y, phi)), shininess);
 			//rtPrintf("%f, %f\n", HalfwayVecP.x, HalfwayVecP.y);
 			if (lighting_enabled) {
 				color_self = ambientStrength * make_float3(voxel_val_tf) + diffuse * make_float3(voxel_val_tf) + spec * make_float3(1, 1, 1);
 			}
 			else {
-				color_self = .7 * make_float3(voxel_val_tf);
+				color_self = make_float3(fabs(normal.x), fabs(normal.y), fabs(normal.z));;
 			}
-			//color_self = make_float3(fabs(normal.x), fabs(normal.y), fabs(normal.z));
+			
 
 			float bubble_coefficient = 1 - (fabs(dot(ray.direction, normal)));
 			//float bubble_coefficient = 1 - (fabs(sdot(CameraDirP, normalP)));
@@ -293,16 +312,7 @@ RT_PROGRAM void closest_hit() {
 				//opacities[counter] = opaque_self;
 				//counter++;
 			//}
-			if (length(texPoint - ray.origin) > distance) {
-				//color_composited = make_float3(1, 0, 0);
-				//color_composited = make_float3(0, 0, 0);
-				//opaque_composited = 0;
-				//flag = true;
-				//rtPrintf("%f\n", length(texPoint-box_min));
-				//amplitude_buffer[launch_index] = make_float4(length(texPoint-ray.origin)/50.0f, length(texPoint-ray.origin) /50.0f, length(texPoint-ray.origin) /50.0f, 1.0f);
-				amplitude_buffer[launch_index] = make_float4((color_composited.x), (color_composited.y), (color_composited.z), (opaque_composited));
-				return;
-			}
+			
 			if (opaque_composited > 0.9) {
 				amplitude_buffer[launch_index] = make_float4((color_composited.x), (color_composited.y), (color_composited.z), (opaque_composited));
 				return;

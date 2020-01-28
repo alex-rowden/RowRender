@@ -49,7 +49,7 @@ public:
 	glm::vec2 getLatVec() { return glm::vec2(minLat, maxLat); }
 	glm::vec2 getLonVec() { return glm::vec2(minLon, maxLon); }
 	float longitudeRange, latitudeRange;
-	int numLonCells, numLatCells, numSlices;
+	unsigned int numLonCells, numLatCells, numSlices;
 	std::map<std::string, float **> netIDToIntensities;
 	std::map<std::string, std::map<std::string, float **>> netIDToMacToIntensities;
 	std::map<std::string, std::vector<WifiEntry*>> getNetIDToWifiEntries() { return NetIDToWifiEntries; }

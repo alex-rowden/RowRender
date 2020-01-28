@@ -57,8 +57,9 @@ int main() {
 	wifi.loadCSV("../RowdenRender/Content/Data/EricWifi-2-27-19(2).csv");
 	
 	wifi.Finalize(.00001f);
-	for (auto freq : wifi.frequencies) {
-		wifi.ComputeIDIntensities("umd", freq);
+	//for (auto freq : wifi.frequencies) {
+	for (int i = 0; i < 1; i++) {
+		wifi.ComputeIDIntensities("umd");
 
 		float** intensities = wifi.GetIDIntensities("umd");
 
@@ -100,8 +101,8 @@ int main() {
 				}
 			}
 		}
-
-		std::fstream out = std::fstream("umd" +std::to_string(freq)+ ".raw", std::ios::out | std::ios::binary);
+		
+		std::fstream out = std::fstream("umd.raw", std::ios::out | std::ios::binary);
 		out.write(reinterpret_cast<char*>(&wifi.numLatCells), sizeof(int));
 		out.write(reinterpret_cast<char*>(&wifi.numLonCells), sizeof(int));
 		out.write(reinterpret_cast<char*>(&num_cells), sizeof(int));

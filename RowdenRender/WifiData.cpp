@@ -178,8 +178,8 @@ glm::ivec3 getTrip(unsigned long indx, int numLatCells, int numLonCells, int num
 }
 
 bool WifiData::loadBinary(const char* filename, std::vector<unsigned char>& intensities, std::vector<short>& phi, std::vector<short>&theta, unsigned int sample_step) {
-	int dialation = 1;
-	int num_smooths = 10;
+	int dialation = 3;
+	int num_smooths = 100;
 	std::string outputf = std::to_string(dialation) + "_" + std::to_string(num_smooths) + std::string(filename);
 	std::ifstream f(outputf.c_str(), std::ios::in|std::ios::binary);
 	if (f.good()) {
@@ -233,8 +233,8 @@ bool WifiData::loadBinary(const char* filename, std::vector<unsigned char>& inte
 	for (unsigned long i = 0; i < intensities.size(); i++) {
 		glm::ivec3 indices = getTrip(i, numLatCells, numLonCells, numSlices);
 		calculate_neighbors(neighbors, intensities, indices.x, indices.y, indices.z, 1);
-		glm::vec3 normal = glm::vec3(((neighbors.right) - neighbors.left), ((neighbors.up) - neighbors.down), 0);
-		normal /= (dialation * 2);
+		glm::vec3 normal = glm::vec3(((neighbors.right) - neighbors.left) * numLatCells / (float)dialation, ((neighbors.up) - neighbors.down) * numLonCells / (float)dialation, 255.0f/50.f);
+		
 		if (glm::length(normal) != 0) {
 			normal = glm::normalize(normal);
 		}
@@ -245,13 +245,15 @@ bool WifiData::loadBinary(const char* filename, std::vector<unsigned char>& inte
 
 	for (int i = 0; i < num_smooths; i++) {
 		for (unsigned long curr_idx = 0; curr_idx < intensities.size(); curr_idx++) {
-			glm::ivec3 indices = getTrip(curr_idx, numLatCells, numLatCells, numSlices);
+			glm::ivec3 indices = getTrip(curr_idx, numLatCells, numLonCells, numSlices);
 			calculate_neighbors(neighborsf, temp_x, indices.x, indices.y, indices.z, dialation);
 			temp_x.at(curr_idx) = (neighborsf.right + neighborsf.left + neighborsf.up + neighborsf.down + neighborsf.front + neighborsf.back) / 6.0f;
 			calculate_neighbors(neighborsf, temp_y, indices.x, indices.y, indices.z, dialation);
 			temp_y.at(curr_idx) = (neighborsf.right + neighborsf.left + neighborsf.up + neighborsf.down + neighborsf.front + neighborsf.back) / 6.0f;
-			glm::vec3 normal = glm::vec3(temp_x.at(curr_idx), temp_y.at(curr_idx), .1);
-			if (num_smooths == i - 1) {
+			calculate_neighbors(neighborsf, temp_z, indices.x, indices.y, indices.z, dialation);
+			temp_z.at(curr_idx) = (neighborsf.right + neighborsf.left + neighborsf.up + neighborsf.down + neighborsf.front + neighborsf.back) / 6.0f;
+			glm::vec3 normal = glm::vec3(temp_x.at(curr_idx), temp_y.at(curr_idx), temp_z.at(curr_idx));
+			if (true) {
 				normal = glm::normalize(normal);
 				temp_x.at(curr_idx) = normal.x;
 				temp_y.at(curr_idx) = normal.y;
@@ -347,9 +349,9 @@ bool WifiData::loadBinary(const char* filename, std::vector<unsigned char>& inte
 			return false;
 		unsigned int dims[3];
 		file.read(reinterpret_cast<char*>(dims), 3 * 4 * sizeof(char)); //I know that uint is 4 bytes in matlab and I'm not sure about it here so this is how I am doing it
-		numLatCells = dims[1];//1
-		numLonCells = dims[0];//0
-		numSlices = dims[2];
+		this->numLatCells = dims[1];//1
+		this->numLonCells = dims[0];//0
+		this->numSlices = dims[2];
 		unsigned long total_size = numLatCells * numLonCells * numSlices;
 		intensities.resize(total_size);
 		std::vector<char> temp = std::vector<char>();
