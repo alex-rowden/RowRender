@@ -64,7 +64,7 @@ void calculate_bounds(std::vector<unsigned char>& max_volume, float isoval, opti
 	upper.z = lower.z + volume_v3.z * top;
 }
 
-void updateIsoRangeVolume(std::vector<unsigned char> volume, glm::uvec3 dimensions, bool *enabled_vols, float increment) {
+void updateIsoRangeVolume(std::vector<unsigned short> volume, glm::uvec3 dimensions, bool *enabled_vols, float increment) {
 	glm::uvec3 index = glm::uvec3(0);
 	isoRangeVolume.resize(iso_grid_size.x * iso_grid_size.y * iso_grid_size.z);
 	glm::uvec2 grid_step = glm::uvec2(ceil(dimensions.x / iso_grid_size.x), ceil(dimensions.y / iso_grid_size.y));
@@ -258,13 +258,13 @@ void createContext(optix::Context&context, Window&w) {
 	const glm::vec3 default_color = glm::vec3(1.0f, 1.0f, 1.0f);
 }
 
-void createOptixTextures(optix::Context& context, glm::vec3 volume_size, std::vector<unsigned char> volumeRaw, std::vector<short> normals, std::vector<unsigned char> max_volume) {
+void createOptixTextures(optix::Context& context, glm::vec3 volume_size, std::vector<unsigned short> volumeRaw, std::vector<short> normals, std::vector<unsigned short> max_volume) {
 	try {
 		
 		glGenTextures(1, &volume_textureId);
 		glBindTexture(GL_TEXTURE_3D, volume_textureId);
 		context["numTex"]->setInt((int)volume_size.z);
-		glTexImage3D(GL_TEXTURE_3D, 0, GL_COMPRESSED_RED, volume_size.x, volume_size.y, volume_size.z, 0, GL_RED, GL_UNSIGNED_BYTE, (void*)volumeRaw.data());
+		glTexImage3D(GL_TEXTURE_3D, 0, GL_COMPRESSED_RED, volume_size.x, volume_size.y, volume_size.z, 0, GL_RED, GL_UNSIGNED_SHORT, (void*)volumeRaw.data());
 		//glTexImage3D(GL_TEXTURE_3D, 0, GL_R8, volume_size.x, volume_size.y, volume_size.z, 0, GL_RED, GL_UNSIGNED_BYTE, (void*)volumeRaw.data());
 		glBindTexture(GL_TEXTURE_3D, 0);
 		// create optix 3D texture sampler
@@ -280,7 +280,7 @@ void createOptixTextures(optix::Context& context, glm::vec3 volume_size, std::ve
 		glGenTextures(1, &max_volumeId);
 		glBindTexture(GL_TEXTURE_2D, max_volumeId);
 		
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, volume_size.x, volume_size.y, 0, GL_RED, GL_UNSIGNED_BYTE, (void*)max_volume.data());
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, volume_size.x, volume_size.y, 0, GL_RED, GL_UNSIGNED_SHORT, (void*)max_volume.data());
 		//glTexImage3D(GL_TEXTURE_3D, 0, GL_R8, volume_size.x, volume_size.y, volume_size.z, 0, GL_RED, GL_UNSIGNED_BYTE, (void*)volumeRaw.data());
 		glBindTexture(GL_TEXTURE_2D, 0);
 		// create optix 3D texture sampler
@@ -1192,8 +1192,8 @@ void setupDearIMGUI(GLFWwindow *window) {
 	return;
 }
 
-unsigned char getMax(long column, std::vector<unsigned char>& intensities, int skip, int numSlices) {
-	unsigned char max = intensities.at(column);
+unsigned char getMax(long column, std::vector<unsigned short>& intensities, int skip, int numSlices) {
+	unsigned short max = intensities.at(column);
 	for (int i = 1; i < numSlices; i++) {
 		if (max < intensities.at(column + i * skip)) {
 			max = intensities.at(column + i * skip);
@@ -1202,7 +1202,7 @@ unsigned char getMax(long column, std::vector<unsigned char>& intensities, int s
 	return max;
 }
 
-void create_max_volume(std::vector<unsigned char> &intensities, WifiData &wifi, std::vector<unsigned char>&max_volume) {
+void create_max_volume(std::vector<unsigned short> &intensities, WifiData &wifi, std::vector<unsigned short>&max_volume) {
 	//glm::vec3 dimensions = glm::vec3(wifi.numLonCells, wifi.numLatCells, wifi.numSlices);
 	for (int i = 0; i < wifi.numLonCells * wifi.numLatCells; i++) {
 		max_volume.emplace_back(getMax(i, intensities, wifi.numLatCells * wifi.numLonCells, wifi.numSlices));
@@ -1239,7 +1239,7 @@ int main() {
 	
 	clock_t start = clock();
 	std::vector<short> normal_x, normal_y;
-	std::vector<unsigned char> use_intensities, max_volume;
+	std::vector<unsigned short> use_intensities, max_volume;
 	WifiData wifi;
 	int dialation = 1;
 	int num_smooths = 1;
@@ -1536,7 +1536,7 @@ int main() {
 		for (int i = 0; i < positions.size() - 1; i++) {
 			distances.emplace_back(glm::distance(positions.at(i), positions.at(i + 1)));
 		}
-		animated = true;
+		animated = false;
 	}
 	glGenTextures(1, &depth_mask_id);
 	glBindTexture(GL_TEXTURE_2D, depth_mask_id);

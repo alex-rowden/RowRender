@@ -109,7 +109,7 @@ unsigned long WifiData::get_indx(int x, int y, int z) {
 	return x + y * this->numLatCells + this->numLonCells * this->numLatCells * z;
 }
 
-unsigned char WifiData::sample_tex(std::vector<unsigned char>& intensities, int x, int y, int z) {
+unsigned short WifiData::sample_tex(std::vector<unsigned short>& intensities, int x, int y, int z) {
 	if (x < 0) {
 		x = 0;
 	}
@@ -148,7 +148,7 @@ float WifiData::sample_tex(std::vector<float>& intensities, int x, int y, int z)
 
 
 
-void WifiData::calculate_neighbors(Neighborhood&neighbors, std::vector<unsigned char>& intensities, int x, int y, int z, unsigned int sample_step) {
+void WifiData::calculate_neighbors(Neighborhood&neighbors, std::vector<unsigned short>& intensities, int x, int y, int z, unsigned int sample_step) {
 	neighbors.right = (int)sample_tex(intensities, x + sample_step, y, z);
 	neighbors.left = (int)sample_tex(intensities, x - sample_step, y, z);
 	neighbors.up = (int)sample_tex(intensities, x, y + sample_step, z);
@@ -177,7 +177,7 @@ glm::ivec3 getTrip(unsigned long indx, int numLatCells, int numLonCells, int num
 	return ret;
 }
 
-bool WifiData::loadBinary(const char* filename, std::vector<unsigned char>& intensities, std::vector<short>& phi, std::vector<short>&theta, unsigned int sample_step) {
+bool WifiData::loadBinary(const char* filename, std::vector<unsigned short>& intensities, std::vector<short>& phi, std::vector<short>&theta, unsigned int sample_step) {
 	int dialation = 3;
 	int num_smooths = 100;
 	std::string outputf = std::to_string(dialation) + "_" + std::to_string(num_smooths) + std::string(filename);
@@ -192,7 +192,7 @@ bool WifiData::loadBinary(const char* filename, std::vector<unsigned char>& inte
 		intensities.resize(size);
 		phi.resize(size);
 		theta.resize(size);
-		f.read((char*)(&intensities[0]), size * sizeof(unsigned char));
+		f.read((char*)(&intensities[0]), size * sizeof(unsigned short));
 		f.read((char*)(&phi[0]), size * sizeof(short));
 		f.read((char*)(&theta[0]), size * sizeof(short));
 		return true;
@@ -233,7 +233,7 @@ bool WifiData::loadBinary(const char* filename, std::vector<unsigned char>& inte
 	for (unsigned long i = 0; i < intensities.size(); i++) {
 		glm::ivec3 indices = getTrip(i, numLatCells, numLonCells, numSlices);
 		calculate_neighbors(neighbors, intensities, indices.x, indices.y, indices.z, 1);
-		glm::vec3 normal = glm::vec3(((neighbors.right) - neighbors.left) * numLatCells / (float)dialation, ((neighbors.up) - neighbors.down) * numLonCells / (float)dialation, 255.0f/50.f);
+		glm::vec3 normal = glm::vec3(((neighbors.right) - neighbors.left) * numLatCells / (float)dialation, ((neighbors.up) - neighbors.down) * numLonCells / (float)dialation, (1<<16 - 1)/50.f);
 		
 		if (glm::length(normal) != 0) {
 			normal = glm::normalize(normal);
@@ -328,7 +328,7 @@ bool WifiData::loadBinary(const char* filename, std::vector<unsigned char>& inte
 	out.write(reinterpret_cast<const char*>(&numSlices), sizeof(int));
 	out.write(reinterpret_cast<const char*>(&numLatCells), sizeof(int));
 	out.write(reinterpret_cast<const char*>(&numLonCells), sizeof(int));
-	out.write(reinterpret_cast<const char *>(&intensities[0]), intensities.size() * sizeof(unsigned char));
+	out.write(reinterpret_cast<const char *>(&intensities[0]), intensities.size() * sizeof(unsigned short));
 	out.write(reinterpret_cast<const char*>(&phi[0]), phi.size() * sizeof(short));
 	out.write(reinterpret_cast<const char*>(&theta[0]), theta.size() * sizeof(short));
 
@@ -342,25 +342,22 @@ bool WifiData::loadBinary(const char* filename, std::vector<unsigned char>& inte
 	return true;
 }
 
-bool WifiData::loadBinary(const char* filename, std::vector<unsigned char>& intensities) {
+bool WifiData::loadBinary(const char* filename, std::vector<unsigned short>& intensities) {
 	try {
 		std::ifstream file = std::ifstream(filename, std::ios::in | std::ios::binary);
-		if (!file)
+		if (!file.is_open())
 			return false;
 		unsigned int dims[3];
 		file.read(reinterpret_cast<char*>(dims), 3 * 4 * sizeof(char)); //I know that uint is 4 bytes in matlab and I'm not sure about it here so this is how I am doing it
-		this->numLatCells = dims[1];//1
-		this->numLonCells = dims[0];//0
+		this->numLatCells = dims[0];//1
+		this->numLonCells = dims[1];//0
 		this->numSlices = dims[2];
 		unsigned long total_size = numLatCells * numLonCells * numSlices;
 		intensities.resize(total_size);
-		std::vector<char> temp = std::vector<char>();
-		temp.resize(total_size);
-		file.read(temp.data(), total_size);
-		int counter = 0;
-		for (auto sample : temp) {
-			intensities[counter++] = (unsigned char)sample;
-		}
+		file.read(reinterpret_cast<char*>(intensities.data()), total_size * sizeof(unsigned short));
+		this->numLatCells = dims[0];//1
+		this->numLonCells = dims[1];//0
+		this->numSlices = dims[2];
 		return true;
 	}
 	catch (std::exception e) {

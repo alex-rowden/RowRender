@@ -24,7 +24,7 @@ private:
 	std::set<std::string> NetIDs;
 	float area(int x1, int y1, int x2, int y2, int x3, int y3);
 	bool isInside(int x1, int y1, int x2, int y2, int x3, int y3, int x, int y);
-	unsigned char sample_tex(std::vector<unsigned char>& intensities, int x, int y, int z);
+	unsigned short sample_tex(std::vector<unsigned short>& intensities, int x, int y, int z);
 	float sample_tex(std::vector<float>& intensities, int x, int y, int z);
 	unsigned long get_indx(int, int, int);
 	float minLat = std::numeric_limits<float>::max();
@@ -40,11 +40,11 @@ public:
 	WifiData() {};
 	void Finalize(float latLonDist);
 	void ComputeIDIntensities(std::string netID);
-	void calculate_neighbors(Neighborhood&neighbors, std::vector<unsigned char>&intensities, int x, int y, int z, unsigned int sample_step = 1);
+	void calculate_neighbors(Neighborhood&neighbors, std::vector<unsigned short>&intensities, int x, int y, int z, unsigned int sample_step = 1);
 	void calculate_neighbors(Neighborhoodf&neighbors, std::vector<float>&intensities, int x, int y, int z, unsigned int sample_step = 1);
 	bool loadCSV(const char*);
-	bool loadBinary(const char*, std::vector<unsigned char>&);
-	bool loadBinary(const char*, std::vector<unsigned char>&, std::vector<short>&, std::vector<short>&, unsigned int sample_step = 1);
+	bool loadBinary(const char*, std::vector<unsigned short>&);
+	bool loadBinary(const char*, std::vector<unsigned short>&, std::vector<short>&, std::vector<short>&, unsigned int sample_step = 1);
 	float **GetIDIntensities(std::string, std::string mac = "");
 	glm::vec2 getLatVec() { return glm::vec2(minLat, maxLat); }
 	glm::vec2 getLonVec() { return glm::vec2(minLon, maxLon); }
