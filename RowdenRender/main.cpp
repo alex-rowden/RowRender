@@ -1243,7 +1243,7 @@ int main() {
 	WifiData wifi;
 	int dialation = 1;
 	int num_smooths = 1;
-	std::string filename = "umd_all";
+	std::string filename = "umd_freqs";
 	//std::string filename = "sphere_freqs";
 	wifi.loadBinary((filename + ".raw").c_str(), use_intensities, normal_x, normal_y);
 	create_max_volume(use_intensities, wifi, max_volume);
@@ -1536,7 +1536,7 @@ int main() {
 		for (int i = 0; i < positions.size() - 1; i++) {
 			distances.emplace_back(glm::distance(positions.at(i), positions.at(i + 1)));
 		}
-		animated = true;
+		animated = false;
 	}
 	glGenTextures(1, &depth_mask_id);
 	glBindTexture(GL_TEXTURE_2D, depth_mask_id);
