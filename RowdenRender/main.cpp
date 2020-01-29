@@ -1246,9 +1246,9 @@ int main() {
 	std::string filename = "umd_freqs";
 	//std::string filename = "sphere_freqs";
 	wifi.loadBinary((filename + ".raw").c_str(), use_intensities, normal_x, normal_y);
-	create_max_volume(use_intensities, wifi, max_volume);
+	//create_max_volume(use_intensities, wifi, max_volume);
+	max_volume = use_intensities;
 	
-
 	if (BENCHMARK) {
 		std::cout << "Loading Data: " << (start - clock()) / CLOCKS_PER_SEC << " seconds" << std::endl;
 		start = clock();

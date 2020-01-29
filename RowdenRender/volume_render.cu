@@ -164,6 +164,10 @@ RT_PROGRAM void closest_hit() {
 		float volume_max = optix::rtTex2D<float>(max_volume, vol_u, vol_v) - increment * vol_w;
 		distance_so_far += volumeRaytraceStepSize * (1 + step_mod * max(abs(volume_max - IsoValRange.x), abs(volume_max - IsoValRange.y)));
 		float4 voxel_val_tf;
+<<<<<<< Updated upstream
+=======
+		//rtPrintf("%f\n", optix::rtTex2D<float>(max_volume, vol_u, vol_v));
+>>>>>>> Stashed changes
 		if (volume_max <= IsoValRange.y) {
 			//rtPrintf("%f\n", volume_scalar);
 			continue;
