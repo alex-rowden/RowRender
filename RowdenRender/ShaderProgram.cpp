@@ -10,7 +10,7 @@ ShaderProgram::ShaderProgram(std::vector<Shaders> shaders) {
 		case Shaders::NO_LIGHT_VERT:
 		case Shaders::SCREEN_VERT:
 		case Shaders::SKY_VERT:
-		case Shaders::INSTANCE_VERT:
+		case Shaders::VOLUME_VERT:
 			glAttachShader(shaderProgram, vertexShader);
 			break;
 		case Shaders::FRAGMENT:
@@ -19,6 +19,7 @@ ShaderProgram::ShaderProgram(std::vector<Shaders> shaders) {
 		case Shaders::SCREEN_FRAG:
 		case Shaders::SKY_FRAG:
 		case Shaders::INSTANCE_FRAG:
+		case Shaders::VOLUME_FRAG:
 			glAttachShader(shaderProgram, fragmentShader);
 			break;
 		}
@@ -183,6 +184,12 @@ void ShaderProgram::importShaderFile(Shaders shader, std::string *ShaderString) 
 	case Shaders::INSTANCE_VERT:
 		filename = "instance_vshader.glsl";
 		break;
+	case Shaders::VOLUME_FRAG:
+		filename = "volume_fragment.glsl";
+		break;
+	case Shaders::VOLUME_VERT:
+		filename = "volume_vertex.glsl";
+		break;
 	default:
 		throw "Not a valid shader";
 	}
@@ -255,6 +262,14 @@ void ShaderProgram::shader_error_check(Shaders shader) {
 		break;
 	case Shaders::INSTANCE_FRAG:
 		shader_name = "INSTANCE_FRAGMENT_SHADER";
+		shader_adr = &fragmentShader;
+		break;
+	case Shaders::VOLUME_VERT:
+		shader_name = "VOLUME_VERTEX_SHADER";
+		shader_adr = &vertexShader;
+		break;
+	case Shaders::VOLUME_FRAG:
+		shader_name = "VOLUME_FRAGMENT_SHADER";
 		shader_adr = &fragmentShader;
 		break;
 	default:
@@ -332,6 +347,16 @@ void ShaderProgram::SetupShader(Shaders shader) {
 		glCompileShader(fragmentShader);
 		break;
 	case Shaders::INSTANCE_VERT:
+		vertexShader = glCreateShader(GL_VERTEX_SHADER);
+		glShaderSource(vertexShader, 1, &shader_source, NULL);
+		glCompileShader(vertexShader);
+		break;
+	case Shaders::VOLUME_FRAG:
+		fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+		glShaderSource(fragmentShader, 1, &shader_source, NULL);
+		glCompileShader(fragmentShader);
+		break;
+	case Shaders::VOLUME_VERT:
 		vertexShader = glCreateShader(GL_VERTEX_SHADER);
 		glShaderSource(vertexShader, 1, &shader_source, NULL);
 		glCompileShader(vertexShader);

@@ -80,10 +80,6 @@ void updateIsoRangeVolume(std::vector<unsigned char> volume, glm::uvec3 dimensio
 
 //any old render function
 void render(Model mesh, ShaderProgram *sp) {
-	counter = 90;
-	if (counter > 100)
-		counter -= 100;
-	glClearColor(counter/100.0f, counter / 100.0f, counter / 80.0f, 1.0);
 	
 	for (Mesh* m : mesh.getMeshes()) {
 		m->Render();
@@ -403,9 +399,10 @@ int main() {
 	}
 	ShaderProgram sp = ShaderProgram({ShaderProgram::Shaders::FRAGMENT, ShaderProgram::Shaders::VERTEX});
 	ShaderProgram campus_map_sp = ShaderProgram({ShaderProgram::Shaders::NO_LIGHT_FRAG, ShaderProgram::Shaders::NO_LIGHT_VERT});
-	ShaderProgram screen_shader = ShaderProgram({ ShaderProgram::Shaders::SCREEN_FRAG, ShaderProgram::Shaders::SCREEN_VERT });
+	//ShaderProgram screen_shader = ShaderProgram({ ShaderProgram::Shaders::SCREEN_FRAG, ShaderProgram::Shaders::SCREEN_VERT });
 	ShaderProgram skybox_shader = ShaderProgram({ ShaderProgram::Shaders::SKY_FRAG, ShaderProgram::Shaders::SKY_VERT });
 	ShaderProgram instance_shader = ShaderProgram({ ShaderProgram::Shaders::INSTANCE_FRAG, ShaderProgram::Shaders::INSTANCE_VERT });
+	ShaderProgram volume_shader = ShaderProgram({ ShaderProgram::Shaders::VOLUME_FRAG, ShaderProgram::Shaders::VOLUME_VERT });
 	//mesh.SetData();
 	//
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
@@ -435,8 +432,13 @@ int main() {
 	RayTraced.setModel();
 	Model Tree = Model("Content\\Models\\tree_scaled.FBX");
 	Tree.setModel();
+	Model volume_cube = Model("Content\\Models\\cube\\cube.obj");
+	volume_cube.setModel();
+	Texture2D volume_data = Texture2D(&use_intensities, wifi.numLatCells, wifi.numLonCells);
+	volume_cube.getMeshes().at(0)->addTexture(volume_data);
 	glm::mat4 transformation = glm::scale(glm::mat4(1), scale * glm::vec3(-1, 1, -1));// glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
-	
+
+
 	struct TreeEntry {
 		double lat, lon;
 		int objID;
@@ -731,15 +733,19 @@ int main() {
 		
 		ImGui::End();
 		
-		if (center + width / 2.0f) {
+		volume_shader.SetUniform2f("IsoValRange", glm::vec2(center - width/2.0f, center + width/2.0f));
+		volume_shader.SetUniform1f("StepSize", volumeStepSize);
+
+		if (center + width / 2.0f != max_iso_val) {
 			iso_change = true;
 		}
 		if (iso_change || increment != old_increment) {
 			old_increment = increment;
 			updateIsoRangeVolume(use_intensities, glm::uvec3(wifi.numLonCells, wifi.numLatCells, wifi.numSlices), enable_color, increment);
 			max_iso_val = center + width / 2.0f;
+			iso_change = false;
 		}
-		//context["intersectionColor"]->setFloat(intersection_color);
+		
 		
 		int enabledColors = 0;
 		for (int i = 0; i < 6; i++) {
@@ -792,10 +798,6 @@ int main() {
 			std::cout << "Calculate FPS and Update Animation: " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
 		}
-		//texture.Bind();
-		
-		//render(model, &sp);
-		//render(light, &light_sp);
 
 		glm::mat4 transformation = glm::translate(glm::mat4(1), glm::vec3(75, 40.7, .6));
 		transformation = glm::scale(transformation,   glm::vec3(0.00996, 0.012782, 0.0155));// glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
@@ -821,7 +823,7 @@ int main() {
 		sp.SetUniform4fv("projection", camera.getProjection());
 		sp.SetLights(lights);
 		sp.SetUniform3f("viewPos", camera.getPosition());
-		render(model, &sp);
+		//render(model, &sp);
 		if (BENCHMARK) {
 			std::cout << "Render Campus Model " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
@@ -838,7 +840,7 @@ int main() {
 		instance_shader.SetUniform4fv("projection", camera.getProjection());
 		instance_shader.SetUniform4fv("view", camera.getView());
 		instance_shader.SetUniform4fv("transform", glm::scale(glm::translate(glm::mat4(1), glm::vec3(72.099, 63.9, 0) + w.translate), glm::vec3(.00095, .00159, .00129) + w.scale));
-		render(Tree, &instance_shader);
+		//render(Tree, &instance_shader);
 		if (BENCHMARK) {
 			std::cout << "Render Trees " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
@@ -907,12 +909,11 @@ int main() {
 			//updateBoundingBox(center + width / 2.0f, max_volume);
 			max_iso_val = center + width / 2.0f;
 		}
-		
-		
-		//hdr_texture.SetTextureID(depth_mask_id);
-		
-	
-		//delete[] depths;
+		volume_shader.Use();
+		volume_shader.SetUniform4fv("model", glm::translate(glm::scale(glm::mat4(1), glm::vec3(50, 50, 50)), glm::vec3(1, 1, .5)));
+		volume_shader.SetUniform4fv("camera", camera.getView());
+		volume_shader.SetUniform4fv("projection", camera.getProjection());
+		render(volume_cube, &volume_shader);
 		
 		if (BENCHMARK) {
 			std::cout << "Render Volume to Screen " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;

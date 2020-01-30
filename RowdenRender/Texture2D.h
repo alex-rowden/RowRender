@@ -13,6 +13,7 @@ public:
 	Texture2D(glm::vec4 color);
 	Texture2D(std::vector<std::string> faces);
 	Texture2D(std::vector<glm::vec4>* color, int height, int width);
+	Texture2D(std::vector<unsigned char>* vals, int height, int width);
 	void init_from_vector(std::vector<glm::vec4> *color, int height, int width);
 	void setBorderColor(glm::vec4 color);
 	void setTexParameterWrap(GLint s, GLint t);

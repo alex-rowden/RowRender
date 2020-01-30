@@ -5,7 +5,13 @@
 class ShaderProgram
 {
 public:
-	enum class Shaders { VERTEX, FRAGMENT, LIGHT_VERT, LIGHT_FRAG, NO_LIGHT_FRAG, NO_LIGHT_VERT, SCREEN_VERT, SCREEN_FRAG, SKY_FRAG, SKY_VERT, INSTANCE_FRAG, INSTANCE_VERT };
+	enum class Shaders { VERTEX, FRAGMENT, 
+		LIGHT_VERT, LIGHT_FRAG,
+		NO_LIGHT_FRAG, NO_LIGHT_VERT,
+		SCREEN_VERT, SCREEN_FRAG,
+		SKY_FRAG, SKY_VERT,
+		INSTANCE_FRAG, INSTANCE_VERT,
+		VOLUME_FRAG, VOLUME_VERT};
 	void SetupShader(Shaders shader);
 	ShaderProgram(std::vector<Shaders> shaders);
 

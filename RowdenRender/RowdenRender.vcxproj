@@ -81,7 +81,9 @@
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
     </None>
     <None Include="vertex_shader_no_light.glsl" />
+    <None Include="volume_fragment.glsl" />
     <None Include="volume_render.cu" />
+    <None Include="volume_vertex.glsl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

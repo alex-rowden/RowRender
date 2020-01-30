@@ -194,5 +194,11 @@
     <None Include="instance_fshader.glsl">
       <Filter>Source Files\Shaders</Filter>
     </None>
+    <None Include="volume_fragment.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="volume_vertex.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>
