@@ -169,7 +169,7 @@ void Mesh::setTexture(Texture2D texture, int index) {
 	textures[index] = texture;
 }
 
-void Mesh::Render() {
+void Mesh::Render(ShaderProgram *shader) {
 
 	unsigned int diffuseNr = 1;
 	unsigned int specularNr = 1;
@@ -186,7 +186,10 @@ void Mesh::Render() {
 			number = std::to_string(diffuseNr++);
 		else if (name == "texture_specular")
 			number = std::to_string(specularNr++);
-
+		if (textures[i].name != "texture_diffuse") {
+			GLint texture_position = glGetUniformLocation(shader->getShader(), name.c_str());
+			glUniform1i(texture_position, i);
+		}
 		//shader.setFloat(("material." + name + number).c_str(), i);
 		textures[i].Bind();
 	}

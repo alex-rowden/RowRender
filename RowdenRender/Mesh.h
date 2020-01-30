@@ -1,6 +1,7 @@
 #pragma once
 #include "Shape.h"
 #include "Texture2D.h"
+#include "ShaderProgram.h"
 
 class Mesh
 {
@@ -16,8 +17,9 @@ public:
 	void setTexture(Texture2D tex, int index);
 	void SetAsLight() { is_light = true; }
 	void SetInstanceTransforms(std::vector<glm::mat4>);
-	void Render();
+	void Render(ShaderProgram *shader);
 	bool isLight() { return is_light; }
+
 	std::vector<float> getVerticies() { return verticies; }
 	std::vector<float> getNormals() { return normals;}
 	std::vector<float> getTexCoords() { return texCoords;}

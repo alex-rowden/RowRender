@@ -82,7 +82,7 @@ void updateIsoRangeVolume(std::vector<unsigned char> volume, glm::uvec3 dimensio
 void render(Model mesh, ShaderProgram *sp) {
 	
 	for (Mesh* m : mesh.getMeshes()) {
-		m->Render();
+		m->Render(sp);
 	}
 }
 
@@ -434,7 +434,8 @@ int main() {
 	Tree.setModel();
 	Model volume_cube = Model("Content\\Models\\cube\\cube.obj");
 	volume_cube.setModel();
-	Texture2D volume_data = Texture2D(&use_intensities, wifi.numLatCells, wifi.numLonCells);
+	Texture2D volume_data = Texture2D(&use_intensities, wifi.numLonCells, wifi.numLatCells);
+	volume_data.giveName("volume");
 	volume_cube.getMeshes().at(0)->addTexture(volume_data);
 	glm::mat4 transformation = glm::scale(glm::mat4(1), scale * glm::vec3(-1, 1, -1));// glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
 
@@ -910,6 +911,7 @@ int main() {
 			max_iso_val = center + width / 2.0f;
 		}
 		volume_shader.Use();
+		volume_shader.SetUniform3f("viewPos", camera.getPosition());
 		volume_shader.SetUniform4fv("model", glm::translate(glm::scale(glm::mat4(1), glm::vec3(50, 50, 50)), glm::vec3(1, 1, .5)));
 		volume_shader.SetUniform4fv("camera", camera.getView());
 		volume_shader.SetUniform4fv("projection", camera.getProjection());

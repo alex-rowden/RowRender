@@ -37,6 +37,7 @@ public:
 	void SetUniform2fv(const char* uniform_name, glm::mat2 mat, GLint transpose = GL_FALSE);
 
 	void SetLights(Lights lights);
+	GLint getShader() { return shaderProgram; }
 private:
 	unsigned int vertexShader, fragmentShader, shaderProgram;
 	void importShaderFile(Shaders shader, std::string *ShaderString);

@@ -126,6 +126,10 @@ void Texture2D::init_from_vector(std::vector<glm::vec4> *colors, int height, int
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_FLOAT, colors->data());
 }
 
+void Texture2D::giveName(std::string name) {
+	this->name = name;
+}
+
 Texture2D::Texture2D(Texture2D::COLORS color) {
 	glm::vec4 c = glm::vec4(1);
 	switch (color) {
