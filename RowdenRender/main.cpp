@@ -439,7 +439,7 @@ int main() {
 	volume_cube.getMeshes().at(0)->addTexture(volume_data);
 	glm::mat4 transformation = glm::scale(glm::mat4(1), scale * glm::vec3(-1, 1, -1));// glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
 
-	volume_shader.SetUniform3f("volume_scale",glm::vec3(50.f, 50.f, 50.f));
+	volume_shader.SetUniform3f("volume_size",glm::vec3(50.f, 50.f, 50.f));
 	volume_shader.SetUniform3f("box_min",glm::vec3(25.0f, 25.0f, 0.f));
 	volume_shader.SetUniform3f("box_max",glm::vec3(75.f, 75.f, 50.f));
 
@@ -671,7 +671,7 @@ int main() {
 	bool iso_change = false;
 	float increment = 2.5f;
 	float old_increment = 0;
-	float volumeStepSize = .03;//.11 / 3.0;
+	float volumeStepSize = .11;//.11 / 3.0;
 	float step_mod = 0;
 	optix::float3 color1 = optix::make_float3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
 	optix::float3 color2 = optix::make_float3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
