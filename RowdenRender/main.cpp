@@ -439,6 +439,9 @@ int main() {
 	volume_cube.getMeshes().at(0)->addTexture(volume_data);
 	glm::mat4 transformation = glm::scale(glm::mat4(1), scale * glm::vec3(-1, 1, -1));// glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
 
+	volume_shader.SetUniform3f("volume_scale",glm::vec3(50.f, 50.f, 50.f));
+	volume_shader.SetUniform3f("box_min",glm::vec3(25.0f, 25.0f, 0.f));
+	volume_shader.SetUniform3f("box_max",glm::vec3(75.f, 75.f, 50.f));
 
 	struct TreeEntry {
 		double lat, lon;
@@ -696,7 +699,7 @@ int main() {
 		ImGui::NewFrame();
 		ImGui::Begin("Rendering Terms");
 		
-		ImGui::SliderFloat("IsoVal Center", &center, 0.0f, 1.0f);
+		ImGui::SliderFloat("IsoVal Center", &center, 0.0f, 100.0f);
 		ImGui::SliderFloat("IsoVal width", &width, 0.0f, fmin(center/2.0, 1-center/2.0));
 
 		ImGui::SliderFloat("Base Opacity", &base_opac, 0.0f, 1.0f);
