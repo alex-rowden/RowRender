@@ -10,6 +10,7 @@ uniform sampler2D volume;
 uniform vec3 viewPos;
 uniform vec2 IsoValRange;
 uniform float StepSize;
+uniform float increment;
 uniform vec3 volume_size;
 uniform vec3 box_min;
 uniform vec3 box_max;
@@ -27,11 +28,11 @@ void main() {
 		float vol_u = (texPoint - box_min).x / (volume_size.x);
 		float vol_v = (texPoint - box_min).y / (volume_size.y);
 		float vol_w = (texPoint - box_min).z / (volume_size.z);
-		if (vol_u > 1 || vol_v > 1 || vol_w > 1) {
+		if (vol_u > 1 || vol_v > 1 || vol_w > 1 ||vol_u < -1e-4 || vol_v < -1e-4 || vol_w < -1e-4) {
 			FragColor = vec4(color_composited, opaque_composited);
 			return;
 		}
-		float volume_sample = texture(volume, vec2(vol_u, vol_v)).r - vol_w;
+		float volume_sample = texture(volume, vec2(vol_u, vol_v)).r - vol_w * increment;
 		vec3 color_self = vec3(0);
 		float opaque_self = 0;
 		if (volume_sample < IsoValRange.x || volume_sample > IsoValRange.y) {

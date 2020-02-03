@@ -739,6 +739,7 @@ int main() {
 		
 		volume_shader.SetUniform2f("IsoValRange", glm::vec2(center - width/2.0f, center + width/2.0f));
 		volume_shader.SetUniform1f("StepSize", volumeStepSize);
+		volume_shader.SetUniform1f("increment", increment);
 
 		if (center + width / 2.0f != max_iso_val) {
 			iso_change = true;
@@ -915,11 +916,13 @@ int main() {
 		}
 		volume_shader.Use();
 		volume_shader.SetUniform3f("viewPos", camera.getPosition());
-		volume_shader.SetUniform4fv("model", glm::translate(glm::scale(glm::mat4(1), glm::vec3(50, 50, 50)), glm::vec3(1, 1, .5)));
+		volume_shader.SetUniform4fv("model", glm::translate(glm::scale(glm::mat4(1), glm::vec3(50, 50, 50.01)), glm::vec3(1, 1, .5)));
 		volume_shader.SetUniform4fv("camera", camera.getView());
 		volume_shader.SetUniform4fv("projection", camera.getProjection());
+		//glDisable(GL_CULL_FACE);
 		render(volume_cube, &volume_shader);
-		
+		//glEnable(GL_CULL_FACE);
+		//glCullFace(GL_BACK);
 		if (BENCHMARK) {
 			std::cout << "Render Volume to Screen " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
