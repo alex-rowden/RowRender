@@ -200,5 +200,11 @@
     <None Include="volume_vertex.glsl">
       <Filter>Source Files\Shaders</Filter>
     </None>
+    <None Include="front_back_fshader.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="front_back_vshader.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

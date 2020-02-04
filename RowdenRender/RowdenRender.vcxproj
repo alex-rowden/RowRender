@@ -67,6 +67,8 @@
     <None Include="box.cu" />
     <None Include="fragment_shader.glsl" />
     <None Include="fragment_shader_no_light.glsl" />
+    <None Include="front_back_fshader.glsl" />
+    <None Include="front_back_vshader.glsl" />
     <None Include="instance_fshader.glsl" />
     <None Include="instance_vshader.glsl" />
     <None Include="light_frag.glsl" />

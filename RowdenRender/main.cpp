@@ -419,6 +419,7 @@ int main() {
 
 	Texture2D texture = Texture2D("Content\\Textures\\CampusMap.png");
 	Texture2D skybox_tex = Texture2D(skybox_files);
+	skybox_tex.name = "skybox";
 	//texture.setTexParameterWrap(GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT);
 	Model model;
 	LoadCampusModel(&model);
@@ -437,7 +438,7 @@ int main() {
 	volume_cube.setModel();
 	Texture2D volume_data = Texture2D(&use_intensities, wifi.numLonCells, wifi.numLatCells);
 	volume_data.giveName("volume");
-	volume_cube.getMeshes().at(0)->addTexture(volume_data);
+	RayTraced.getMeshes().at(0)->addTexture(volume_data);
 	glm::mat4 transformation = glm::scale(glm::mat4(1), scale * glm::vec3(-1, 1, -1));// glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
 
 	volume_shader.SetUniform3f("volume_size",glm::vec3(50.f, 50.f, 50.f));
@@ -727,6 +728,21 @@ int main() {
 	GLenum DrawBuffers[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
 	glDrawBuffers(2, DrawBuffers); // "2" is the size of DrawBuffers
 
+	GLuint depthrenderbuffer;
+	glGenRenderbuffers(1, &depthrenderbuffer);
+	glBindRenderbuffer(GL_RENDERBUFFER, depthrenderbuffer);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, resolution.x, resolution.y);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthrenderbuffer);
+
+	Texture2D front_hit = Texture2D();
+	front_hit.SetTextureID(front_hit_point_tex);
+	front_hit.giveName("fhp");
+	RayTraced.getMeshes().at(0)->addTexture(front_hit);
+	Texture2D back_hit = Texture2D();
+	back_hit.SetTextureID(back_hit_point_tex);
+	back_hit.giveName("bhp");
+	RayTraced.getMeshes().at(0)->addTexture(back_hit);
+
 	while (!glfwWindowShouldClose(w.getWindow())) //main render loop
 	{
 		glfwPollEvents();
@@ -951,13 +967,25 @@ int main() {
 			//updateBoundingBox(center + width / 2.0f, max_volume);
 			max_iso_val = center + width / 2.0f;
 		}
-		volume_shader.Use();
+		front_back_shader.Use();
 		volume_shader.SetUniform3f("viewPos", camera.getPosition());
-		volume_shader.SetUniform4fv("model", glm::translate(glm::scale(glm::mat4(1), glm::vec3(50, 50, 50.01)), glm::vec3(1, 1, .5)));
-		volume_shader.SetUniform4fv("camera", camera.getView());
-		volume_shader.SetUniform4fv("projection", camera.getProjection());
-		//glDisable(GL_CULL_FACE);
-		render(volume_cube, &volume_shader);
+		front_back_shader.SetUniform4fv("model", glm::translate(glm::scale(glm::mat4(1), glm::vec3(50, 50, 50.01)), glm::vec3(1, 1, .5)));
+		front_back_shader.SetUniform4fv("camera", camera.getView());
+		front_back_shader.SetUniform4fv("projection", camera.getProjection());
+		glBindFramebuffer(GL_FRAMEBUFFER, fb);
+		
+		glEnable(GL_CULL_FACE);
+		glCullFace(GL_BACK);
+		front_back_shader.SetUniform1i("front", true);
+		render(volume_cube, &front_back_shader);
+		glCullFace(GL_FRONT);
+		front_back_shader.SetUniform1i("front", false);
+		render(volume_cube, &front_back_shader);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glDisable(GL_CULL_FACE);
+		volume_shader.Use();
+		render(RayTraced, &volume_shader);
+
 		//glEnable(GL_CULL_FACE);
 		//glCullFace(GL_BACK);
 		if (BENCHMARK) {

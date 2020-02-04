@@ -283,9 +283,11 @@ void ShaderProgram::shader_error_check(Shaders shader) {
 	case Shaders::FRONT_BACK_VERT:
 		shader_name = "FRONT_BACK_VERTEX_SHADER";
 		shader_adr = &vertexShader;
+		break;
 	case Shaders::FRONT_BACK_FRAG:
 		shader_name = "FRONT_BACK_FRAGMENT_SHADER";
 		shader_adr = &fragmentShader;
+		break;
 	default:
 		throw("Missing definition for shader in shader_error_check");
 	}

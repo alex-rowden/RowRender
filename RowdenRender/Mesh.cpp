@@ -176,22 +176,30 @@ void Mesh::Render(ShaderProgram *shader) {
 	if (textures.size() == 0) {
 		textures.emplace_back(Texture2D(Texture2D::COLORS::WHITE));
 	}
+	int counter = 0;
 	for (unsigned int i = 0; i < textures.size(); i++)
 	{
-		glActiveTexture(GL_TEXTURE0 + i); // activate proper texture unit before binding
+		 // activate proper texture unit before binding
 		// retrieve texture number (the N in diffuse_textureN)
 		std::string number;
 		std::string name = textures[i].name;
-		if (name == "texture_diffuse")
+		if (name == "texture_diffuse") {
 			number = std::to_string(diffuseNr++);
-		else if (name == "texture_specular")
+			name = name + number;
+		}
+		else if (name == "texture_specular") {
 			number = std::to_string(specularNr++);
-		if (textures[i].name != "texture_diffuse") {
-			GLint texture_position = glGetUniformLocation(shader->getShader(), name.c_str());
-			glUniform1i(texture_position, i);
+			name = name + number;
+		}
+		
+		GLint texture_position = glGetUniformLocation(shader->getShader(), name.c_str());
+		if(texture_position >= 0){
+			glActiveTexture(GL_TEXTURE0 + counter);
+			glUniform1i(texture_position, counter++);
+			textures[i].Bind();
 		}
 		//shader.setFloat(("material." + name + number).c_str(), i);
-		textures[i].Bind();
+		
 	}
 	
 	glBindVertexArray(VertexArrayObject);

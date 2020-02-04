@@ -1,11 +1,16 @@
+//FRAGMENT SHADER
+
 #version 330 core
+
 out vec4 FragColor;
 
 in vec2 TexCoord;
-in vec3 FragPos;
 
-uniform sampler2D texture_diffuse1;
+
+//uniform sampler2D texture_diffuse1;
 uniform sampler2D volume;
+uniform sampler2D fhp;
+uniform sampler2D bhp;
 
 uniform vec3 viewPos;
 uniform vec2 IsoValRange;
@@ -16,6 +21,12 @@ uniform vec3 box_min;
 uniform vec3 box_max;
 
 void main() {
+	vec4 col = texture(fhp, TexCoord);
+	if (col.x != 0 && col.y != 0 && col.z != 0)
+		FragColor = vec4(col);
+	else
+		FragColor = vec4(0);
+	/*
 	vec3 view_dir = normalize(FragPos - viewPos);
 	vec3 color_composited = vec3(0, 0, 0);
 	float opaque_composited = 0;
@@ -58,4 +69,5 @@ void main() {
 	else {
 		FragColor = vec4(color_composited, opaque_composited);
 	}
+	*/
 }
