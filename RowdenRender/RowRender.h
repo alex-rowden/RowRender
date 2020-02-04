@@ -16,6 +16,8 @@
 #include <glm\gtx\compatibility.hpp>
 #include <glm/gtx/string_cast.hpp>
 
+#define getName(var)  #var 
+
 #define RT_CHECK_ERROR_NO_CONTEXT( func ) \
   do { \
     RTresult code = func; \

@@ -11,7 +11,8 @@ public:
 		SCREEN_VERT, SCREEN_FRAG,
 		SKY_FRAG, SKY_VERT,
 		INSTANCE_FRAG, INSTANCE_VERT,
-		VOLUME_FRAG, VOLUME_VERT};
+		VOLUME_FRAG, VOLUME_VERT,
+		FRONT_BACK_FRAG, FRONT_BACK_VERT, };
 	void SetupShader(Shaders shader);
 	ShaderProgram(std::vector<Shaders> shaders);
 

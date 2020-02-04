@@ -11,6 +11,7 @@ ShaderProgram::ShaderProgram(std::vector<Shaders> shaders) {
 		case Shaders::SCREEN_VERT:
 		case Shaders::SKY_VERT:
 		case Shaders::VOLUME_VERT:
+		case Shaders::FRONT_BACK_VERT:
 			glAttachShader(shaderProgram, vertexShader);
 			break;
 		case Shaders::FRAGMENT:
@@ -20,6 +21,7 @@ ShaderProgram::ShaderProgram(std::vector<Shaders> shaders) {
 		case Shaders::SKY_FRAG:
 		case Shaders::INSTANCE_FRAG:
 		case Shaders::VOLUME_FRAG:
+		case Shaders::FRONT_BACK_FRAG:
 			glAttachShader(shaderProgram, fragmentShader);
 			break;
 		}
@@ -190,6 +192,12 @@ void ShaderProgram::importShaderFile(Shaders shader, std::string *ShaderString) 
 	case Shaders::VOLUME_VERT:
 		filename = "volume_vertex.glsl";
 		break;
+	case Shaders::FRONT_BACK_FRAG:
+		filename = "front_back_fshader.glsl";
+		break;
+	case Shaders::FRONT_BACK_VERT:
+		filename = "front_back_vshader.glsl";
+		break;
 	default:
 		throw "Not a valid shader";
 	}
@@ -272,8 +280,14 @@ void ShaderProgram::shader_error_check(Shaders shader) {
 		shader_name = "VOLUME_FRAGMENT_SHADER";
 		shader_adr = &fragmentShader;
 		break;
+	case Shaders::FRONT_BACK_VERT:
+		shader_name = "FRONT_BACK_VERTEX_SHADER";
+		shader_adr = &vertexShader;
+	case Shaders::FRONT_BACK_FRAG:
+		shader_name = "FRONT_BACK_FRAGMENT_SHADER";
+		shader_adr = &fragmentShader;
 	default:
-		return;
+		throw("Missing definition for shader in shader_error_check");
 	}
 
 	int success;
@@ -292,75 +306,31 @@ void ShaderProgram::SetupShader(Shaders shader) {
 	const char* shader_source = shaderString.c_str();
 	switch (shader) {
 	case Shaders::VERTEX:
+	case Shaders::LIGHT_VERT:
+	case Shaders::NO_LIGHT_VERT:
+	case Shaders::SCREEN_VERT:
+	case Shaders::SKY_VERT:
+	case Shaders::INSTANCE_VERT:
+	case Shaders::VOLUME_VERT:
+	case Shaders::FRONT_BACK_VERT:
 		vertexShader = glCreateShader(GL_VERTEX_SHADER);
 		glShaderSource(vertexShader, 1, &shader_source, NULL);
 		glCompileShader(vertexShader);
 		break;
 	case Shaders::FRAGMENT:
-		fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-		glShaderSource(fragmentShader, 1, &shader_source, NULL);
-		glCompileShader(fragmentShader);
-		break;
 	case Shaders::LIGHT_FRAG:
-		fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-		glShaderSource(fragmentShader, 1, &shader_source, NULL);
-		glCompileShader(fragmentShader);
-		break;
-	case Shaders::LIGHT_VERT:
-		vertexShader = glCreateShader(GL_VERTEX_SHADER);
-		glShaderSource(vertexShader, 1, &shader_source, NULL);
-		glCompileShader(vertexShader);
-		break;
 	case Shaders::NO_LIGHT_FRAG:
-		fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-		glShaderSource(fragmentShader, 1, &shader_source, NULL);
-		glCompileShader(fragmentShader);
-		break;
-	case Shaders::NO_LIGHT_VERT:
-		vertexShader = glCreateShader(GL_VERTEX_SHADER);
-		glShaderSource(vertexShader, 1, &shader_source, NULL);
-		glCompileShader(vertexShader);
-		break;
 	case Shaders::SCREEN_FRAG:
-		fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-		glShaderSource(fragmentShader, 1, &shader_source, NULL);
-		glCompileShader(fragmentShader);
-		break;
-	case Shaders::SCREEN_VERT:
-		vertexShader = glCreateShader(GL_VERTEX_SHADER);
-		glShaderSource(vertexShader, 1, &shader_source, NULL);
-		glCompileShader(vertexShader);
-		break;
 	case Shaders::SKY_FRAG:
-		fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-		glShaderSource(fragmentShader, 1, &shader_source, NULL);
-		glCompileShader(fragmentShader);
-		break;
-	case Shaders::SKY_VERT:
-		vertexShader = glCreateShader(GL_VERTEX_SHADER);
-		glShaderSource(vertexShader, 1, &shader_source, NULL);
-		glCompileShader(vertexShader);
-		break;
 	case Shaders::INSTANCE_FRAG:
-		fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-		glShaderSource(fragmentShader, 1, &shader_source, NULL);
-		glCompileShader(fragmentShader);
-		break;
-	case Shaders::INSTANCE_VERT:
-		vertexShader = glCreateShader(GL_VERTEX_SHADER);
-		glShaderSource(vertexShader, 1, &shader_source, NULL);
-		glCompileShader(vertexShader);
-		break;
 	case Shaders::VOLUME_FRAG:
+	case Shaders::FRONT_BACK_FRAG:
 		fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 		glShaderSource(fragmentShader, 1, &shader_source, NULL);
 		glCompileShader(fragmentShader);
 		break;
-	case Shaders::VOLUME_VERT:
-		vertexShader = glCreateShader(GL_VERTEX_SHADER);
-		glShaderSource(vertexShader, 1, &shader_source, NULL);
-		glCompileShader(vertexShader);
-		break;
+	default:
+		throw("Missing Shader Type definition in SetupShader");
 	}
 	
 
