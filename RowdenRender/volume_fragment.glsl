@@ -22,13 +22,15 @@ void main() {
 	int i = 0;
 	bool debug = false;
 
+	vec3 fhp = FragPos;
 	
 	for (i; i < 1000; i++) {
-		vec3 texPoint = FragPos + view_dir * StepSize * i;
+		vec3 texPoint =  fhp + view_dir * StepSize * i;
 		float vol_u = (texPoint - box_min).x / (volume_size.x);
 		float vol_v = (texPoint - box_min).y / (volume_size.y);
 		float vol_w = (texPoint - box_min).z / (volume_size.z);
-		if (vol_u > 1 || vol_v > 1 || vol_w > 1 ||vol_u < -1e-4 || vol_v < -1e-4 || vol_w < -1e-4) {
+		
+		if (vol_u > 1 || vol_v > 1 || vol_w > 1 || vol_u < -1e-4 || vol_v < -1e-4 || vol_w < -1e-4) {
 			FragColor = vec4(color_composited, opaque_composited);
 			return;
 		}
