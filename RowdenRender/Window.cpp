@@ -1,7 +1,7 @@
 #include "Window.h"
 
 Window::Window(const char *name, int resolution_x, int resolution_y) {
-	SetVersion(3, 3);
+	SetVersion(4, 2);
 
 	bool window_made = makeWindow(resolution_x, resolution_y, name);
 	glfwSetWindowUserPointer(window, this);

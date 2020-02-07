@@ -22,8 +22,8 @@ uniform vec3 box_max;
 
 void main() {
 	vec4 col = texture(fhp, TexCoord);
-	if (col.x != 0 && col.y != 0 && col.z != 0)
-		FragColor = vec4(col);
+	if(true)//if (col.x != 0 && col.y != 0 && col.z != 0)
+		FragColor = vec4(col.xyz, .3);
 	else
 		FragColor = vec4(0);
 	/*

@@ -692,37 +692,43 @@ int main() {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
+	Texture2D front_hit = Texture2D();
+	Texture2D back_hit = Texture2D();
 	GLuint fb = 0;
 	glGenFramebuffers(1, &fb);
 	glBindFramebuffer(GL_FRAMEBUFFER, fb);
 
 	GLuint front_hit_point_tex, back_hit_point_tex;
-	glGenTextures(1, &front_hit_point_tex);
-	glGenTextures(1, &back_hit_point_tex);
-
+	front_hit_point_tex = front_hit.getID();
+	back_hit_point_tex = back_hit.getID();
 	// "Bind" the newly created texture : all future texture functions will modify this texture
 	glBindTexture(GL_TEXTURE_2D, front_hit_point_tex);
 
 	// Give an empty image to OpenGL ( the last "0" )
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, resolution.x, resolution.y, 0, GL_RGB, GL_FLOAT, 0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, resolution.x, resolution.y, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
 
 	// Poor filtering. Needed !
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, front_hit_point_tex, 0);
+
+
 	glBindTexture(GL_TEXTURE_2D, back_hit_point_tex);
 
 	// Give an empty image to OpenGL ( the last "0" )
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, resolution.x, resolution.y, 0, GL_RGB, GL_FLOAT, 0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, resolution.x, resolution.y, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
 
 	// Poor filtering. Needed !
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
 	// Set "renderedTexture" as our colour attachement #0
-	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, front_hit_point_tex, 0);
-	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, back_hit_point_tex, 0);
+	
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, back_hit_point_tex, 0);
 
 	// Set the list of draw buffers.
 	GLenum DrawBuffers[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
@@ -734,12 +740,18 @@ int main() {
 	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, resolution.x, resolution.y);
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthrenderbuffer);
 
-	Texture2D front_hit = Texture2D();
-	front_hit.SetTextureID(front_hit_point_tex);
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+		std::cout << "framebuffer broke" << std::endl;
+		return 0;
+	}
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	
+	//front_hit.SetTextureID(front_hit_point_tex);
 	front_hit.giveName("fhp");
 	RayTraced.getMeshes().at(0)->addTexture(front_hit);
-	Texture2D back_hit = Texture2D();
-	back_hit.SetTextureID(back_hit_point_tex);
+	
+	
+	//back_hit.SetTextureID(back_hit_point_tex);
 	back_hit.giveName("bhp");
 	RayTraced.getMeshes().at(0)->addTexture(back_hit);
 
@@ -967,22 +979,25 @@ int main() {
 			//updateBoundingBox(center + width / 2.0f, max_volume);
 			max_iso_val = center + width / 2.0f;
 		}
-		front_back_shader.Use();
+		
 		volume_shader.SetUniform3f("viewPos", camera.getPosition());
+		
+		glBindFramebuffer(GL_FRAMEBUFFER, fb);
+
+		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+		front_back_shader.Use();
 		front_back_shader.SetUniform4fv("model", glm::translate(glm::scale(glm::mat4(1), glm::vec3(50, 50, 50.01)), glm::vec3(1, 1, .5)));
 		front_back_shader.SetUniform4fv("camera", camera.getView());
 		front_back_shader.SetUniform4fv("projection", camera.getProjection());
-		glBindFramebuffer(GL_FRAMEBUFFER, fb);
-		
-		glEnable(GL_CULL_FACE);
-		glCullFace(GL_BACK);
+		//glEnable(GL_CULL_FACE);
+		//glCullFace(GL_BACK);
 		front_back_shader.SetUniform1i("front", true);
 		render(volume_cube, &front_back_shader);
-		glCullFace(GL_FRONT);
-		front_back_shader.SetUniform1i("front", false);
-		render(volume_cube, &front_back_shader);
+		//glCullFace(GL_FRONT);
+		//front_back_shader.SetUniform1i("front", false);
+		//render(volume_cube, &front_back_shader);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		glDisable(GL_CULL_FACE);
+		//glDisable(GL_CULL_FACE);
 		volume_shader.Use();
 		render(RayTraced, &volume_shader);
 
