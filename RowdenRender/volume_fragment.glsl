@@ -20,12 +20,14 @@ uniform vec3 volume_size;
 uniform vec3 box_min;
 uniform vec3 box_max;
 
+#define EPSILON 1e-4
+
 void main() {
 	vec4 col = texture(fhp, TexCoord);
-	if(true)//if (col.x != 0 && col.y != 0 && col.z != 0)
-		FragColor = vec4(col.xyz, .3);
+	if (col.x > EPSILON || col.y > EPSILON || col.z > EPSILON)
+		FragColor = vec4(col.xyz, 1.0);
 	else
-		FragColor = vec4(0);
+		FragColor = vec4(0, 0, 0, 0);
 	/*
 	vec3 view_dir = normalize(FragPos - viewPos);
 	vec3 color_composited = vec3(0, 0, 0);
