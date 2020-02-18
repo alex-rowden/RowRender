@@ -358,7 +358,7 @@ int main() {
 	WifiData wifi;
 	int dialation = 1;
 	int num_smooths = 1;
-	std::string filename = "umd_freqs";
+	std::string filename = "umd_freq_big";
 	//std::string filename = "sphere_freqs";
 	wifi.loadBinary((filename + ".raw").c_str(), use_intensities, normal_x, normal_y);
 	//create_max_volume(use_intensities, wifi, max_volume);
@@ -436,13 +436,22 @@ int main() {
 	Tree.setModel();
 	Model volume_cube = Model("Content\\Models\\cube\\cube.obj");
 	volume_cube.setModel();
-	Texture2D volume_data = Texture2D(&use_intensities, wifi.numLonCells, wifi.numLatCells);
-	volume_data.giveName("volume");
-	RayTraced.getMeshes().at(0)->addTexture(volume_data);
+	std::vector<Texture2D> volume_sets = std::vector<Texture2D>();
+	volume_sets.resize(wifi.numSlices);
+	for (int i = 0; i < wifi.numSlices; i++) {
+		Texture2D volume_data = Texture2D(&use_intensities[i * wifi.numLonCells * wifi.numLatCells], wifi.numLonCells, wifi.numLatCells);
+		volume_data.setTexMinMagFilter(GL_LINEAR, GL_LINEAR);
+		volume_data.giveName("volume" + std::to_string(i));
+		RayTraced.getMeshes().at(0)->addTexture(volume_data);
+	}
+	
+	
+	
 	glm::mat4 transformation = glm::scale(glm::mat4(1), scale * glm::vec3(-1, 1, -1));// glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
-
-	volume_shader.SetUniform3f("volume_size",glm::vec3(50.f, 50.f, 50.f));
-	volume_shader.SetUniform3f("box_min",glm::vec3(25.0f, 25.0f, 0.f));
+	glm::vec3 volume_scale = glm::vec3(50.f, 50.f, 50.f);
+	glm::vec3 box_min = glm::vec3(25, 25, 0);
+	volume_shader.SetUniform3f("volume_size", volume_scale);
+	volume_shader.SetUniform3f("box_min", box_min);
 	volume_shader.SetUniform3f("box_max",glm::vec3(75.f, 75.f, 50.f));
 
 	struct TreeEntry {
@@ -570,7 +579,7 @@ int main() {
 	float shininess = 128;
 
 	//setup camera
-	Camera camera = Camera(glm::vec3(25, 25, 50), glm::vec3(50, 49.999, 0), 90.0f, w.width/(float)w.height);
+	Camera camera = Camera(glm::vec3(25, 25, 0), glm::vec3(50, 49.999, 0), 90.0f, w.width/(float)w.height);
 	//Camera camera = Camera(glm::vec3(34,37.5, .5), glm::vec3(35, 37.5, 0.5), 90.0f, w.width / w.height);
 	w.SetCamera(&camera);
 
@@ -671,17 +680,17 @@ int main() {
 	int tex_num = 0;
 	float max_iso_val = 0;
 	bool iso_change = false;
-	float increment = 2.5f;
+	float increment = 1.0f;
 	float old_increment = 0;
 	float volumeStepSize = .11;//.11 / 3.0;
 	float step_mod = 0;
-	optix::float3 color1 = optix::make_float3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
-	optix::float3 color2 = optix::make_float3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
-	optix::float3 color3 = optix::make_float3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
-	optix::float3 color4 = optix::make_float3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
-	optix::float3 color5 = optix::make_float3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
-	optix::float3 color6 = optix::make_float3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
-	optix::float4 intersection_color = optix::make_float4(optix::make_float3(0), 0);
+	glm::vec3 color1 = glm::vec3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
+	glm::vec3 color2 = glm::vec3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
+	glm::vec3 color3 = glm::vec3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
+	glm::vec3 color4 = glm::vec3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
+	glm::vec3 color5 = glm::vec3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
+	glm::vec3 color6 = glm::vec3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
+	glm::vec4 intersection_color = glm::vec4(glm::vec3(0), 0);
 	bool enable_color[6] = { true, false, false, false, false, true };
 	//bool lighting_enabled = false;
 	GLuint temp_tex;
@@ -705,7 +714,7 @@ int main() {
 	glBindTexture(GL_TEXTURE_2D, front_hit_point_tex);
 
 	// Give an empty image to OpenGL ( the last "0" )
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, resolution.x, resolution.y, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, resolution.x, resolution.y, 0, GL_RGB, GL_FLOAT, 0);
 
 	// Poor filtering. Needed !
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -718,7 +727,7 @@ int main() {
 	glBindTexture(GL_TEXTURE_2D, back_hit_point_tex);
 
 	// Give an empty image to OpenGL ( the last "0" )
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, resolution.x, resolution.y, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, resolution.x, resolution.y, 0, GL_RGB, GL_FLOAT, 0);
 
 	// Poor filtering. Needed !
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -755,6 +764,8 @@ int main() {
 	back_hit.giveName("bhp");
 	RayTraced.getMeshes().at(0)->addTexture(back_hit);
 
+	volume_shader.SetUniform1i("numTex", wifi.numSlices);
+
 	while (!glfwWindowShouldClose(w.getWindow())) //main render loop
 	{
 		glfwPollEvents();
@@ -768,14 +779,14 @@ int main() {
 		ImGui::SliderFloat("IsoVal width", &width, 0.0f, fmin(center/2.0, 1-center/2.0));
 
 		ImGui::SliderFloat("Base Opacity", &base_opac, 0.0f, 1.0f);
-		ImGui::SliderFloat("Sillhoutte Term", &sil_term, 0.0f, 1.0f);
-		ImGui::SliderFloat("bubble top", &bubble_top, 0.0f, 1.0f);
-		ImGui::SliderFloat("bubble bottom", &bubble_bottom, 0.0f, bubble_top);
-		ImGui::SliderFloat("bubble max opac", &bubble_max_opac, 0.0f, 1.0f);
-		ImGui::SliderFloat("bubble min opac", &bubble_min_opac, 0.0f, bubble_max_opac);
-		ImGui::SliderFloat("Debug", &tune, 0.0f, 1.0f);
+		//ImGui::SliderFloat("Sillhoutte Term", &sil_term, 0.0f, 1.0f);
+		//ImGui::SliderFloat("bubble top", &bubble_top, 0.0f, 1.0f);
+		//ImGui::SliderFloat("bubble bottom", &bubble_bottom, 0.0f, bubble_top);
+		//ImGui::SliderFloat("bubble max opac", &bubble_max_opac, 0.0f, 1.0f);
+		//ImGui::SliderFloat("bubble min opac", &bubble_min_opac, 0.0f, bubble_max_opac);
+		//ImGui::SliderFloat("Debug", &tune, 0.0f, 1.0f);
 		ImGui::SliderFloat("Step Size", &volumeStepSize, 0.0f, .1f);
-		ImGui::SliderFloat("Step mod", &step_mod, 0.0f, 20.0f);
+		//ImGui::SliderFloat("Step mod", &step_mod, 0.0f, 20.0f);
 		ImGui::SliderFloat("Increment", &increment, 0.0f, 2.0f);
 		ImGui::Checkbox("Shade sillhouette", &color_aug);
 		ImGui::SliderFloat("Specular Term", &spec_term, 0.0f, 1.0f);
@@ -795,8 +806,8 @@ int main() {
 		ImGui::Checkbox("Enable Channel 11", &enable_color[4]);
 		if (enable_color[4])
 			ImGui::ColorEdit3("Channel 11", &color5.x);
-		ImGui::ColorEdit4("Intersection Color", &intersection_color.x);
-		ImGui::Checkbox("Enable Lighting", &enable_color[5]);
+		//ImGui::ColorEdit4("Intersection Color", &intersection_color.x);
+		//ImGui::Checkbox("Enable Lighting", &enable_color[5]);
 		//ImGui::ColorEdit3("Volume Base Color", &color1.x);
 		//ImGui::SliderInt("TextureNum", &tex_num, 0, wifi.numSlices);
 		
@@ -805,17 +816,25 @@ int main() {
 		volume_shader.SetUniform2f("IsoValRange", glm::vec2(center - width/2.0f, center + width/2.0f));
 		volume_shader.SetUniform1f("StepSize", volumeStepSize);
 		volume_shader.SetUniform1f("increment", increment);
+		volume_shader.SetUniform1f("base_opac", base_opac);
+		volume_shader.SetUniform3f("color1", color1);
+		volume_shader.SetUniform3f("color2", color2);
+		volume_shader.SetUniform3f("color3", color3);
+		volume_shader.SetUniform3f("color4", color4);
+		volume_shader.SetUniform3f("color5", color5);
+		//volume_shader.
 
 		if (center + width / 2.0f != max_iso_val) {
 			iso_change = true;
 		}
+		/*
 		if (iso_change || increment != old_increment) {
 			old_increment = increment;
 			updateIsoRangeVolume(use_intensities, glm::uvec3(wifi.numLonCells, wifi.numLatCells, wifi.numSlices), enable_color, increment);
 			max_iso_val = center + width / 2.0f;
 			iso_change = false;
 		}
-		
+		*/
 		
 		int enabledColors = 0;
 		for (int i = 0; i < 6; i++) {
@@ -823,6 +842,7 @@ int main() {
 				enabledColors |= 1 << i;
 			}
 		}
+		volume_shader.SetUniform1i("enabledVolumes", enabledColors);
 		
 		camera.fov = fov;
 		clock_t per_frame = clock();
@@ -893,7 +913,7 @@ int main() {
 		sp.SetUniform4fv("projection", camera.getProjection());
 		sp.SetLights(lights);
 		sp.SetUniform3f("viewPos", camera.getPosition());
-		//render(model, &sp);
+		render(model, &sp);
 		if (BENCHMARK) {
 			std::cout << "Render Campus Model " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
@@ -901,7 +921,7 @@ int main() {
 		campus_map_sp.SetUniform4fv("model", campusTransform);
 		campus_map_sp.SetUniform4fv("camera", camera.getView());
 		campus_map_sp.SetUniform4fv("projection", camera.getProjection());
-		render(campusMap, &campus_map_sp);
+		//render(campusMap, &campus_map_sp);
 		if (BENCHMARK) {
 			std::cout << "Render Campus Map " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
@@ -910,7 +930,7 @@ int main() {
 		instance_shader.SetUniform4fv("projection", camera.getProjection());
 		instance_shader.SetUniform4fv("view", camera.getView());
 		instance_shader.SetUniform4fv("transform", glm::scale(glm::translate(glm::mat4(1), glm::vec3(72.099, 63.9, 0) + w.translate), glm::vec3(.00095, .00159, .00129) + w.scale));
-		//render(Tree, &instance_shader);
+		render(Tree, &instance_shader);
 		if (BENCHMARK) {
 			std::cout << "Render Trees " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
@@ -980,25 +1000,29 @@ int main() {
 			max_iso_val = center + width / 2.0f;
 		}
 		
-		volume_shader.SetUniform3f("viewPos", camera.getPosition());
+		
 		
 		glBindFramebuffer(GL_FRAMEBUFFER, fb);
 
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 		front_back_shader.Use();
-		front_back_shader.SetUniform4fv("model", glm::translate(glm::scale(glm::mat4(1), glm::vec3(50, 50, 50.01)), glm::vec3(1, 1, .5)));
+		front_back_shader.SetUniform4fv("model", glm::translate(glm::scale(glm::mat4(1), glm::vec3(50, 50, 50)), glm::vec3(1, 1, .51)));
 		front_back_shader.SetUniform4fv("camera", camera.getView());
 		front_back_shader.SetUniform4fv("projection", camera.getProjection());
-		//glEnable(GL_CULL_FACE);
-		//glCullFace(GL_BACK);
-		front_back_shader.SetUniform1i("front", true);
+		front_back_shader.SetUniform3f("box_min", box_min);
+		front_back_shader.SetUniform3f("volume_scale", volume_scale);
+		glEnable(GL_CULL_FACE);
+		glCullFace(GL_BACK);
+		front_back_shader.SetUniform1i("front", 1);
 		render(volume_cube, &front_back_shader);
-		//glCullFace(GL_FRONT);
-		//front_back_shader.SetUniform1i("front", false);
-		//render(volume_cube, &front_back_shader);
+		glClear( GL_DEPTH_BUFFER_BIT);
+		glCullFace(GL_FRONT);
+		front_back_shader.SetUniform1i("front", 0);
+		render(volume_cube, &front_back_shader);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		//glDisable(GL_CULL_FACE);
+		glDisable(GL_CULL_FACE);
 		volume_shader.Use();
+		volume_shader.SetUniform3f("viewPos", camera.getPosition());
 		render(RayTraced, &volume_shader);
 
 		//glEnable(GL_CULL_FACE);
