@@ -680,7 +680,7 @@ int main() {
 	int tex_num = 0;
 	float max_iso_val = 0;
 	bool iso_change = false;
-	float increment = 1.0f;
+	float increment = 3.0f;
 	float old_increment = 0;
 	float volumeStepSize = .11;//.11 / 3.0;
 	float step_mod = 0;
@@ -765,6 +765,7 @@ int main() {
 	RayTraced.getMeshes().at(0)->addTexture(back_hit);
 
 	volume_shader.SetUniform1i("numTex", wifi.numSlices);
+	float volume_z = 50;
 
 	while (!glfwWindowShouldClose(w.getWindow())) //main render loop
 	{
@@ -785,9 +786,10 @@ int main() {
 		//ImGui::SliderFloat("bubble max opac", &bubble_max_opac, 0.0f, 1.0f);
 		//ImGui::SliderFloat("bubble min opac", &bubble_min_opac, 0.0f, bubble_max_opac);
 		//ImGui::SliderFloat("Debug", &tune, 0.0f, 1.0f);
-		ImGui::SliderFloat("Step Size", &volumeStepSize, 0.0f, .1f);
+		ImGui::SliderFloat("Step Size", &volumeStepSize, 0.001f, .1f);
 		//ImGui::SliderFloat("Step mod", &step_mod, 0.0f, 20.0f);
-		ImGui::SliderFloat("Increment", &increment, 0.0f, 2.0f);
+		ImGui::SliderFloat("Increment", &increment, 0.0f, 10.0f);
+		ImGui::SliderFloat("Cube Z", &volume_z, 1.0f, 50.0f);
 		ImGui::Checkbox("Shade sillhouette", &color_aug);
 		ImGui::SliderFloat("Specular Term", &spec_term, 0.0f, 1.0f);
 		ImGui::SliderFloat("FOV", &fov, 0.0f, 90.0f);
@@ -921,7 +923,7 @@ int main() {
 		campus_map_sp.SetUniform4fv("model", campusTransform);
 		campus_map_sp.SetUniform4fv("camera", camera.getView());
 		campus_map_sp.SetUniform4fv("projection", camera.getProjection());
-		//render(campusMap, &campus_map_sp);
+		render(campusMap, &campus_map_sp);
 		if (BENCHMARK) {
 			std::cout << "Render Campus Map " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
@@ -1006,7 +1008,7 @@ int main() {
 
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 		front_back_shader.Use();
-		front_back_shader.SetUniform4fv("model", glm::translate(glm::scale(glm::mat4(1), glm::vec3(50, 50, 50)), glm::vec3(1, 1, .51)));
+		front_back_shader.SetUniform4fv("model", glm::translate(glm::scale(glm::mat4(1), glm::vec3(50, 50, volume_z)), glm::vec3(1, 1, .51)));
 		front_back_shader.SetUniform4fv("camera", camera.getView());
 		front_back_shader.SetUniform4fv("projection", camera.getProjection());
 		front_back_shader.SetUniform3f("box_min", box_min);

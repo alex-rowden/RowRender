@@ -71,7 +71,7 @@ void main() {
 
 	vec3 view_dir = normalize(back - start);
 	float distance = sqrt(dot(end - start, end - start));
-	FragColor = vec4(vec3(distance / 75.0f), 1.0);
+	//FragColor = vec4(vec3(distance / 75.0f), 1.0);
 	//FragColor = vec4(viewPos / 50.0f, 1);
 	//return;
 	for (i; i < distance; i += StepSize) {
@@ -129,7 +129,10 @@ void main() {
 			color_composited += ((1.f - opaque_composited) * color_self * opaque_self);
 			opaque_composited += (1.f - opaque_composited) * opaque_self;
 
-			if (opaque_composited > .99) { break; }
+			if (opaque_composited > .99) { 
+				FragColor = vec4(color_composited, opaque_composited);
+				return;
+			}
 		}
 	}
 	
