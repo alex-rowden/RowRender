@@ -475,6 +475,14 @@ int main() {
 	volume_shader.SetUniform1f("specularStrength", .6);
 	volume_shader.SetUniform1f("diffuseStrength", .3);
 
+	glm::vec3 lightDir = glm::vec3(0, 0, .5);
+
+	//volume_shader.SetUniform3f("lightDir", lightDir);
+	glm::vec2 lightDirP = glm::vec2(acos(lightDir.z), atan2(lightDir.y, lightDir.x));
+	volume_shader.SetUniform2f("lightDirP", lightDirP);
+	glm::vec2 sincosLightTheta = glm::vec2(sin(lightDirP.x), cos(lightDirP.x));
+	volume_shader.SetUniform2f("sincosLightTheta", sincosLightTheta);
+
 	struct TreeEntry {
 		double lat, lon;
 		int objID;
@@ -1027,6 +1035,8 @@ int main() {
 		glDisable(GL_CULL_FACE);
 		volume_shader.Use();
 		volume_shader.SetUniform3f("viewPos", camera.getPosition());
+		glm::vec3 HalfwayVec = camera.getDirection() - lightDir;
+
 		render(RayTraced, &volume_shader);
 
 		//glEnable(GL_CULL_FACE);

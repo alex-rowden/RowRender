@@ -45,7 +45,7 @@ uniform float zFar;
 
 uniform int enabledVolumes;
 
-uniform vec2 sincolSightTheta;
+uniform vec2 sincosLightTheta;
 uniform vec2 lightDirP;
 uniform vec2 sincosHalfwayTheta;
 uniform vec2 HalfwayVecP;
