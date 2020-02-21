@@ -358,7 +358,7 @@ int main() {
 	WifiData wifi;
 	int dialation = 1;
 	int num_smooths = 1;
-	std::string filename = "umd_freqs";
+	std::string filename = "umd_freq_big";
 	//std::string filename = "sphere_freqs";
 	wifi.loadBinary((filename + ".raw").c_str(), use_intensities, normal_x, normal_y);
 	//create_max_volume(use_intensities, wifi, max_volume);
@@ -470,6 +470,10 @@ int main() {
 	volume_shader.SetUniform3f("box_max",glm::vec3(75.f, 75.f, 50.f));
 	volume_shader.SetUniform1f("zNear", .1f);
 	volume_shader.SetUniform1f("zFar", 1000.f);
+	volume_shader.SetUniform1f("shininess", 64);
+	volume_shader.SetUniform1f("ambientStrength", .1);
+	volume_shader.SetUniform1f("specularStrength", .6);
+	volume_shader.SetUniform1f("diffuseStrength", .3);
 
 	struct TreeEntry {
 		double lat, lon;

@@ -45,6 +45,12 @@ uniform float zFar;
 
 uniform int enabledVolumes;
 
+uniform vec2 sincolSightTheta;
+uniform vec2 lightDirP;
+uniform vec2 sincosHalfwayTheta;
+uniform vec2 HalfwayVecP;
+uniform float ambientStrength, diffuseStrength, specularStrength, shininess;
+
 #define EPSILON 1e-4
 #define M_PIf 3.1415926535897932384626433
 
@@ -150,7 +156,11 @@ void main() {
 			else {
 				float sinphi = sin(phi);
 				vec3 normal = vec3(sinphi * cos(theta), sinphi * sin(theta), cos(phi));
-				color_self = normal;
+				float2 normalP = make_float2(phi, theta);
+				float2 sincosnorm = make_float2(sin(theta), cos(theta));
+				float diffuse = diffuseStrength * fmax(0, sdot(sincosLightTheta, sincosnorm, lightDirP.y, phi));
+				float spec = specularStrength * pow(fabs(sdot(sincosHalfwayTheta, sincosnorm, HalfwayVecP.y, phi)), shininess);
+				color_self = ambientStrength * color + diffuse * color + spec * vec3(1, 1, 1);
 				opaque_self = 1.0f;
 			}
 

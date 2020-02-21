@@ -99,7 +99,7 @@ Texture2D::Texture2D(unsigned char *vals, int height, int width) {
 	this->width = width;
 	numChannels = 2;
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16, width, height, 0, GL_RG, GL_HALF_FLOAT, vals);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16, width, height, 0, GL_RG, GL_SHORT, vals);
 	glGenerateMipmap(GL_TEXTURE_2D);
 }
 
