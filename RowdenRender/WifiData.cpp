@@ -179,7 +179,7 @@ glm::ivec3 getTrip(unsigned long indx, int numLatCells, int numLonCells, int num
 
 bool WifiData::loadBinary(const char* filename, std::vector<unsigned char>& intensities, std::vector<short>& phi, std::vector<short>&theta, unsigned int sample_step) {
 	int dialation = 3;
-	int num_smooths = 100;
+	int num_smooths = 10;
 	std::string outputf = std::to_string(dialation) + "_" + std::to_string(num_smooths) + std::string(filename);
 	std::ifstream f(outputf.c_str(), std::ios::in|std::ios::binary);
 	if (f.good()) {
@@ -232,8 +232,8 @@ bool WifiData::loadBinary(const char* filename, std::vector<unsigned char>& inte
 	*/
 	for (unsigned long i = 0; i < intensities.size(); i++) {
 		glm::ivec3 indices = getTrip(i, numLatCells, numLonCells, numSlices);
-		calculate_neighbors(neighbors, intensities, indices.x, indices.y, indices.z, 1);
-		glm::vec3 normal = glm::vec3(((neighbors.right) - neighbors.left) * numLatCells / (float)dialation, ((neighbors.up) - neighbors.down) * numLonCells / (float)dialation, 255.0f/50.f);
+		calculate_neighbors(neighbors, intensities, indices.x, indices.y, indices.z, 4);
+		glm::vec3 normal = glm::vec3(((neighbors.right) - neighbors.left) * numLatCells / (float)1, ((neighbors.up) - neighbors.down) * numLonCells / (float)1, .01);
 		
 		if (glm::length(normal) != 0) {
 			normal = glm::normalize(normal);
@@ -306,20 +306,21 @@ bool WifiData::loadBinary(const char* filename, std::vector<unsigned char>& inte
 		if (abs(temp_y.at(curr_idx)) <= 1e-2 && temp_x.at(curr_idx) < 0) {
 			//std::cout << t_phi << std::endl;
 		}
-		if (t_phi > max_phi) {
-			max_phi = t_phi;
-		}
-		else if (t_phi < min_phi) {
-			min_phi = t_phi;
-		}
+		
 
 		phi.at(curr_idx) = normFloat2Short(t_phi);
 		
 		if (t_phi == 1.0f) {
 			//t_phi -= 1e-3;
 		}
-		theta.at(curr_idx) = normFloat2Short((atan2(temp_y.at(curr_idx), temp_x.at(curr_idx)) + M_PIf) / (2 * M_PIf));
-		
+		t_phi = (atan2(temp_y.at(curr_idx), temp_x.at(curr_idx)) + M_PIf) / (2 * M_PIf);
+		theta.at(curr_idx) = normFloat2Short(t_phi);
+		if (t_phi > max_phi) {
+			max_phi = t_phi;
+		}
+		else if (t_phi < min_phi) {
+			min_phi = t_phi;
+		}
 	
 	}
 	std::cout << max_phi << std::endl;

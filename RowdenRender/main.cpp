@@ -358,7 +358,7 @@ int main() {
 	WifiData wifi;
 	int dialation = 1;
 	int num_smooths = 1;
-	std::string filename = "umd_freq_big";
+	std::string filename = "umd_freqs";
 	//std::string filename = "sphere_freqs";
 	wifi.loadBinary((filename + ".raw").c_str(), use_intensities, normal_x, normal_y);
 	//create_max_volume(use_intensities, wifi, max_volume);
@@ -438,14 +438,29 @@ int main() {
 	volume_cube.setModel();
 	std::vector<Texture2D> volume_sets = std::vector<Texture2D>();
 	volume_sets.resize(wifi.numSlices);
+	std::vector<unsigned short> normal;
+	normal.resize(normal_x.size() * 2);
+	for (int i = 0; i < normal_x.size(); i++) {
+		normal.at(i * 2) = normal_x.at(i);
+		normal.at(i * 2 + 1) = normal_y.at(i);
+	}
 	for (int i = 0; i < wifi.numSlices; i++) {
 		Texture2D volume_data = Texture2D(&use_intensities[i * wifi.numLonCells * wifi.numLatCells], wifi.numLonCells, wifi.numLatCells);
+		Texture2D normal_data = Texture2D(&normal[i * wifi.numLonCells * wifi.numLatCells], wifi.numLonCells, wifi.numLatCells);
 		volume_data.setTexMinMagFilter(GL_LINEAR, GL_LINEAR);
+		normal_data.setTexMinMagFilter(GL_NEAREST, GL_NEAREST);
 		volume_data.giveName("volume" + std::to_string(i));
+		normal_data.giveName("normal" + std::to_string(i));
 		RayTraced.getMeshes().at(0)->addTexture(volume_data);
+		RayTraced.getMeshes().at(0)->addTexture(normal_data);
 	}
 	
-	
+	Texture2D depth_texture = Texture2D();
+	depth_texture.setTexMinMagFilter(GL_NEAREST, GL_NEAREST);
+	depth_texture.giveName("depth_tex");
+	GLuint temp_tex;
+	temp_tex = depth_texture.getID();
+	RayTraced.getMeshes().at(0)->addTexture(depth_texture);
 	
 	glm::mat4 transformation = glm::scale(glm::mat4(1), scale * glm::vec3(-1, 1, -1));// glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
 	glm::vec3 volume_scale = glm::vec3(50.f, 50.f, 50.f);
@@ -453,6 +468,8 @@ int main() {
 	volume_shader.SetUniform3f("volume_size", volume_scale);
 	volume_shader.SetUniform3f("box_min", box_min);
 	volume_shader.SetUniform3f("box_max",glm::vec3(75.f, 75.f, 50.f));
+	volume_shader.SetUniform1f("zNear", .1f);
+	volume_shader.SetUniform1f("zFar", 1000.f);
 
 	struct TreeEntry {
 		double lat, lon;
@@ -646,15 +663,7 @@ int main() {
 		}
 		animated = false;
 	}
-	glGenTextures(1, &depth_mask_id);
-	glBindTexture(GL_TEXTURE_2D, depth_mask_id);
-
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-	glBindTexture(GL_TEXTURE_2D, 0);
+	
 
 	int fps = 0;
 	uint64_t fps_counter = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
@@ -693,14 +702,16 @@ int main() {
 	glm::vec4 intersection_color = glm::vec4(glm::vec3(0), 0);
 	bool enable_color[6] = { true, false, false, false, false, true };
 	//bool lighting_enabled = false;
-	GLuint temp_tex;
-	glGenTextures(1, &temp_tex);
+	
+	//glGenTextures(1, &temp_tex);
 	glBindTexture(GL_TEXTURE_2D, temp_tex);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, resolution.x, resolution.y, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	//RayTraced.getMeshes().at(0)->addTexture(depth_texture);
 	Texture2D front_hit = Texture2D();
 	Texture2D back_hit = Texture2D();
 	GLuint fb = 0;
@@ -776,7 +787,7 @@ int main() {
 		ImGui::NewFrame();
 		ImGui::Begin("Rendering Terms");
 		
-		ImGui::SliderFloat("IsoVal Center", &center, 0.0f, 100.0f);
+		ImGui::SliderFloat("IsoVal Center", &center, 0.0f, 1.0f);
 		ImGui::SliderFloat("IsoVal width", &width, 0.0f, fmin(center/2.0, 1-center/2.0));
 
 		ImGui::SliderFloat("Base Opacity", &base_opac, 0.0f, 1.0f);
@@ -971,24 +982,12 @@ int main() {
 		}
 		*/
 		
-		glBindTexture(GL_TEXTURE_2D, depth_mask_id);
-		if (num_frames == 0) {
-			
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, resolution.x, resolution.y, 0, GL_RED, GL_FLOAT, NULL);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-			glBindTexture(GL_TEXTURE_2D, 0);
-			
-			
-		}
-		else {
-			//glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, resolution.x, resolution.y, GL_RED, GL_FLOAT, (void*)depths);
-		}
+		
 		glBindTexture(GL_TEXTURE_2D, temp_tex);
 		glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, w.width, w.height);
-		glCopyImageSubData(temp_tex, GL_TEXTURE_2D, 0, 0, 0, 0,
-							depth_mask_id, GL_TEXTURE_2D, 0, 0, 0, 0, 
-							resolution.x, resolution.y, 1);
+		//glCopyImageSubData(temp_tex, GL_TEXTURE_2D, 0, 0, 0, 0,
+		//					depth_mask_id, GL_TEXTURE_2D, 0, 0, 0, 0, 
+		//					resolution.x, resolution.y, 1);
 		glBindTexture(GL_TEXTURE_2D, 0);
 		if (BENCHMARK) {
 			std::cout << "Update Depth Buffer: " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
@@ -1001,7 +1000,6 @@ int main() {
 			//updateBoundingBox(center + width / 2.0f, max_volume);
 			max_iso_val = center + width / 2.0f;
 		}
-		
 		
 		
 		glBindFramebuffer(GL_FRAMEBUFFER, fb);
