@@ -179,7 +179,7 @@ glm::ivec3 getTrip(unsigned long indx, int numLatCells, int numLonCells, int num
 
 bool WifiData::loadBinary(const char* filename, std::vector<unsigned char>& intensities, std::vector<short>& phi, std::vector<short>&theta, unsigned int sample_step) {
 	int dialation = 3;
-	int num_smooths = 10;
+	int num_smooths = 100;
 	std::string outputf = std::to_string(dialation) + "_" + std::to_string(num_smooths) + std::string(filename);
 	std::ifstream f(outputf.c_str(), std::ios::in|std::ios::binary);
 	if (f.good()) {

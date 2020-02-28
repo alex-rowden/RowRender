@@ -358,7 +358,7 @@ int main() {
 	WifiData wifi;
 	int dialation = 1;
 	int num_smooths = 1;
-	std::string filename = "umd_freq_big";
+	std::string filename = "umd_freqs";
 	//std::string filename = "sphere_freqs";
 	wifi.loadBinary((filename + ".raw").c_str(), use_intensities, normal_x, normal_y);
 	//create_max_volume(use_intensities, wifi, max_volume);
@@ -466,16 +466,20 @@ int main() {
 	glm::vec3 volume_scale = glm::vec3(50.f, 50.f, 50.f);
 	glm::vec3 box_min = glm::vec3(25, 25, 0);
 	volume_shader.SetUniform3f("volume_size", volume_scale);
-	volume_shader.SetUniform3f("box_min", box_min);
-	volume_shader.SetUniform3f("box_max",glm::vec3(75.f, 75.f, 50.f));
+	
 	volume_shader.SetUniform1f("zNear", .1f);
 	volume_shader.SetUniform1f("zFar", 1000.f);
-	volume_shader.SetUniform1f("shininess", 64);
-	volume_shader.SetUniform1f("ambientStrength", .1);
-	volume_shader.SetUniform1f("specularStrength", .6);
-	volume_shader.SetUniform1f("diffuseStrength", .3);
+	float ambientStrength = .2f;
+	glm::vec3 lightDir = normalize(glm::vec3(0, 0, 0.5));
+	float specularStrength = .45;
+	float diffuseStrength = .35;
+	float shininess = 128;
+	volume_shader.SetUniform1f("shininess", shininess);
+	volume_shader.SetUniform1f("ambientStrength", ambientStrength);
+	volume_shader.SetUniform1f("specularStrength", specularStrength);
+	volume_shader.SetUniform1f("diffuseStrength", diffuseStrength);
 
-	glm::vec3 lightDir = glm::vec3(0, 0, .5);
+
 
 	//volume_shader.SetUniform3f("lightDir", lightDir);
 	glm::vec2 lightDirP = glm::vec2(acos(lightDir.z), atan2(lightDir.y, lightDir.x));
@@ -601,11 +605,7 @@ int main() {
 	glm::mat4 volume_transform = glm::rotate(glm::mat4(1), glm::radians(90.0f), glm::vec3(0, 1, 0));
 	//RTresult ret = rtBufferCreate(context->get(), RT_BUFFER_INPUT, &ray_buffer);
 
-	float ambientStrength = .2f;
-	glm::vec3 lightDir = normalize(glm::vec3(0, 0, 0.5));
-	float specularStrength = .45;
-	float diffuseStrength = .35;
-	float shininess = 128;
+
 
 	//setup camera
 	Camera camera = Camera(glm::vec3(25, 25, 0), glm::vec3(50, 49.999, 0), 90.0f, w.width/(float)w.height);
@@ -705,6 +705,7 @@ int main() {
 	float old_increment = 0;
 	float volumeStepSize = .11;//.11 / 3.0;
 	float step_mod = 0;
+	float box_z_min = 0;
 	glm::vec3 color1 = glm::vec3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
 	glm::vec3 color2 = glm::vec3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
 	glm::vec3 color3 = glm::vec3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
@@ -737,7 +738,7 @@ int main() {
 	glBindTexture(GL_TEXTURE_2D, front_hit_point_tex);
 
 	// Give an empty image to OpenGL ( the last "0" )
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, resolution.x, resolution.y, 0, GL_RGB, GL_FLOAT, 0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, resolution.x, resolution.y, 0, GL_RGB, GL_FLOAT, 0);
 
 	// Poor filtering. Needed !
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -750,7 +751,7 @@ int main() {
 	glBindTexture(GL_TEXTURE_2D, back_hit_point_tex);
 
 	// Give an empty image to OpenGL ( the last "0" )
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, resolution.x, resolution.y, 0, GL_RGB, GL_FLOAT, 0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, resolution.x, resolution.y, 0, GL_RGB, GL_FLOAT, 0);
 
 	// Poor filtering. Needed !
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -803,17 +804,18 @@ int main() {
 		ImGui::SliderFloat("IsoVal width", &width, 0.0f, fmin(center/2.0, 1-center/2.0));
 
 		ImGui::SliderFloat("Base Opacity", &base_opac, 0.0f, 1.0f);
-		//ImGui::SliderFloat("Sillhoutte Term", &sil_term, 0.0f, 1.0f);
-		//ImGui::SliderFloat("bubble top", &bubble_top, 0.0f, 1.0f);
-		//ImGui::SliderFloat("bubble bottom", &bubble_bottom, 0.0f, bubble_top);
-		//ImGui::SliderFloat("bubble max opac", &bubble_max_opac, 0.0f, 1.0f);
-		//ImGui::SliderFloat("bubble min opac", &bubble_min_opac, 0.0f, bubble_max_opac);
+		ImGui::SliderFloat("Sillhoutte Term", &sil_term, 0.0f, 1.0f);
+		ImGui::SliderFloat("bubble top", &bubble_top, 0.0f, 1.0f);
+		ImGui::SliderFloat("bubble bottom", &bubble_bottom, 0.0f, bubble_top);
+		ImGui::SliderFloat("bubble max opac", &bubble_max_opac, 0.0f, 1.0f);
+		ImGui::SliderFloat("bubble min opac", &bubble_min_opac, 0.0f, bubble_max_opac);
 		//ImGui::SliderFloat("Debug", &tune, 0.0f, 1.0f);
 		ImGui::SliderFloat("Step Size", &volumeStepSize, 0.001f, .1f);
 		//ImGui::SliderFloat("Step mod", &step_mod, 0.0f, 20.0f);
 		ImGui::SliderFloat("Increment", &increment, 0.0f, 10.0f);
 		ImGui::SliderFloat("Cube Z", &volume_z, 1.0f, 50.0f);
-		ImGui::Checkbox("Shade sillhouette", &color_aug);
+		ImGui::SliderFloat("Cube Z min", &box_z_min, -10.0f, 1.0f);
+		//ImGui::Checkbox("Shade sillhouette", &color_aug);
 		ImGui::SliderFloat("Specular Term", &spec_term, 0.0f, 1.0f);
 		ImGui::SliderFloat("FOV", &fov, 0.0f, 90.0f);
 		ImGui::Checkbox("Enable Channel 1", &enable_color[0]);
@@ -847,8 +849,19 @@ int main() {
 		volume_shader.SetUniform3f("color3", color3);
 		volume_shader.SetUniform3f("color4", color4);
 		volume_shader.SetUniform3f("color5", color5);
-		//volume_shader.
 
+		volume_shader.SetUniform1f("bubble_min", bubble_bottom);
+		volume_shader.SetUniform1f("bubble_max", bubble_top);
+		volume_shader.SetUniform1f("min_opac", bubble_min_opac);
+		volume_shader.SetUniform1f("max_opac", bubble_max_opac);
+
+		volume_shader.SetUniform1f("spec_term", spec_term);
+		volume_shader.SetUniform1f("bubble_term", sil_term);
+		
+		box_min.z = box_z_min;
+		volume_shader.SetUniform3f("box_min", box_min);
+		volume_shader.SetUniform3f("box_max", box_min + glm::vec3(50, 50.f, volume_z));
+		
 		if (center + width / 2.0f != max_iso_val) {
 			iso_change = true;
 		}
@@ -1018,7 +1031,7 @@ int main() {
 
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 		front_back_shader.Use();
-		front_back_shader.SetUniform4fv("model", glm::translate(glm::scale(glm::mat4(1), glm::vec3(50, 50, volume_z)), glm::vec3(1, 1, .51)));
+		front_back_shader.SetUniform4fv("model", glm::translate(glm::scale(glm::mat4(1), glm::vec3(50, 50, volume_z)), glm::vec3(1, 1, box_z_min + .5)));
 		front_back_shader.SetUniform4fv("camera", camera.getView());
 		front_back_shader.SetUniform4fv("projection", camera.getProjection());
 		front_back_shader.SetUniform3f("box_min", box_min);
@@ -1035,7 +1048,12 @@ int main() {
 		glDisable(GL_CULL_FACE);
 		volume_shader.Use();
 		volume_shader.SetUniform3f("viewPos", camera.getPosition());
-		glm::vec3 HalfwayVec = camera.getDirection() - lightDir;
+		glm::vec3 HalfwayVec = glm::normalize(camera.getDirection() + lightDir);
+		glm::vec2 HalfwayVecP = glm::vec2(acos(HalfwayVec.z), atan2(HalfwayVec.y, HalfwayVec.x));
+		volume_shader.SetUniform2f("HalfwayVecP", HalfwayVecP);
+		glm::vec2 sincosHalfwayTheta = glm::vec2(sin(HalfwayVecP.x), cos(HalfwayVecP.x));
+		volume_shader.SetUniform2f("sincosHalfwayTheta", sincosHalfwayTheta);
+
 
 		render(RayTraced, &volume_shader);
 

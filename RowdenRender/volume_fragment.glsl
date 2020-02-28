@@ -42,6 +42,7 @@ uniform vec3 color6;
 uniform int numTex;
 uniform float zNear;
 uniform float zFar;
+uniform float spec_term, bubble_term, bubble_min, bubble_max, max_opac, min_opac;
 
 uniform int enabledVolumes;
 
@@ -54,9 +55,17 @@ uniform float ambientStrength, diffuseStrength, specularStrength, shininess;
 #define EPSILON 1e-4
 #define M_PIf 3.1415926535897932384626433
 
+float sdot(vec2 a, vec2 b) {
+	return  sin(a.x) * sin(b.x) * cos(a.y - b.y) + cos(a.x) * cos(b.x);
+}
+//For use on a sincos vector and the normal vector. Uses precomputed sines and cosines
+float sdot(vec2 sincosa, vec2 sincosnorm, float a, float phi) {
+	return sincosa.x * sincosnorm.x * cos(a - phi) + sincosa.y * sincosnorm.y;
+}
+
 void main() {
-	vec3 front = (texture(fhp, TexCoord).xyz  * 50.0f + box_min);
-	vec3 back = (texture(bhp, TexCoord).xyz * 50.0f + box_min);
+	vec3 front = (texture(fhp, TexCoord).xyz);
+	vec3 back = (texture(bhp, TexCoord).xyz);
 	//vec3 view_dir = vec3(0);
 	vec3 start = vec3(0);
 	vec3 end = vec3(0);
@@ -156,12 +165,35 @@ void main() {
 			else {
 				float sinphi = sin(phi);
 				vec3 normal = vec3(sinphi * cos(theta), sinphi * sin(theta), cos(phi));
-				float2 normalP = make_float2(phi, theta);
-				float2 sincosnorm = make_float2(sin(theta), cos(theta));
-				float diffuse = diffuseStrength * fmax(0, sdot(sincosLightTheta, sincosnorm, lightDirP.y, phi));
-				float spec = specularStrength * pow(fabs(sdot(sincosHalfwayTheta, sincosnorm, HalfwayVecP.y, phi)), shininess);
+				vec2 normalP = vec2(phi, theta);
+				vec2 sincosnorm = vec2(sin(theta), cos(theta));
+				float diffuse = diffuseStrength * max(0, sdot(sincosLightTheta, sincosnorm, lightDirP.y, phi));
+				float spec = specularStrength * pow(abs(sdot(sincosHalfwayTheta, sincosnorm, HalfwayVecP.y, phi)), shininess);
 				color_self = ambientStrength * color + diffuse * color + spec * vec3(1, 1, 1);
-				opaque_self = 1.0f;
+				opaque_self = base_opac;
+				float bubble_coefficient = 1 - (abs(dot(view_dir, normal)));
+				//float bubble_coefficient = 1 - (fabs(sdot(CameraDirP, normalP)));
+
+				
+				if (opaque_self > 1e-5) {
+					if (bubble_coefficient > bubble_min) {
+						bubble_coefficient = bubble_min;
+					}
+					else if (bubble_coefficient < bubble_max) {
+						bubble_coefficient = bubble_max;
+					}
+
+					float norm = (((bubble_coefficient - bubble_max) / (bubble_min - bubble_max)));
+					bubble_coefficient = (norm * (max_opac - min_opac)) + min_opac;
+					
+
+					
+				}
+
+				opaque_self = opaque_self + (abs(bubble_term) * bubble_coefficient + ((spec_term) * spec));// 0.5f);
+				//if (ShadingTerms.y > 0) {
+					//color_self *= powf(1 - bubble_coefficient, 1 / tune);
+				//}
 			}
 
 			color_composited += ((1.f - opaque_composited) * color_self * opaque_self);
