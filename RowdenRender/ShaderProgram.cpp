@@ -12,6 +12,7 @@ ShaderProgram::ShaderProgram(std::vector<Shaders> shaders) {
 		case Shaders::SKY_VERT:
 		case Shaders::VOLUME_VERT:
 		case Shaders::FRONT_BACK_VERT:
+		case Shaders::INSTANCE_VERT:
 			glAttachShader(shaderProgram, vertexShader);
 			break;
 		case Shaders::FRAGMENT:
