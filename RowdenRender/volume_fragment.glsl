@@ -99,7 +99,7 @@ void main() {
 
 
 	vec3 view_dir = normalize(back - start);
-	float i = EPSILON * tune * texture(noise, vec2(view_dir)).r;
+	float i = tune * texture(noise, vec2(view_dir)).r;
 	float distance = sqrt(dot(end - start, end - start));
 	float raw_depth = texture(depth_tex, TexCoord).x * 2.0f - 1;
 	float depth = 2.0 * zNear * zFar / (zFar + zNear - raw_depth * (zFar - zNear));

@@ -813,7 +813,7 @@ int main() {
 		ImGui::SliderFloat("bubble bottom", &bubble_bottom, 0.0f, bubble_top);
 		ImGui::SliderFloat("bubble max opac", &bubble_max_opac, 0.0f, 1.0f);
 		ImGui::SliderFloat("bubble min opac", &bubble_min_opac, 0.0f, bubble_max_opac);
-		ImGui::SliderFloat("Debug", &tune, 0.0f, 1000.0f);
+		ImGui::SliderFloat("Debug", &tune, 0.0f, 3.0f);
 		ImGui::SliderFloat("Step Size", &volumeStepSize, 0.001f, .1f);
 		ImGui::SliderFloat("Step mod", &step_mod, 0.0f, 20.0f);
 		
