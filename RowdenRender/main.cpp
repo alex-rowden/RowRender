@@ -418,6 +418,7 @@ int main() {
 
 
 	Texture2D texture = Texture2D("Content\\Textures\\CampusMap.png");
+	Texture2D noise = Texture2D("Content\\Textures\\random_noise.jpeg");
 	Texture2D skybox_tex = Texture2D(skybox_files);
 	skybox_tex.name = "skybox";
 	//texture.setTexParameterWrap(GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT);
@@ -440,6 +441,8 @@ int main() {
 	volume_sets.resize(wifi.numSlices);
 	std::vector<unsigned short> normal;
 	normal.resize(normal_x.size() * 2);
+	noise.giveName("noise");
+	RayTraced.getMeshes().at(0)->addTexture(noise);
 	for (int i = 0; i < normal_x.size(); i++) {
 		normal.at(i * 2) = normal_x.at(i);
 		normal.at(i * 2 + 1) = normal_y.at(i);
@@ -705,6 +708,7 @@ int main() {
 	float old_increment = 0;
 	float volumeStepSize = .11;//.11 / 3.0;
 	float step_mod = 0;
+	float shade_opac = 1;
 	float box_z_min = 0;
 	glm::vec3 color1 = glm::vec3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
 	glm::vec3 color2 = glm::vec3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
@@ -712,7 +716,7 @@ int main() {
 	glm::vec3 color4 = glm::vec3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
 	glm::vec3 color5 = glm::vec3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
 	glm::vec3 color6 = glm::vec3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
-	glm::vec4 intersection_color = glm::vec4(glm::vec3(0), 0);
+	glm::vec3 intersection_color = glm::vec3(0);
 	bool enable_color[6] = { true, false, false, false, false, true };
 	//bool lighting_enabled = false;
 	
@@ -738,7 +742,7 @@ int main() {
 	glBindTexture(GL_TEXTURE_2D, front_hit_point_tex);
 
 	// Give an empty image to OpenGL ( the last "0" )
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, resolution.x, resolution.y, 0, GL_RGB, GL_FLOAT, 0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, resolution.x, resolution.y, 0, GL_RGB, GL_FLOAT, 0);
 
 	// Poor filtering. Needed !
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -751,7 +755,7 @@ int main() {
 	glBindTexture(GL_TEXTURE_2D, back_hit_point_tex);
 
 	// Give an empty image to OpenGL ( the last "0" )
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, resolution.x, resolution.y, 0, GL_RGB, GL_FLOAT, 0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, resolution.x, resolution.y, 0, GL_RGB, GL_FLOAT, 0);
 
 	// Poor filtering. Needed !
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -809,13 +813,14 @@ int main() {
 		ImGui::SliderFloat("bubble bottom", &bubble_bottom, 0.0f, bubble_top);
 		ImGui::SliderFloat("bubble max opac", &bubble_max_opac, 0.0f, 1.0f);
 		ImGui::SliderFloat("bubble min opac", &bubble_min_opac, 0.0f, bubble_max_opac);
-		//ImGui::SliderFloat("Debug", &tune, 0.0f, 1.0f);
+		ImGui::SliderFloat("Debug", &tune, 0.0f, 1000.0f);
 		ImGui::SliderFloat("Step Size", &volumeStepSize, 0.001f, .1f);
-		//ImGui::SliderFloat("Step mod", &step_mod, 0.0f, 20.0f);
+		ImGui::SliderFloat("Step mod", &step_mod, 0.0f, 20.0f);
+		
 		ImGui::SliderFloat("Increment", &increment, 0.0f, 10.0f);
 		ImGui::SliderFloat("Cube Z", &volume_z, 1.0f, 50.0f);
 		ImGui::SliderFloat("Cube Z min", &box_z_min, -10.0f, 1.0f);
-		//ImGui::Checkbox("Shade sillhouette", &color_aug);
+		ImGui::Checkbox("Shade intersection", &color_aug);
 		ImGui::SliderFloat("Specular Term", &spec_term, 0.0f, 1.0f);
 		ImGui::SliderFloat("FOV", &fov, 0.0f, 90.0f);
 		ImGui::Checkbox("Enable Channel 1", &enable_color[0]);
@@ -833,7 +838,8 @@ int main() {
 		ImGui::Checkbox("Enable Channel 11", &enable_color[4]);
 		if (enable_color[4])
 			ImGui::ColorEdit3("Channel 11", &color5.x);
-		//ImGui::ColorEdit4("Intersection Color", &intersection_color.x);
+		ImGui::ColorEdit3("Intersection Color", &intersection_color.x);
+		ImGui::SliderFloat("Intersection opacity", &shade_opac, 0.0f, 1.0f);
 		//ImGui::Checkbox("Enable Lighting", &enable_color[5]);
 		//ImGui::ColorEdit3("Volume Base Color", &color1.x);
 		//ImGui::SliderInt("TextureNum", &tex_num, 0, wifi.numSlices);
@@ -849,14 +855,22 @@ int main() {
 		volume_shader.SetUniform3f("color3", color3);
 		volume_shader.SetUniform3f("color4", color4);
 		volume_shader.SetUniform3f("color5", color5);
+		volume_shader.SetUniform3f("shade_color", intersection_color);
 
 		volume_shader.SetUniform1f("bubble_min", bubble_bottom);
 		volume_shader.SetUniform1f("bubble_max", bubble_top);
 		volume_shader.SetUniform1f("min_opac", bubble_min_opac);
 		volume_shader.SetUniform1f("max_opac", bubble_max_opac);
+		volume_shader.SetUniform1f("shade_opac", shade_opac);
+		if (color_aug)
+			volume_shader.SetUniform1f("enable_intersection", 1);
+		else
+			volume_shader.SetUniform1f("enable_intersection", 0);
 
 		volume_shader.SetUniform1f("spec_term", spec_term);
 		volume_shader.SetUniform1f("bubble_term", sil_term);
+		volume_shader.SetUniform1f("step_mod", step_mod);
+		volume_shader.SetUniform1f("tune", tune);
 		
 		box_min.z = box_z_min;
 		volume_shader.SetUniform3f("box_min", box_min);

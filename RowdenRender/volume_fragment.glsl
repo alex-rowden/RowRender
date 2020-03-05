@@ -24,6 +24,7 @@ uniform sampler2D normal5;
 uniform sampler2D fhp;
 uniform sampler2D bhp;
 uniform sampler2D depth_tex;
+uniform sampler2D noise;
 
 uniform vec3 viewPos;
 uniform vec2 IsoValRange;
@@ -39,10 +40,13 @@ uniform vec3 color3;
 uniform vec3 color4;
 uniform vec3 color5;
 uniform vec3 color6;
+uniform vec3 shade_color;
+uniform float shade_opac;
+uniform float enable_intersection;
 uniform int numTex;
 uniform float zNear;
 uniform float zFar;
-uniform float spec_term, bubble_term, bubble_min, bubble_max, max_opac, min_opac;
+uniform float spec_term, bubble_term, bubble_min, bubble_max, max_opac, min_opac, step_mod, tune;
 
 uniform int enabledVolumes;
 
@@ -90,18 +94,22 @@ void main() {
 	//view_dir = normalize(FragPos - viewPos);
 	vec3 color_composited = vec3(0, 0, 0);
 	float opaque_composited = 0;
-	float i = 0;
+	
 	bool debug = false;
 
 
 	vec3 view_dir = normalize(back - start);
+	float i = EPSILON * tune * texture(noise, vec2(view_dir)).r;
 	float distance = sqrt(dot(end - start, end - start));
 	float raw_depth = texture(depth_tex, TexCoord).x * 2.0f - 1;
 	float depth = 2.0 * zNear * zFar / (zFar + zNear - raw_depth * (zFar - zNear));
+	float upperBoundStep = 5 * StepSize;
 	//FragColor = vec4(vec3(distance / 75.0f), 1.0);
 	//FragColor = vec4(viewPos / 50.0f, 1);
 	//return;
-	for (i; i < distance; i += StepSize) {
+	float nextDistance = upperBoundStep;
+	for (i; i < distance; i += nextDistance) {
+		nextDistance = upperBoundStep;
 		vec3 texPoint =  start + view_dir * i;
 		if (distance > depth) {
 			FragColor = vec4(color_composited, opaque_composited);
@@ -117,11 +125,12 @@ void main() {
 		vec3 color;
 		float volume_sample;
 		vec3 normal_sample;
+		bool shade_intersection = false;
 		for (int i = 0; i < numTex; i++) {
 			if ((enabledVolumes & (1 << i)) < 1)
 				continue;
 
-			bool shade_intersection = false;
+			
 			switch (i) {
 			case 0:
 				color = vec3(color1);
@@ -159,10 +168,19 @@ void main() {
 			float opaque_self = 0;
 			float phi = normal_sample.x * M_PIf;
 			float theta = normal_sample.y * M_PIf * 2 - M_PIf;
+			nextDistance = min(nextDistance, StepSize * (1 + step_mod * min(abs(volume_sample - IsoValRange.x), abs(volume_sample - IsoValRange.y))));
 			if (volume_sample < IsoValRange.x || volume_sample > IsoValRange.y) {
 				continue;
 			}
 			else {
+				if (shade_intersection && (enable_intersection > 0)) {
+					color = shade_color;
+					opaque_self = shade_opac;
+				}
+				else {
+					opaque_self = base_opac;
+				}
+				shade_intersection = true;
 				float sinphi = sin(phi);
 				vec3 normal = vec3(sinphi * cos(theta), sinphi * sin(theta), cos(phi));
 				vec2 normalP = vec2(phi, theta);
@@ -170,10 +188,10 @@ void main() {
 				float diffuse = diffuseStrength * max(0, sdot(sincosLightTheta, sincosnorm, lightDirP.y, phi));
 				float spec = specularStrength * pow(abs(sdot(sincosHalfwayTheta, sincosnorm, HalfwayVecP.y, phi)), shininess);
 				color_self = ambientStrength * color + diffuse * color + spec * vec3(1, 1, 1);
-				opaque_self = base_opac;
+				
 				float bubble_coefficient = 1 - (abs(dot(view_dir, normal)));
 				//float bubble_coefficient = 1 - (fabs(sdot(CameraDirP, normalP)));
-
+				
 				
 				if (opaque_self > 1e-5) {
 					if (bubble_coefficient > bubble_min) {
