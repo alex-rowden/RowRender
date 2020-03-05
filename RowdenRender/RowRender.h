@@ -15,7 +15,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm\gtx\compatibility.hpp>
 #include <glm/gtx/string_cast.hpp>
-
+#include <openvr.h>
 
 #define RT_CHECK_ERROR_NO_CONTEXT( func ) \
   do { \

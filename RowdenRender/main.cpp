@@ -28,6 +28,9 @@
 #define DEBUG true
 #define BENCHMARK false
 #define MY_PI 3.1415926535897932384626433
+
+using namespace vr;
+
 int counter = 10;
 float increment = 0.05;
 float scale = 1.0;
@@ -36,6 +39,9 @@ bool update = true;
 bool animated = true;
 const char* animation_file = "test_1.txt";
 float speed = 6.0f;
+
+vr::IVRSystem* vr_pointer;
+
 glm::vec2 resolution = glm::vec2(2560, 1440);
 glm::vec3 rand_dim = glm::vec3(50, 50, 50);
 
@@ -397,6 +403,15 @@ int main() {
 		std::cout << "GLFW INIT " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 		start = clock();
 	}
+
+	EVRInitError eError = VRInitError_None;
+	vr_pointer = VR_Init(&eError, VRApplication_Scene);
+	if (eError != VRInitError_None) {
+		vr_pointer = NULL;
+		std::cerr << "Unable to init VR runtime: " << VR_GetVRInitErrorAsEnglishDescription(eError) << std::endl;
+		exit(EXIT_FAILURE);
+	}
+
 	ShaderProgram sp = ShaderProgram({ShaderProgram::Shaders::FRAGMENT, ShaderProgram::Shaders::VERTEX});
 	ShaderProgram campus_map_sp = ShaderProgram({ShaderProgram::Shaders::NO_LIGHT_FRAG, ShaderProgram::Shaders::NO_LIGHT_VERT});
 	//ShaderProgram screen_shader = ShaderProgram({ ShaderProgram::Shaders::SCREEN_FRAG, ShaderProgram::Shaders::SCREEN_VERT });
