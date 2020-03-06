@@ -443,13 +443,13 @@ int main() {
 	normal.resize(normal_x.size() * 2);
 	noise.giveName("noise");
 	RayTraced.getMeshes().at(0)->addTexture(noise);
-	for (int i = 0; i < normal_x.size(); i++) {
+	for (size_t i = 0; i < normal_x.size(); i++) {
 		normal.at(i * 2) = normal_x.at(i);
 		normal.at(i * 2 + 1) = normal_y.at(i);
 	}
 	for (int i = 0; i < wifi.numSlices; i++) {
 		Texture2D volume_data = Texture2D(&use_intensities[i * wifi.numLonCells * wifi.numLatCells], wifi.numLonCells, wifi.numLatCells);
-		Texture2D normal_data = Texture2D(&normal[i * wifi.numLonCells * wifi.numLatCells], wifi.numLonCells, wifi.numLatCells);
+		Texture2D normal_data = Texture2D(&normal[2 * i * wifi.numLonCells * wifi.numLatCells], wifi.numLonCells, wifi.numLatCells);
 		volume_data.setTexMinMagFilter(GL_LINEAR, GL_LINEAR);
 		normal_data.setTexMinMagFilter(GL_NEAREST, GL_NEAREST);
 		volume_data.giveName("volume" + std::to_string(i));
@@ -571,14 +571,6 @@ int main() {
 	wifi.loadBinary("sphere_scaled512.raw", use_intensities, normal_x, normal_y, normal_z);
 	*/
 
-	std::vector<short> normals;//, normals2;
-	normals.resize(2 * normal_x.size());
-	//normals2.resize(2 * use_intensities2.size());
-	for (unsigned long i = 0; i < normal_x.size(); i++) {
-		normals[i * 2] = normal_x.at(i);
-		normals[i * 2 + 1] = normal_y.at(i);
-	}
-	
 	time_t timer = time(NULL);
 	struct tm local_time;
 	localtime_s(&local_time, &timer);

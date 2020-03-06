@@ -247,11 +247,11 @@ bool WifiData::loadBinary(const char* filename, std::vector<unsigned char>& inte
 		for (unsigned long curr_idx = 0; curr_idx < intensities.size(); curr_idx++) {
 			glm::ivec3 indices = getTrip(curr_idx, numLatCells, numLonCells, numSlices);
 			calculate_neighbors(neighborsf, temp_x, indices.x, indices.y, indices.z, dialation);
-			temp_x.at(curr_idx) = (neighborsf.right + neighborsf.left + neighborsf.up + neighborsf.down + neighborsf.front + neighborsf.back) / 6.0f;
+			temp_x.at(curr_idx) = (neighborsf.right + neighborsf.left + neighborsf.up + neighborsf.down) / 4.0f;
 			calculate_neighbors(neighborsf, temp_y, indices.x, indices.y, indices.z, dialation);
-			temp_y.at(curr_idx) = (neighborsf.right + neighborsf.left + neighborsf.up + neighborsf.down + neighborsf.front + neighborsf.back) / 6.0f;
+			temp_y.at(curr_idx) = (neighborsf.right + neighborsf.left + neighborsf.up + neighborsf.down) / 4.0f;
 			calculate_neighbors(neighborsf, temp_z, indices.x, indices.y, indices.z, dialation);
-			temp_z.at(curr_idx) = (neighborsf.right + neighborsf.left + neighborsf.up + neighborsf.down + neighborsf.front + neighborsf.back) / 6.0f;
+			temp_z.at(curr_idx) = (neighborsf.right + neighborsf.left + neighborsf.up + neighborsf.down) / 4.0f;
 			glm::vec3 normal = glm::vec3(temp_x.at(curr_idx), temp_y.at(curr_idx), temp_z.at(curr_idx));
 			if (true) {
 				normal = glm::normalize(normal);
