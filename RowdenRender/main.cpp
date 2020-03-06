@@ -1,5 +1,6 @@
 #pragma once
 #include "RowRender.h"
+#include "VR_Wrapper.h"
 #include "WifiData.h"
 #include "Window.h"
 #include "Shape.h"
@@ -40,7 +41,6 @@ bool animated = true;
 const char* animation_file = "test_1.txt";
 float speed = 6.0f;
 
-vr::IVRSystem* vr_pointer;
 
 glm::vec2 resolution = glm::vec2(2560, 1440);
 glm::vec3 rand_dim = glm::vec3(50, 50, 50);
@@ -404,13 +404,11 @@ int main() {
 		start = clock();
 	}
 
-	EVRInitError eError = VRInitError_None;
-	vr_pointer = VR_Init(&eError, VRApplication_Scene);
-	if (eError != VRInitError_None) {
-		vr_pointer = NULL;
-		std::cerr << "Unable to init VR runtime: " << VR_GetVRInitErrorAsEnglishDescription(eError) << std::endl;
-		exit(EXIT_FAILURE);
-	}
+	VR_Wrapper vr = VR_Wrapper();
+	vr.initialize();
+	vr.initCompositor();
+
+	glm::uvec2 RenderSize = vr.getRenderTargetSize();
 
 	ShaderProgram sp = ShaderProgram({ShaderProgram::Shaders::FRAGMENT, ShaderProgram::Shaders::VERTEX});
 	ShaderProgram campus_map_sp = ShaderProgram({ShaderProgram::Shaders::NO_LIGHT_FRAG, ShaderProgram::Shaders::NO_LIGHT_VERT});
@@ -458,13 +456,13 @@ int main() {
 	normal.resize(normal_x.size() * 2);
 	noise.giveName("noise");
 	RayTraced.getMeshes().at(0)->addTexture(noise);
-	for (int i = 0; i < normal_x.size(); i++) {
-		normal.at(i * 2) = normal_x.at(i);
-		normal.at(i * 2 + 1) = normal_y.at(i);
-	}
+	//for (int i = 0; i < normal_x.size(); i++) {
+	//	normal.at(i * 2) = normal_x.at(i);
+	//	normal.at(i * 2 + 1) = normal_y.at(i);
+	//}
 	for (int i = 0; i < wifi.numSlices; i++) {
 		Texture2D volume_data = Texture2D(&use_intensities[i * wifi.numLonCells * wifi.numLatCells], wifi.numLonCells, wifi.numLatCells);
-		Texture2D normal_data = Texture2D(&normal[i * wifi.numLonCells * wifi.numLatCells], wifi.numLonCells, wifi.numLatCells);
+		Texture2D normal_data = Texture2D(&normal[2 * i * wifi.numLonCells * wifi.numLatCells], wifi.numLonCells, wifi.numLatCells);
 		volume_data.setTexMinMagFilter(GL_LINEAR, GL_LINEAR);
 		normal_data.setTexMinMagFilter(GL_NEAREST, GL_NEAREST);
 		volume_data.giveName("volume" + std::to_string(i));
@@ -715,11 +713,11 @@ int main() {
 	float sil_term = .95;
 	bool color_aug = false;
 	float tune = 1.0f;
-	float fov = 90;
+	float fov = 60;
 	int tex_num = 0;
 	float max_iso_val = 0;
 	bool iso_change = false;
-	float increment = 3.0f;
+	float increment = 10.0f;
 	float old_increment = 0;
 	float volumeStepSize = .11;//.11 / 3.0;
 	float step_mod = 0;
@@ -797,7 +795,18 @@ int main() {
 		return 0;
 	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	
+	std::vector<glm::vec4> pink = std::vector<glm::vec4>();
+	std::vector<glm::vec4> yellow = std::vector<glm::vec4>();
+
+	pink.resize(RenderSize.x * RenderSize.y);
+	yellow.resize(RenderSize.x * RenderSize.y);
+
+	for (int i = 0; i < RenderSize.x * RenderSize.y; i++) {
+		pink.at(i) = glm::vec4(1, 0, 1, 1);
+		yellow.at(i) = glm::vec4(1, 1, 0, 1);
+	}
+	GLuint pink_tex = Texture2D(&pink, (int)RenderSize.y, (int)RenderSize.x).getID();
+	GLuint yellow_tex = Texture2D(&yellow, (int)RenderSize.y, (int)RenderSize.x).getID();
 	//front_hit.SetTextureID(front_hit_point_tex);
 	front_hit.giveName("fhp");
 	RayTraced.getMeshes().at(0)->addTexture(front_hit);
@@ -1084,7 +1093,17 @@ int main() {
 		volume_shader.SetUniform2f("sincosHalfwayTheta", sincosHalfwayTheta);
 
 
-		render(RayTraced, &volume_shader);
+		//render(RayTraced, &volume_shader);
+
+		
+		vr::TrackedDevicePose_t trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
+		vr::VRCompositor()->WaitGetPoses(trackedDevicePose, vr::k_unMaxTrackedDeviceCount, nullptr, 0);
+
+		vr.composite(Eye_Left, pink_tex);
+		vr.composite(Eye_Right, yellow_tex);
+		vr.handoff();
+		//glFlush();
+		glFinish();
 
 		//glEnable(GL_CULL_FACE);
 		//glCullFace(GL_BACK);
@@ -1133,6 +1152,9 @@ int main() {
 	ImGui::DestroyContext();
 
 	glfwTerminate(); //Shut it down!
+	vr.terminate();
+	//VR_Shutdown();
+	//vr_pointer = NULL;
 
 	return 1;
 } 
