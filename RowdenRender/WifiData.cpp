@@ -193,15 +193,15 @@ bool WifiData::loadBinary(const char* filename, std::vector<unsigned char>& inte
 		phi.resize(size);
 		theta.resize(size);
 		f.read((char*)(&intensities[0]), size * sizeof(unsigned char));
-		f.read((char*)(&phi[0]), size * 2 * sizeof(short));
-		//f.read((char*)(&theta[0]), size * sizeof(short));
+		f.read((char*)(&phi[0]), size * sizeof(short));
+		f.read((char*)(&theta[0]), size * sizeof(short));
 		return true;
 	}
 	if (!loadBinary(filename, intensities))
 		return false;
 	Neighborhood neighbors = { 0, 0, 0, 0, 0, 0 };
 	Neighborhoodf neighborsf = { 0, 0, 0, 0, 0, 0 };
-	phi.resize(numLatCells * numLonCells * numSlices * 2);
+	phi.resize(numLatCells * numLonCells * numSlices);
 	theta.resize(numLatCells * numLonCells * numSlices);
 	
 	std::vector<float>temp_x, temp_y, temp_z;
@@ -247,11 +247,11 @@ bool WifiData::loadBinary(const char* filename, std::vector<unsigned char>& inte
 		for (unsigned long curr_idx = 0; curr_idx < intensities.size(); curr_idx++) {
 			glm::ivec3 indices = getTrip(curr_idx, numLatCells, numLonCells, numSlices);
 			calculate_neighbors(neighborsf, temp_x, indices.x, indices.y, indices.z, dialation);
-			temp_x.at(curr_idx) = (neighborsf.right + neighborsf.left + neighborsf.up + neighborsf.down + neighborsf.front + neighborsf.back) / 6.0f;
+			temp_x.at(curr_idx) = (neighborsf.right + neighborsf.left + neighborsf.up + neighborsf.down) / 4.0f;
 			calculate_neighbors(neighborsf, temp_y, indices.x, indices.y, indices.z, dialation);
-			temp_y.at(curr_idx) = (neighborsf.right + neighborsf.left + neighborsf.up + neighborsf.down + neighborsf.front + neighborsf.back) / 6.0f;
+			temp_y.at(curr_idx) = (neighborsf.right + neighborsf.left + neighborsf.up + neighborsf.down) / 4.0f;
 			calculate_neighbors(neighborsf, temp_z, indices.x, indices.y, indices.z, dialation);
-			temp_z.at(curr_idx) = (neighborsf.right + neighborsf.left + neighborsf.up + neighborsf.down + neighborsf.front + neighborsf.back) / 6.0f;
+			temp_z.at(curr_idx) = (neighborsf.right + neighborsf.left + neighborsf.up + neighborsf.down) / 4.0f;
 			glm::vec3 normal = glm::vec3(temp_x.at(curr_idx), temp_y.at(curr_idx), temp_z.at(curr_idx));
 			if (true) {
 				normal = glm::normalize(normal);
@@ -314,7 +314,7 @@ bool WifiData::loadBinary(const char* filename, std::vector<unsigned char>& inte
 			//t_phi -= 1e-3;
 		}
 		t_phi = (atan2(temp_y.at(curr_idx), temp_x.at(curr_idx)) + M_PIf) / (2 * M_PIf);
-		phi.at(curr_idx) = normFloat2Short(t_phi);
+		theta.at(curr_idx) = normFloat2Short(t_phi);
 		if (t_phi > max_phi) {
 			max_phi = t_phi;
 		}
@@ -331,7 +331,7 @@ bool WifiData::loadBinary(const char* filename, std::vector<unsigned char>& inte
 	out.write(reinterpret_cast<const char*>(&numLonCells), sizeof(int));
 	out.write(reinterpret_cast<const char *>(&intensities[0]), intensities.size() * sizeof(unsigned char));
 	out.write(reinterpret_cast<const char*>(&phi[0]), phi.size() * sizeof(short));
-	//out.write(reinterpret_cast<const char*>(&theta[0]), theta.size() * sizeof(short));
+	out.write(reinterpret_cast<const char*>(&theta[0]), theta.size() * sizeof(short));
 
 	//for(unsigned long i = 0; i < phi.size(); i++){
 		//out.write((char *)&phi.at(i), sizeof(short));
