@@ -50,6 +50,17 @@ GLuint volume_textureId, depth_mask_id, normal_textureId, max_volumeId;
 glm::vec3 iso_grid_size = glm::vec3(16, 16, 4);
 std::vector<glm::vec2> isoRangeVolume = std::vector <glm::vec2>();
 
+struct FramebufferDesc
+{
+	GLuint m_nDepthBufferId;
+	GLuint m_nRenderTextureId;
+	GLuint m_nRenderFramebufferId;
+	GLuint m_nResolveTextureId;
+	GLuint m_nResolveFramebufferId;
+};
+FramebufferDesc leftEyeDesc;
+FramebufferDesc rightEyeDesc;
+
 
 
 void updateIsoRangeVolume(std::vector<unsigned char> volume, glm::uvec3 dimensions, bool *enabled_vols, float increment) {
@@ -353,6 +364,48 @@ void create_max_volume(std::vector<unsigned char> &intensities, WifiData &wifi, 
 
 bool overlap(glm::vec2 a, glm::vec2 b) {
 	return a.y >= b.x && b.y >= a.x;
+}
+
+
+
+bool CreateFrameBuffer(int nWidth, int nHeight, FramebufferDesc& framebufferDesc)
+{
+	glGenFramebuffers(1, &framebufferDesc.m_nRenderFramebufferId);
+	glBindFramebuffer(GL_FRAMEBUFFER, framebufferDesc.m_nRenderFramebufferId);
+
+	glGenRenderbuffers(1, &framebufferDesc.m_nDepthBufferId);
+	glBindRenderbuffer(GL_RENDERBUFFER, framebufferDesc.m_nDepthBufferId);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, nWidth, nHeight);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, framebufferDesc.m_nDepthBufferId);
+
+	glGenTextures(1, &framebufferDesc.m_nRenderTextureId);
+	glBindTexture(GL_TEXTURE_2D, framebufferDesc.m_nRenderTextureId);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, nWidth, nHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, framebufferDesc.m_nRenderTextureId, 0);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	/*
+	glGenFramebuffers(1, &framebufferDesc.m_nResolveFramebufferId);
+	glBindFramebuffer(GL_FRAMEBUFFER, framebufferDesc.m_nResolveFramebufferId);
+
+	glGenTextures(1, &framebufferDesc.m_nResolveTextureId);
+	glBindTexture(GL_TEXTURE_2D, framebufferDesc.m_nResolveTextureId);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, nWidth, nHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, framebufferDesc.m_nResolveTextureId, 0);
+	*/
+	// check FBO status
+	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	if (status != GL_FRAMEBUFFER_COMPLETE)
+	{
+		return false;
+	}
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	return true;
 }
 
 
@@ -785,11 +838,17 @@ int main() {
 	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, resolution.x, resolution.y);
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, depthrenderbuffer);
 
+	
+
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
 		std::cout << "framebuffer broke" << std::endl;
 		return 0;
 	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	CreateFrameBuffer(RenderSize.x, RenderSize.y, leftEyeDesc);
+	CreateFrameBuffer(RenderSize.x, RenderSize.y, rightEyeDesc);
+
 	std::vector<glm::vec4> pink = std::vector<glm::vec4>();
 	std::vector<glm::vec4> yellow = std::vector<glm::vec4>();
 
@@ -968,11 +1027,11 @@ int main() {
 		campusTransform = glm::scale(campusTransform, scale * glm::vec3(100, 100, 100));
 
 
-		skybox_shader.SetUniform4fv("projection", camera.getProjection());
-		skybox_shader.SetUniform4fv("view", glm::mat4(glm::mat3(camera.getView())));
+		//skybox_shader.SetUniform4fv("projection", camera.getProjection());
+		//skybox_shader.SetUniform4fv("view", glm::mat4(glm::mat3(camera.getView())));
 
 		glDepthMask(GL_FALSE);
-		render(skybox, &skybox_shader);
+		
 		glDepthMask(GL_TRUE);
 		if (BENCHMARK) {
 			std::cout << "Render Skybox " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
@@ -980,32 +1039,76 @@ int main() {
 		}
 		sp.SetUniform4fv("model", transformation);
 		sp.SetUniform3fv("normalMatrix", glm::mat3(glm::transpose(glm::inverse(transformation * camera.getView()))));
-		sp.SetUniform4fv("camera", camera.getView());
-		sp.SetUniform4fv("projection", camera.getProjection());
+		//sp.SetUniform4fv("camera", camera.getView());
+		//sp.SetUniform4fv("projection", camera.getProjection());
 		sp.SetLights(lights);
 		sp.SetUniform3f("viewPos", camera.getPosition());
-		render(model, &sp);
+		
 		if (BENCHMARK) {
 			std::cout << "Render Campus Model " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
 		}
 		campus_map_sp.SetUniform4fv("model", campusTransform);
-		campus_map_sp.SetUniform4fv("camera", camera.getView());
-		campus_map_sp.SetUniform4fv("projection", camera.getProjection());
-		render(campusMap, &campus_map_sp);
+		//campus_map_sp.SetUniform4fv("camera", camera.getView());
+		//campus_map_sp.SetUniform4fv("projection", camera.getProjection());
+		
 		if (BENCHMARK) {
 			std::cout << "Render Campus Map " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
 		}
 		instance_shader.Use();
-		instance_shader.SetUniform4fv("projection", camera.getProjection());
-		instance_shader.SetUniform4fv("view", camera.getView());
+		//instance_shader.SetUniform4fv("projection", camera.getProjection());
+		//instance_shader.SetUniform4fv("view", camera.getView());
 		instance_shader.SetUniform4fv("transform", glm::scale(glm::translate(glm::mat4(1), glm::vec3(72.099, 63.9, 0) + w.translate), glm::vec3(.00095, .00159, .0009) + w.scale));
-		render(Tree, &instance_shader);
+		
 		if (BENCHMARK) {
 			std::cout << "Render Trees " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
 		}
+		
+		//vr::VRCompositor()->WaitGetPoses(trackedDevicePose, vr::k_unMaxTrackedDeviceCount, nullptr, 0); //update Poses
+		vr.updateHMDPoseMatrix();
+		for (int i = 0; i < 2; i++) {
+			Hmd_Eye curr_eye;
+			FramebufferDesc curr_fb;
+			if (i == 0) {
+				curr_eye = Eye_Left;
+				curr_fb = leftEyeDesc;
+			}
+			else {
+				curr_eye = Eye_Right;
+				curr_fb = rightEyeDesc;
+			}
+
+			glm::mat4 ProjectionMat = vr.getProjectionMatrix(curr_eye);
+			glm::mat4 ViewMat = vr.getViewMatrix(curr_eye);
+
+			glBindFramebuffer(GL_FRAMEBUFFER, curr_fb.m_nRenderFramebufferId);
+			glViewport(0, 0, RenderSize.x, RenderSize.y);
+			glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
+
+			skybox_shader.SetUniform4fv("projection", ProjectionMat);
+			skybox_shader.SetUniform4fv("view", ViewMat);
+			sp.SetUniform4fv("projection", ProjectionMat);
+			sp.SetUniform4fv("camera", ViewMat);
+			campus_map_sp.SetUniform4fv("projection", ProjectionMat);
+			campus_map_sp.SetUniform4fv("camera", ViewMat);
+			instance_shader.SetUniform4fv("projection", ProjectionMat);
+			instance_shader.SetUniform4fv("camera", ViewMat);
+
+			render(skybox, &skybox_shader);
+			render(model, &sp);
+			render(campusMap, &campus_map_sp);
+			render(Tree, &instance_shader);
+
+			
+
+			vr.composite(curr_eye, curr_fb.m_nRenderTextureId);
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		}
+		vr.handoff();
+		//glFlush();
+		glFinish();
 		//GLfloat* depths = new GLfloat[w.width * w.height];
 
 		//glReadPixels(0, 0, w.width, w.height, GL_DEPTH_COMPONENT, GL_FLOAT, depths);
@@ -1072,11 +1175,11 @@ int main() {
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_BACK);
 		front_back_shader.SetUniform1i("front", 1);
-		render(volume_cube, &front_back_shader);
+		//render(volume_cube, &front_back_shader);
 		glClear( GL_DEPTH_BUFFER_BIT);
 		glCullFace(GL_FRONT);
 		front_back_shader.SetUniform1i("front", 0);
-		render(volume_cube, &front_back_shader);
+		//render(volume_cube, &front_back_shader);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glDisable(GL_CULL_FACE);
 		volume_shader.Use();
@@ -1088,17 +1191,10 @@ int main() {
 		volume_shader.SetUniform2f("sincosHalfwayTheta", sincosHalfwayTheta);
 
 
-		render(RayTraced, &volume_shader);
+		//render(RayTraced, &volume_shader);
 
 		
-		vr::TrackedDevicePose_t trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
-		vr::VRCompositor()->WaitGetPoses(trackedDevicePose, vr::k_unMaxTrackedDeviceCount, nullptr, 0);
-
-		vr.composite(Eye_Left, pink_tex);
-		vr.composite(Eye_Right, yellow_tex);
-		vr.handoff();
-		//glFlush();
-		glFinish();
+		
 
 		//glEnable(GL_CULL_FACE);
 		//glCullFace(GL_BACK);

@@ -195,7 +195,7 @@ void Mesh::Render(ShaderProgram *shader) {
 		GLint texture_position = glGetUniformLocation(shader->getShader(), name.c_str());
 		if(texture_position >= 0){
 			glActiveTexture(GL_TEXTURE0 + counter);
-			glUniform1i(texture_position, counter++);
+			//glUniform1i(texture_position, counter++);
 			textures[i].Bind();
 		}
 		//shader.setFloat(("material." + name + number).c_str(), i);

@@ -21,6 +21,7 @@ void VR_Wrapper::initialize() {
 		std::cerr << "Unable to init VR runtime: " << VR_GetVRInitErrorAsEnglishDescription(eError) << std::endl;
 		exit(EXIT_FAILURE);
 	}
+	
 	std::cout << GetTrackedDeviceString(vr_pointer, vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_TrackingSystemName_String) << std::endl;
 	std::cout << GetTrackedDeviceString(vr_pointer, vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_SerialNumber_String) << std::endl;
 }
@@ -58,4 +59,70 @@ glm::uvec2 VR_Wrapper::getRenderTargetSize() {
 	unsigned int width, height;
 	vr_pointer->GetRecommendedRenderTargetSize(&width, &height);
 	return glm::uvec2(width, height);
+}
+
+glm::mat4 VR_Wrapper::getProjectionMatrix(Hmd_Eye eye) {
+	vr::HmdMatrix44_t mat = vr_pointer->GetProjectionMatrix(eye, .1, 1000);
+
+	return glm::mat4(
+		mat.m[0][0], mat.m[1][0], mat.m[2][0], mat.m[3][0],
+		mat.m[0][1], mat.m[1][1], mat.m[2][1], mat.m[3][1],
+		mat.m[0][2], mat.m[1][2], mat.m[2][2], mat.m[3][2],
+		mat.m[0][3], mat.m[1][3], mat.m[2][3], mat.m[3][3]
+	);
+}
+
+glm::mat4 VR_Wrapper::ConvertSteamVRMatrixToMatrix4(const vr::HmdMatrix34_t& matPose)
+{
+	glm::mat4 matrixObj = glm::mat4(
+		matPose.m[0][0], matPose.m[1][0], matPose.m[2][0], 0.0,
+		matPose.m[0][1], matPose.m[1][1], matPose.m[2][1], 0.0,
+		matPose.m[0][2], matPose.m[1][2], matPose.m[2][2], 0.0,
+		matPose.m[0][3], matPose.m[1][3], matPose.m[2][3], 1.0f
+	);
+	return matrixObj;
+}
+
+void VR_Wrapper::updateHMDPoseMatrix() {
+	vr::VRCompositor()->WaitGetPoses(trackedDevicePose, vr::k_unMaxTrackedDeviceCount, NULL, 0);
+
+	validPoseCount = 0;
+	strPoseClasses = "";
+	for (int nDevice = 0; nDevice < vr::k_unMaxTrackedDeviceCount; ++nDevice)
+	{
+		if (trackedDevicePose[nDevice].bPoseIsValid)
+		{
+			validPoseCount++;
+			DevicePose[nDevice] = ConvertSteamVRMatrixToMatrix4(trackedDevicePose[nDevice].mDeviceToAbsoluteTracking);
+			if (DevClassChar[nDevice] == 0)
+			{
+				switch (vr_pointer->GetTrackedDeviceClass(nDevice))
+				{
+				case vr::TrackedDeviceClass_Controller:        DevClassChar[nDevice] = 'C'; break;
+				case vr::TrackedDeviceClass_HMD:               DevClassChar[nDevice] = 'H'; break;
+				case vr::TrackedDeviceClass_Invalid:           DevClassChar[nDevice] = 'I'; break;
+				case vr::TrackedDeviceClass_GenericTracker:    DevClassChar[nDevice] = 'G'; break;
+				case vr::TrackedDeviceClass_TrackingReference: DevClassChar[nDevice] = 'T'; break;
+				default:                                       DevClassChar[nDevice] = '?'; break;
+				}
+			}
+			strPoseClasses += DevClassChar[nDevice];
+		}
+	}
+
+}
+
+glm::mat4 VR_Wrapper::getViewMatrix(Hmd_Eye eye) {
+	vr::HmdMatrix34_t matEyeRight = vr_pointer->GetEyeToHeadTransform(eye);
+	glm::mat4 matrixObj = glm::mat4(
+		matEyeRight.m[0][0], matEyeRight.m[1][0], matEyeRight.m[2][0], 0.0,
+		matEyeRight.m[0][1], matEyeRight.m[1][1], matEyeRight.m[2][1], 0.0,
+		matEyeRight.m[0][2], matEyeRight.m[1][2], matEyeRight.m[2][2], 0.0,
+		matEyeRight.m[0][3], matEyeRight.m[1][3], matEyeRight.m[2][3], 1.0f
+	);
+
+	glm::mat4 HMDPose = (DevicePose[vr::k_unTrackedDeviceIndex_Hmd]);
+	
+
+	return glm::inverse(HMDPose * matrixObj);
 }
