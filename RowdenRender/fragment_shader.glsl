@@ -32,7 +32,7 @@ uniform sampler2D texture_specular8;
 uniform sampler2D texture_specular9;
 uniform sampler2D texture_specular10;
 
-#define NR_POINT_LIGHTS 2
+#define NR_POINT_LIGHTS 1
 struct PointLight {
 	vec3 position;
     

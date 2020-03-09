@@ -630,8 +630,7 @@ int main() {
 
 	Lights lights = Lights();
 	float toNorm = 1 / 255.0;
-	lights.addPointLight(50.0f * glm::vec3(1, 1.5, 0), .1, .3, .003, toNorm * glm::vec3(255, 195, 12), toNorm * glm::vec3(255, 195, 12), toNorm * glm::vec3(255, 195, 12));
-	lights.addPointLight(50.0f * glm::vec3(0, 1.5, 0), .1, .2, .003, toNorm * glm::vec3(121, 102, 162), toNorm * glm::vec3(121, 102, 162), toNorm * glm::vec3(121, 102, 162));
+	lights.addPointLight(50.0f * glm::vec3(1, 1, 2), .1, 0.01, 0, glm::vec3(.3, .01, .01), glm::vec3(.3, .01, .01), glm::vec3(1, 1, 1));
 	//projection = glm::perspective(glm::radians(45.0f), 800/600.0f, 0.1f, 1000.0f);
 	glm::mat4 light_transform = glm::translate(glm::mat4(1.0f), glm::vec3(3, 3, 3));
 
