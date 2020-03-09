@@ -11,7 +11,7 @@ uniform int front;
 void main() {
 	//vec3 shifted = FragPos - box_min;
 	if (front > 0) {
-		fhp = vec4((FragPos), 1.0);
+		fhp = vec4(FragPos, 1.0);
 	}
 	else {
 		bhp = vec4((FragPos), 1.0);

@@ -783,7 +783,7 @@ int main() {
 	
 	//glGenTextures(1, &temp_tex);
 	glBindTexture(GL_TEXTURE_2D, temp_tex);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, resolution.x, resolution.y, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, RenderSize.x, RenderSize.y, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -803,7 +803,7 @@ int main() {
 	glBindTexture(GL_TEXTURE_2D, front_hit_point_tex);
 
 	// Give an empty image to OpenGL ( the last "0" )
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, resolution.x, resolution.y, 0, GL_RGB, GL_FLOAT, 0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, RenderSize.x, RenderSize.y, 0, GL_RGB, GL_FLOAT, 0);
 
 	// Poor filtering. Needed !
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -816,7 +816,7 @@ int main() {
 	glBindTexture(GL_TEXTURE_2D, back_hit_point_tex);
 
 	// Give an empty image to OpenGL ( the last "0" )
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, resolution.x, resolution.y, 0, GL_RGB, GL_FLOAT, 0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, RenderSize.x, RenderSize.y, 0, GL_RGB, GL_FLOAT, 0);
 
 	// Poor filtering. Needed !
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -835,7 +835,7 @@ int main() {
 	GLuint depthrenderbuffer;
 	glGenRenderbuffers(1, &depthrenderbuffer);
 	glBindRenderbuffer(GL_RENDERBUFFER, depthrenderbuffer);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, resolution.x, resolution.y);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, RenderSize.x, RenderSize.y);
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, depthrenderbuffer);
 
 	
@@ -1030,9 +1030,9 @@ int main() {
 		//skybox_shader.SetUniform4fv("projection", camera.getProjection());
 		//skybox_shader.SetUniform4fv("view", glm::mat4(glm::mat3(camera.getView())));
 
-		glDepthMask(GL_FALSE);
 		
-		glDepthMask(GL_TRUE);
+		
+		
 		if (BENCHMARK) {
 			std::cout << "Render Skybox " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
@@ -1056,7 +1056,7 @@ int main() {
 			std::cout << "Render Campus Map " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
 		}
-		instance_shader.Use();
+		
 		//instance_shader.SetUniform4fv("projection", camera.getProjection());
 		//instance_shader.SetUniform4fv("view", camera.getView());
 		instance_shader.SetUniform4fv("transform", glm::scale(glm::translate(glm::mat4(1), glm::vec3(72.099, 63.9, 0) + w.translate), glm::vec3(.00095, .00159, .0009) + w.scale));
@@ -1065,6 +1065,19 @@ int main() {
 			std::cout << "Render Trees " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
 		}
+
+		front_back_shader.SetUniform4fv("model", glm::translate(glm::scale(glm::mat4(1), glm::vec3(50, 50, volume_z)), glm::vec3(1, 1, box_z_min + .5)));
+		
+		front_back_shader.SetUniform3f("box_min", box_min);
+		front_back_shader.SetUniform3f("volume_scale", volume_scale);
+		
+		
+		volume_shader.SetUniform3f("viewPos", glm::vec3(0,0,0));
+		glm::vec3 HalfwayVec = glm::normalize(glm::vec3(0,0,0) + lightDir);
+		glm::vec2 HalfwayVecP = glm::vec2(acos(HalfwayVec.z), atan2(HalfwayVec.y, HalfwayVec.x));
+		volume_shader.SetUniform2f("HalfwayVecP", HalfwayVecP);
+		glm::vec2 sincosHalfwayTheta = glm::vec2(sin(HalfwayVecP.x), cos(HalfwayVecP.x));
+		volume_shader.SetUniform2f("sincosHalfwayTheta", sincosHalfwayTheta);
 		
 		//vr::VRCompositor()->WaitGetPoses(trackedDevicePose, vr::k_unMaxTrackedDeviceCount, nullptr, 0); //update Poses
 		vr.updateHMDPoseMatrix();
@@ -1081,28 +1094,60 @@ int main() {
 			}
 
 			glm::mat4 ProjectionMat = vr.getProjectionMatrix(curr_eye);
-			glm::mat4 ViewMat = vr.getViewMatrix(curr_eye);
+			glm::mat4 ViewMat = glm::rotate(vr.getViewMatrix(curr_eye), glm::radians(-90.0f), glm::vec3(1, 0, 0));
 
 			glBindFramebuffer(GL_FRAMEBUFFER, curr_fb.m_nRenderFramebufferId);
 			glViewport(0, 0, RenderSize.x, RenderSize.y);
 			glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
 
 			skybox_shader.SetUniform4fv("projection", ProjectionMat);
-			skybox_shader.SetUniform4fv("view", ViewMat);
+			skybox_shader.SetUniform4fv("view", glm::mat4(glm::mat3(ViewMat)));
 			sp.SetUniform4fv("projection", ProjectionMat);
 			sp.SetUniform4fv("camera", ViewMat);
 			campus_map_sp.SetUniform4fv("projection", ProjectionMat);
 			campus_map_sp.SetUniform4fv("camera", ViewMat);
 			instance_shader.SetUniform4fv("projection", ProjectionMat);
 			instance_shader.SetUniform4fv("camera", ViewMat);
-
+			glDepthMask(GL_FALSE);
+			skybox_shader.Use();
 			render(skybox, &skybox_shader);
+			glDepthMask(GL_TRUE);
+			sp.Use();
 			render(model, &sp);
+			campus_map_sp.Use();
 			render(campusMap, &campus_map_sp);
+			instance_shader.Use();
 			render(Tree, &instance_shader);
 
-			
+			glBindTexture(GL_TEXTURE_2D, temp_tex);
+			glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, RenderSize.x, RenderSize.y);
+			//glCopyImageSubData(temp_tex, GL_TEXTURE_2D, 0, 0, 0, 0,
+			//					depth_mask_id, GL_TEXTURE_2D, 0, 0, 0, 0, 
+			//					resolution.x, resolution.y, 1);
+			glBindTexture(GL_TEXTURE_2D, 0);
 
+			glBindFramebuffer(GL_FRAMEBUFFER, fb);
+
+			glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+
+			front_back_shader.SetUniform4fv("camera", ViewMat);
+			front_back_shader.SetUniform4fv("projection", ProjectionMat);
+
+			glEnable(GL_CULL_FACE);
+			glCullFace(GL_BACK);
+			front_back_shader.SetUniform1i("front", 1);
+			front_back_shader.Use();
+			render(volume_cube, &front_back_shader);
+			glClear(GL_DEPTH_BUFFER_BIT);
+			glCullFace(GL_FRONT);
+			front_back_shader.SetUniform1i("front", 0);
+			render(volume_cube, &front_back_shader);
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			glDisable(GL_CULL_FACE);
+			glBindFramebuffer(GL_FRAMEBUFFER, curr_fb.m_nRenderFramebufferId);
+			volume_shader.Use();
+			render(RayTraced, &volume_shader);
+			
 			vr.composite(curr_eye, curr_fb.m_nRenderTextureId);
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
@@ -1144,12 +1189,7 @@ int main() {
 		*/
 		
 		
-		glBindTexture(GL_TEXTURE_2D, temp_tex);
-		glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, w.width, w.height);
-		//glCopyImageSubData(temp_tex, GL_TEXTURE_2D, 0, 0, 0, 0,
-		//					depth_mask_id, GL_TEXTURE_2D, 0, 0, 0, 0, 
-		//					resolution.x, resolution.y, 1);
-		glBindTexture(GL_TEXTURE_2D, 0);
+		
 		if (BENCHMARK) {
 			std::cout << "Update Depth Buffer: " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
@@ -1161,37 +1201,6 @@ int main() {
 			//updateBoundingBox(center + width / 2.0f, max_volume);
 			max_iso_val = center + width / 2.0f;
 		}
-		
-		
-		glBindFramebuffer(GL_FRAMEBUFFER, fb);
-
-		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-		front_back_shader.Use();
-		front_back_shader.SetUniform4fv("model", glm::translate(glm::scale(glm::mat4(1), glm::vec3(50, 50, volume_z)), glm::vec3(1, 1, box_z_min + .5)));
-		front_back_shader.SetUniform4fv("camera", camera.getView());
-		front_back_shader.SetUniform4fv("projection", camera.getProjection());
-		front_back_shader.SetUniform3f("box_min", box_min);
-		front_back_shader.SetUniform3f("volume_scale", volume_scale);
-		glEnable(GL_CULL_FACE);
-		glCullFace(GL_BACK);
-		front_back_shader.SetUniform1i("front", 1);
-		//render(volume_cube, &front_back_shader);
-		glClear( GL_DEPTH_BUFFER_BIT);
-		glCullFace(GL_FRONT);
-		front_back_shader.SetUniform1i("front", 0);
-		//render(volume_cube, &front_back_shader);
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		glDisable(GL_CULL_FACE);
-		volume_shader.Use();
-		volume_shader.SetUniform3f("viewPos", camera.getPosition());
-		glm::vec3 HalfwayVec = glm::normalize(camera.getDirection() + lightDir);
-		glm::vec2 HalfwayVecP = glm::vec2(acos(HalfwayVec.z), atan2(HalfwayVec.y, HalfwayVec.x));
-		volume_shader.SetUniform2f("HalfwayVecP", HalfwayVecP);
-		glm::vec2 sincosHalfwayTheta = glm::vec2(sin(HalfwayVecP.x), cos(HalfwayVecP.x));
-		volume_shader.SetUniform2f("sincosHalfwayTheta", sincosHalfwayTheta);
-
-
-		//render(RayTraced, &volume_shader);
 
 		
 		
