@@ -187,6 +187,7 @@ void main() {
 				vec2 sincosnorm = vec2(sin(theta), cos(theta));
 				float diffuse = diffuseStrength * max(0, sdot(sincosLightTheta, sincosnorm, lightDirP.y, phi));
 				float spec = specularStrength * pow(abs(sdot(sincosHalfwayTheta, sincosnorm, HalfwayVecP.y, phi)), shininess);
+				//spec = specularStrength * pow(dot(halfway))
 				color_self = ambientStrength * color + diffuse * color + spec * vec3(1, 1, 1);
 				
 				float bubble_coefficient = 1 - (abs(dot(view_dir, normal)));

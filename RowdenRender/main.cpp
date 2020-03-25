@@ -8,10 +8,7 @@
 #include "ShaderProgram.h"
 #include "Texture2D.h"
 #include "Model.h"
-#include <tinyxml2.h>
-#include <optixu/optixpp_namespace.h>
-#include <optixu/optixu_math_stream_namespace.h>
-#include <sutil/sutil.h>
+//#include <tinyxml2.h>
 #include <random>
 #include <fstream>
 #include <iostream>
@@ -20,7 +17,7 @@
 #include <direct.h>
 #include <functional>
 #include <glm/gtc/matrix_access.hpp>
-#include <optix_cuda_interop.h>
+
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
@@ -92,13 +89,13 @@ void error_callback(int error, const char* description)
 }
 
 #include <windows.h>
-
+/*
 std::string getexepath()
 {
 	char result[MAX_PATH];
 	return std::string(result, GetModuleFileName(NULL, result, MAX_PATH));
 }
-
+*/
 void MessageCallback(GLenum source,
 	GLenum type,
 	GLuint id,
@@ -183,7 +180,7 @@ glm::vec3 vertexInterp(float isolevel, glm::vec3 p0, glm::vec3 p1, float f0, flo
 	float t = (isolevel - f0) / (f1 - f0);
 	return glm::lerp(p0, p1, t);
 }
-
+/*
 GLenum glFormatFromBufferFormat(bufferPixelFormat pixel_format, RTformat buffer_format)
 {
 	if (buffer_format == RT_FORMAT_UNSIGNED_BYTE4)
@@ -309,7 +306,7 @@ void cudaPrint() {
 		std::cout << "  CUDA Device Ordinal: " << cudaDeviceOrdinal << std::endl << std::endl;
 	}
 }
-
+*/
 void setupDearIMGUI(GLFWwindow *window) {
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -409,12 +406,12 @@ int main() {
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 	std::vector<std::string> skybox_files;
 	
-	skybox_files.emplace_back("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/Content/Textures/Skyboxes/miramar_lf.png");
-	skybox_files.emplace_back("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/Content/Textures/Skyboxes/miramar_rt.png");
-	skybox_files.emplace_back("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/Content/Textures/Skyboxes/miramar_bk.png");
-	skybox_files.emplace_back("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/Content/Textures/Skyboxes/miramar_ft.png");
-	skybox_files.emplace_back("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/Content/Textures/Skyboxes/miramar_up.png");
-	skybox_files.emplace_back("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/Content/Textures/Skyboxes/miramar_dn.png");
+	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/miramar_lf.png");
+	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/miramar_rt.png");
+	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/miramar_bk.png");
+	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/miramar_ft.png");
+	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/miramar_up.png");
+	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/miramar_dn.png");
 
 
 	Texture2D texture = Texture2D("Content\\Textures\\CampusMap.png");
@@ -473,7 +470,7 @@ int main() {
 	volume_shader.SetUniform1f("zNear", .1f);
 	volume_shader.SetUniform1f("zFar", 1000.f);
 	float ambientStrength = .2f;
-	glm::vec3 lightDir = normalize(glm::vec3(0, 0, 0.5));
+	glm::vec3 lightDir = normalize(glm::vec3(0, 0.5, 0.5));
 	float specularStrength = .45;
 	float diffuseStrength = .35;
 	float shininess = 128;
@@ -582,10 +579,10 @@ int main() {
 	if (!CreateDirectory(foldername.c_str(), NULL)) {
 		std::cout << "directory creation failed" << std::endl;
 	}
-	Shape myShape;
-	//makeVolumetricShapeGPU(&myShape, use_intensities, wifi, num_cells, .65f);
-	cudaPrint();
 #if(false)
+	//makeVolumetricShapeGPU(&myShape, use_intensities, wifi, num_cells, .65f);
+	//cudaPrint();
+
 		std::fstream out = std::fstream("wifi_data.raw", std::ios::binary | std::ios::out);
 
 		for (int i = 0; i < use_intensities.size(); i++) {
@@ -600,20 +597,20 @@ int main() {
 	glm::mat4 volume_transform = glm::rotate(glm::mat4(1), glm::radians(90.0f), glm::vec3(0, 1, 0));
 	//RTresult ret = rtBufferCreate(context->get(), RT_BUFFER_INPUT, &ray_buffer);
 
-
+	Shape myShape;
 
 	//setup camera
-	Camera camera = Camera(glm::vec3(25, 25, 0), glm::vec3(50, 49.999, 0), 90.0f, w.width/(float)w.height);
+	Camera camera = Camera(glm::vec3(49.2877, 18.2977, 3.57346), glm::vec3(50, 49.999, 0), 60.0f, w.width/(float)w.height);
 	//Camera camera = Camera(glm::vec3(34,37.5, .5), glm::vec3(35, 37.5, 0.5), 90.0f, w.width / w.height);
 	w.SetCamera(&camera);
-
+	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 	//sutil::displayBufferPPM("out.ppm", context["output_buffer"]->getBuffer());
 
-	Mesh volume = Mesh(&myShape);
+	//Mesh volume = Mesh(&myShape);
 
-	Model vol = Model();
-	vol.addMesh(&volume);
-	vol.setModel();
+	//Model vol = Model();
+	//vol.addMesh(&volume);
+	//vol.setModel();
 	//Texture2D wifi_intensities = Texture2D(&pixels, wifi.numLonCells, wifi.numLatCells);
 	//campusMap.getMeshes().at(0)->setTexture(wifi_intensities, 0);
 	Texture2D hdr_texture = Texture2D();
@@ -630,7 +627,12 @@ int main() {
 
 	Lights lights = Lights();
 	float toNorm = 1 / 255.0;
-	lights.addPointLight(50.0f * glm::vec3(1, 1, 2), .1, 0.01, 0, glm::vec3(.3, .01, .01), glm::vec3(.3, .01, .01), glm::vec3(1, 1, 1));
+	glm::vec3 color = glm::vec3(191, 95, 57) / 255.0f;
+	lights.addPointLight(50.0f * glm::vec3(1, 1, 2), .1, 0.01, 0, color, color, glm::vec3(1, 1, 1));
+	sp.SetUniform1f("ambient_coeff", .1);
+	sp.SetUniform1f("spec_coeff", .4);
+	sp.SetUniform1f("diffuse_coeff", .5);
+	sp.SetUniform1i("shininess", 32);
 	//projection = glm::perspective(glm::radians(45.0f), 800/600.0f, 0.1f, 1000.0f);
 	glm::mat4 light_transform = glm::translate(glm::mat4(1.0f), glm::vec3(3, 3, 3));
 
@@ -956,7 +958,7 @@ int main() {
 		sp.SetUniform4fv("projection", camera.getProjection());
 		sp.SetLights(lights);
 		sp.SetUniform3f("viewPos", camera.getPosition());
-		render(model, &sp);
+		//render(model, &sp);
 		if (BENCHMARK) {
 			std::cout << "Render Campus Model " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
@@ -964,7 +966,7 @@ int main() {
 		campus_map_sp.SetUniform4fv("model", campusTransform);
 		campus_map_sp.SetUniform4fv("camera", camera.getView());
 		campus_map_sp.SetUniform4fv("projection", camera.getProjection());
-		render(campusMap, &campus_map_sp);
+		//render(campusMap, &campus_map_sp);
 		if (BENCHMARK) {
 			std::cout << "Render Campus Map " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
@@ -973,7 +975,7 @@ int main() {
 		instance_shader.SetUniform4fv("projection", camera.getProjection());
 		instance_shader.SetUniform4fv("view", camera.getView());
 		instance_shader.SetUniform4fv("transform", glm::scale(glm::translate(glm::mat4(1), glm::vec3(72.099, 63.9, 0) + w.translate), glm::vec3(.00095, .00159, .0009) + w.scale));
-		render(Tree, &instance_shader);
+		//render(Tree, &instance_shader);
 		if (BENCHMARK) {
 			std::cout << "Render Trees " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
@@ -1033,8 +1035,9 @@ int main() {
 		
 		
 		glBindFramebuffer(GL_FRAMEBUFFER, fb);
-
+		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+		
 		front_back_shader.Use();
 		front_back_shader.SetUniform4fv("model", glm::translate(glm::scale(glm::mat4(1), glm::vec3(50, 50, volume_z)), glm::vec3(1, 1, box_z_min + .5)));
 		front_back_shader.SetUniform4fv("camera", camera.getView());
@@ -1044,11 +1047,11 @@ int main() {
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_BACK);
 		front_back_shader.SetUniform1i("front", 1);
-		render(volume_cube, &front_back_shader);
+		//render(volume_cube, &front_back_shader);
 		glClear( GL_DEPTH_BUFFER_BIT);
 		glCullFace(GL_FRONT);
 		front_back_shader.SetUniform1i("front", 0);
-		render(volume_cube, &front_back_shader);
+		//render(volume_cube, &front_back_shader);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glDisable(GL_CULL_FACE);
 		volume_shader.Use();
@@ -1060,7 +1063,7 @@ int main() {
 		volume_shader.SetUniform2f("sincosHalfwayTheta", sincosHalfwayTheta);
 
 
-		render(RayTraced, &volume_shader);
+		//render(RayTraced, &volume_shader);
 
 		//glEnable(GL_CULL_FACE);
 		//glCullFace(GL_BACK);
@@ -1091,7 +1094,7 @@ int main() {
 		}
 		ImGui::Render();
 		
-		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+		//ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 		if (BENCHMARK) {
 			std::cout << "Render GUI " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
@@ -1102,6 +1105,7 @@ int main() {
 			std::cout << "Full frame " << (double)((clock() - per_frame)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
 		}
+		glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	}
 	ImGui_ImplOpenGL3_Shutdown();

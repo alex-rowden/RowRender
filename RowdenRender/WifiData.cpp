@@ -3,7 +3,8 @@
 #include <string>
 #include <fstream>
 #include "delaunator.hpp"
-#include <optixu/optixu_math_namespace.h>
+//#include <optixu/optixu_math_namespace.h>
+#define M_PIf  3.1415926535897932384626433
 
 bool WifiData::loadCSV(const char* str) {
 	std::ifstream inputFile(str);
@@ -233,7 +234,7 @@ bool WifiData::loadBinary(const char* filename, std::vector<unsigned char>& inte
 	for (unsigned long i = 0; i < intensities.size(); i++) {
 		glm::ivec3 indices = getTrip(i, numLatCells, numLonCells, numSlices);
 		calculate_neighbors(neighbors, intensities, indices.x, indices.y, indices.z, 2);
-		glm::vec3 normal = glm::vec3(((neighbors.right) - neighbors.left) / (float)1, ((neighbors.up) - neighbors.down) / (float)1, .1);
+		glm::vec3 normal = glm::vec3(((neighbors.right) - neighbors.left) / (float)1, ((neighbors.up) - neighbors.down) / (float)1, .05);
 		
 		if (glm::length(normal) != 0) {
 			normal = glm::normalize(normal);
