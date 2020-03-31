@@ -183,10 +183,11 @@ void main() {
 				shade_intersection = true;
 				float sinphi = sin(phi);
 				vec3 normal = vec3(sinphi * cos(theta), sinphi * sin(theta), cos(phi));
+				
 				vec2 normalP = vec2(phi, theta);
 				vec2 sincosnorm = vec2(sin(theta), cos(theta));
 				float diffuse = diffuseStrength * max(0, sdot(sincosLightTheta, sincosnorm, lightDirP.y, phi));
-				float spec = specularStrength * pow(abs(sdot(sincosHalfwayTheta, sincosnorm, HalfwayVecP.y, phi)), shininess);
+				float spec = specularStrength * pow(max(sdot(sincosHalfwayTheta, sincosnorm, HalfwayVecP.y, phi), 0), shininess);
 				//spec = specularStrength * pow(dot(halfway))
 				color_self = ambientStrength * color + diffuse * color + spec * vec3(1, 1, 1);
 				

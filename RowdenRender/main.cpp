@@ -148,7 +148,7 @@ void LoadCampusModel(Model *completeCampus) {
 	completeCampus->setModel();
 }
 
-int get3DIndex(int i, int j, int k, int x_dim, int y_dim, int num_cells) {
+int get3DIndex(int i, int j, int k, int x_dim, int y_dim, int num_cells) {                                                                         
 	if (i >= x_dim || j >= y_dim || k >= num_cells) {
 		return -1;
 	}
@@ -473,7 +473,7 @@ int main() {
 	glm::vec3 lightDir = normalize(glm::vec3(0, 0.5, 0.5));
 	float specularStrength = .45;
 	float diffuseStrength = .35;
-	float shininess = 128;
+	float shininess = 64;
 	volume_shader.SetUniform1f("shininess", shininess);
 	volume_shader.SetUniform1f("ambientStrength", ambientStrength);
 	volume_shader.SetUniform1f("specularStrength", specularStrength);
@@ -682,27 +682,27 @@ int main() {
 		start = clock();
 	}
 	//Rendering Parameters
-	float center = .05;//.56; //.2075
-	float width = .005;//.015
-	float base_opac = 0.06;
+	float center = .169;//.56; //.2075
+	float width = .015;//.015
+	float base_opac = 0.1;
 	float bubble_top = 1.0f;
-	float bubble_bottom = .95;
+	float bubble_bottom = 0;
 	float bubble_max_opac = .1f;
 	float bubble_min_opac = .025f;
 	float spec_term = .05;
 	float sil_term = .95;
 	bool color_aug = false;
-	float tune = 1.0f;
+	float tune = .08f;
 	float fov = 90;
 	int tex_num = 0;
 	float max_iso_val = 0;
 	bool iso_change = false;
-	float increment = 3.0f;
+	float increment = 4.0f;
 	float old_increment = 0;
-	float volumeStepSize = .11;//.11 / 3.0;
+	float volumeStepSize = .075;//.11 / 3.0;
 	float step_mod = 0;
 	float shade_opac = 1;
-	float box_z_min = 0;
+	float box_z_min = 0.01;
 	glm::vec3 color1 = glm::vec3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
 	glm::vec3 color2 = glm::vec3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
 	glm::vec3 color3 = glm::vec3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
@@ -786,7 +786,7 @@ int main() {
 	RayTraced.getMeshes().at(0)->addTexture(back_hit);
 
 	volume_shader.SetUniform1i("numTex", wifi.numSlices);
-	float volume_z = 50;
+	float volume_z = 21;
 
 	while (!glfwWindowShouldClose(w.getWindow())) //main render loop
 	{
@@ -958,7 +958,7 @@ int main() {
 		sp.SetUniform4fv("projection", camera.getProjection());
 		sp.SetLights(lights);
 		sp.SetUniform3f("viewPos", camera.getPosition());
-		//render(model, &sp);
+		render(model, &sp);
 		if (BENCHMARK) {
 			std::cout << "Render Campus Model " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
@@ -966,7 +966,7 @@ int main() {
 		campus_map_sp.SetUniform4fv("model", campusTransform);
 		campus_map_sp.SetUniform4fv("camera", camera.getView());
 		campus_map_sp.SetUniform4fv("projection", camera.getProjection());
-		//render(campusMap, &campus_map_sp);
+		render(campusMap, &campus_map_sp);
 		if (BENCHMARK) {
 			std::cout << "Render Campus Map " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
@@ -975,7 +975,7 @@ int main() {
 		instance_shader.SetUniform4fv("projection", camera.getProjection());
 		instance_shader.SetUniform4fv("view", camera.getView());
 		instance_shader.SetUniform4fv("transform", glm::scale(glm::translate(glm::mat4(1), glm::vec3(72.099, 63.9, 0) + w.translate), glm::vec3(.00095, .00159, .0009) + w.scale));
-		//render(Tree, &instance_shader);
+		render(Tree, &instance_shader);
 		if (BENCHMARK) {
 			std::cout << "Render Trees " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
@@ -1047,11 +1047,11 @@ int main() {
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_BACK);
 		front_back_shader.SetUniform1i("front", 1);
-		//render(volume_cube, &front_back_shader);
+		render(volume_cube, &front_back_shader);
 		glClear( GL_DEPTH_BUFFER_BIT);
 		glCullFace(GL_FRONT);
 		front_back_shader.SetUniform1i("front", 0);
-		//render(volume_cube, &front_back_shader);
+		render(volume_cube, &front_back_shader);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glDisable(GL_CULL_FACE);
 		volume_shader.Use();
@@ -1063,7 +1063,7 @@ int main() {
 		volume_shader.SetUniform2f("sincosHalfwayTheta", sincosHalfwayTheta);
 
 
-		//render(RayTraced, &volume_shader);
+		render(RayTraced, &volume_shader);
 
 		//glEnable(GL_CULL_FACE);
 		//glCullFace(GL_BACK);
@@ -1094,7 +1094,7 @@ int main() {
 		}
 		ImGui::Render();
 		
-		//ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 		if (BENCHMARK) {
 			std::cout << "Render GUI " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
