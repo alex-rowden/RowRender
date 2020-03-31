@@ -19,8 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\Documents\CLibs\src\glad.c" />
-    <ClCompile Include="..\..\..\..\Documents\CLibs\src\tinyxml2.cpp" />
+    <ClCompile Include="..\..\..\GLAD\src\glad.c" />
     <ClCompile Include="..\..\imgui\examples\imgui_impl_glfw.cpp" />
     <ClCompile Include="..\..\imgui\examples\imgui_impl_opengl3.cpp" />
     <ClCompile Include="..\..\imgui\imgui.cpp" />
@@ -35,7 +34,6 @@
     <ClCompile Include="ShaderProgram.cpp" />
     <ClCompile Include="Shape.cpp" />
     <ClCompile Include="Texture2D.cpp" />
-    <ClCompile Include="VR_Wrapper.cpp" />
     <ClCompile Include="WifiData.cpp" />
     <ClCompile Include="Window.cpp" />
   </ItemGroup>
@@ -60,7 +58,6 @@
     <ClInclude Include="Texture2D.h" />
     <ClInclude Include="tutorial.h" />
     <ClInclude Include="volume_render.h" />
-    <ClInclude Include="VR_Wrapper.h" />
     <ClInclude Include="WifiData.h" />
     <ClInclude Include="Window.h" />
   </ItemGroup>
@@ -142,9 +139,9 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(USERPROFILE)\Documents\CLibs\include;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.1\include;C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\include;C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\SDK\;C:\Users\alrowden\source\repos\openvr\headers;$(IncludePath)</IncludePath>
-    <LibraryPath>$(USERPROFILE)\Documents\CLibs\Libs\Release;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.1\lib\x64;C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\lib64;C:\Users\alrowden\source\repos\openvr\lib\win64;$(LibraryPath)</LibraryPath>
-    <SourcePath>$(USERPROFILE)\Documents\CLibs\src;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.1\src;C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\SDK;C:\Users\alrowden\source\repos\openvr\src;$(SourcePath)</SourcePath>
+    <IncludePath>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.1\include;C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\include;C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\SDK\;C:\Users\ARR87\Documents\glm-0.9.9.7\glm\;C:\Users\ARR87\Documents\glfw-3.3.2.bin.WIN64\include;C:\Users\ARR87\Documents\GLAD\include;C:\Users\ARR87\Documents\stb-master;C:\Users\ARR87\Documents\GitHub\imgui;C:\Users\ARR87\Documents\GitHub\imgui\examples;C:\Users\ARR87\Documents\assimp-5.0.0\build\include;C:\Users\ARR87\Documents\assimp-5.0.0\include;C:\Users\ARR87\Documents\Simple OpenGL Image Library\src;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.1\lib\x64;C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\lib64;C:\Windows\System32;C:\Users\ARR87\Documents\glfw-3.3.2.bin.WIN64\lib-vc2019;C:\Users\ARR87\Documents\assimp-5.0.0\build\code\Release;C:\Users\ARR87\Documents\Simple OpenGL Image Library\lib;$(LibraryPath)</LibraryPath>
+    <SourcePath>C:\Users\ARR87\Documents\glm-0.9.9.7\glm\;C:\Users\ARR87\Documents\GLAD\src;C:\Users\ARR87\Documents\GitHub\imgui;C:\Users\ARR87\Documents\GitHub\imgui\examples;C:\Users\ARR87\Documents\Simple OpenGL Image Library\src;$(SourcePath)</SourcePath>
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -202,13 +199,13 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\Users\alrowden\source\repos\imgui;C:\Users\alrowden\source\repos\openvr\headers</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\alrowden\source\repos\imgui;C:\Users\ARR87\Documents\GLAD\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>libSOIL.a;glfw3.lib;opengl32.lib;glm_static.lib;assimp-vc140-mt.lib;tinyxml2.lib;optix.6.0.0.lib;sutil_sdk.lib;cuda.lib;cudart.lib;openvr_api.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libSOIL.a;glfw3.lib;opengl32.lib;assimp-vc142-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>
       </DelayLoadDLLs>
     </Link>
