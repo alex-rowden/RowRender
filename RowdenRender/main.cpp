@@ -9,10 +9,7 @@
 #include "ShaderProgram.h"
 #include "Texture2D.h"
 #include "Model.h"
-#include <tinyxml2.h>
-#include <optixu/optixpp_namespace.h>
-#include <optixu/optixu_math_stream_namespace.h>
-#include <sutil/sutil.h>
+
 #include <random>
 #include <fstream>
 #include <iostream>
@@ -21,7 +18,7 @@
 #include <direct.h>
 #include <functional>
 #include <glm/gtc/matrix_access.hpp>
-#include <optix_cuda_interop.h>
+
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
@@ -109,12 +106,13 @@ void error_callback(int error, const char* description)
 }
 
 #include <windows.h>
-
+/*
 std::string getexepath()
 {
 	char result[MAX_PATH];
 	return std::string(result, GetModuleFileName(NULL, result, MAX_PATH));
 }
+*/
 
 void MessageCallback(GLenum source,
 	GLenum type,
@@ -200,7 +198,7 @@ glm::vec3 vertexInterp(float isolevel, glm::vec3 p0, glm::vec3 p1, float f0, flo
 	float t = (isolevel - f0) / (f1 - f0);
 	return glm::lerp(p0, p1, t);
 }
-
+/*
 GLenum glFormatFromBufferFormat(bufferPixelFormat pixel_format, RTformat buffer_format)
 {
 	if (buffer_format == RT_FORMAT_UNSIGNED_BYTE4)
@@ -326,6 +324,7 @@ void cudaPrint() {
 		std::cout << "  CUDA Device Ordinal: " << cudaDeviceOrdinal << std::endl << std::endl;
 	}
 }
+*/
 
 void setupDearIMGUI(GLFWwindow *window) {
 	IMGUI_CHECKVERSION();
@@ -652,7 +651,7 @@ int main() {
 	}
 	Shape myShape;
 	//makeVolumetricShapeGPU(&myShape, use_intensities, wifi, num_cells, .65f);
-	cudaPrint();
+	//cudaPrint();
 #if(false)
 		std::fstream out = std::fstream("wifi_data.raw", std::ios::binary | std::ios::out);
 

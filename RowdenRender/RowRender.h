@@ -16,7 +16,7 @@
 #include <glm\gtx\compatibility.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <openvr.h>
-
+#define M_PIf 3.1415926535897932384626433
 #define RT_CHECK_ERROR_NO_CONTEXT( func ) \
   do { \
     RTresult code = func; \

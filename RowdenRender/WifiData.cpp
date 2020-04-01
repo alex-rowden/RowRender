@@ -3,7 +3,7 @@
 #include <string>
 #include <fstream>
 #include "delaunator.hpp"
-#include <optixu/optixu_math_namespace.h>
+//#include <optixu/optixu_math_namespace.h>
 
 bool WifiData::loadCSV(const char* str) {
 	std::ifstream inputFile(str);
