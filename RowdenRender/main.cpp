@@ -409,7 +409,7 @@ bool CreateFrameBuffer(int nWidth, int nHeight, FramebufferDesc& framebufferDesc
 
 
 int main() {
-	
+	std::string wrk_dir = std::string("C:\\Users\\ARR87\\Documents\\GitHub\\RowRender\\RowdenRender");
 	clock_t start = clock();
 	std::vector<short> normal_x, normal_y;
 	std::vector<unsigned char> use_intensities, max_volume;
@@ -474,12 +474,12 @@ int main() {
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 	std::vector<std::string> skybox_files;
 	
-	skybox_files.emplace_back("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/Content/Textures/Skyboxes/miramar_lf.png");
-	skybox_files.emplace_back("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/Content/Textures/Skyboxes/miramar_rt.png");
-	skybox_files.emplace_back("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/Content/Textures/Skyboxes/miramar_bk.png");
-	skybox_files.emplace_back("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/Content/Textures/Skyboxes/miramar_ft.png");
-	skybox_files.emplace_back("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/Content/Textures/Skyboxes/miramar_up.png");
-	skybox_files.emplace_back("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/Content/Textures/Skyboxes/miramar_dn.png");
+	skybox_files.emplace_back(wrk_dir + "/Content/Textures/Skyboxes/miramar_lf.png");
+	skybox_files.emplace_back(wrk_dir + "/Content/Textures/Skyboxes/miramar_rt.png");
+	skybox_files.emplace_back(wrk_dir + "/Content/Textures/Skyboxes/miramar_bk.png");
+	skybox_files.emplace_back(wrk_dir + "/Content/Textures/Skyboxes/miramar_ft.png");
+	skybox_files.emplace_back(wrk_dir + "/Content/Textures/Skyboxes/miramar_up.png");
+	skybox_files.emplace_back(wrk_dir + "/Content/Textures/Skyboxes/miramar_dn.png");
 
 
 	Texture2D texture = Texture2D("Content\\Textures\\CampusMap.png");
@@ -870,7 +870,7 @@ int main() {
 	RayTraced.getMeshes().at(0)->addTexture(back_hit);
 
 	volume_shader.SetUniform1i("numTex", wifi.numSlices);
-	float volume_z = 50;
+	float volume_z = 8.0;
 
 	while (!glfwWindowShouldClose(w.getWindow())) //main render loop
 	{
