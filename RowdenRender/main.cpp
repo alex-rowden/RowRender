@@ -466,7 +466,7 @@ int main() {
 	ShaderProgram campus_map_sp = ShaderProgram({ShaderProgram::Shaders::NO_LIGHT_FRAG, ShaderProgram::Shaders::NO_LIGHT_VERT});
 	//ShaderProgram screen_shader = ShaderProgram({ ShaderProgram::Shaders::SCREEN_FRAG, ShaderProgram::Shaders::SCREEN_VERT });
 	ShaderProgram skybox_shader = ShaderProgram({ ShaderProgram::Shaders::SKY_FRAG, ShaderProgram::Shaders::SKY_VERT });
-	ShaderProgram instance_shader = ShaderProgram({ ShaderProgram::Shaders::INSTANCE_FRAG, ShaderProgram::Shaders::INSTANCE_VERT });
+	ShaderProgram tree_shader = ShaderProgram({ ShaderProgram::Shaders::INSTANCE_FRAG, ShaderProgram::Shaders::INSTANCE_VERT });
 	ShaderProgram volume_shader = ShaderProgram({ ShaderProgram::Shaders::VOLUME_FRAG, ShaderProgram::Shaders::VOLUME_VERT });
 	ShaderProgram front_back_shader = ShaderProgram({ ShaderProgram::Shaders::FRONT_BACK_FRAG, ShaderProgram::Shaders::FRONT_BACK_VERT });
 	//mesh.SetData();
@@ -1056,9 +1056,9 @@ int main() {
 			start = clock();
 		}
 		
-		//instance_shader.SetUniform4fv("projection", camera.getProjection());
-		//instance_shader.SetUniform4fv("view", camera.getView());
-		instance_shader.SetUniform4fv("transform", glm::scale(glm::translate(glm::mat4(1), glm::vec3(72.099, 63.9, 0) + w.translate), glm::vec3(.00095, .00159, .0009) + w.scale));
+		//tree_shader.SetUniform4fv("projection", camera.getProjection());
+		//tree_shader.SetUniform4fv("view", camera.getView());
+		tree_shader.SetUniform4fv("transform", glm::scale(glm::translate(glm::mat4(1), glm::vec3(72.099, 63.9, 0) + w.translate), glm::vec3(.00095, .00159, .0009) + w.scale));
 		
 		if (BENCHMARK) {
 			std::cout << "Render Trees " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
@@ -1105,8 +1105,8 @@ int main() {
 			sp.SetUniform4fv("camera", ViewMat);
 			campus_map_sp.SetUniform4fv("projection", ProjectionMat);
 			campus_map_sp.SetUniform4fv("camera", ViewMat);
-			instance_shader.SetUniform4fv("projection", ProjectionMat);
-			instance_shader.SetUniform4fv("camera", ViewMat);
+			tree_shader.SetUniform4fv("projection", ProjectionMat);
+			tree_shader.SetUniform4fv("camera", ViewMat);
 			glDepthMask(GL_FALSE);
 			skybox_shader.Use();
 			render(skybox, &skybox_shader);
@@ -1115,8 +1115,9 @@ int main() {
 			render(model, &sp);
 			campus_map_sp.Use();
 			render(campusMap, &campus_map_sp);
-			instance_shader.Use();
-			render(Tree, &instance_shader);
+			tree_shader.Use();
+			render(Tree, &tree_shader);
+			
 
 			glBindTexture(GL_TEXTURE_2D, temp_tex);
 			glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, RenderSize.x, RenderSize.y);

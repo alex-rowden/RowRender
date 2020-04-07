@@ -26,6 +26,56 @@ void VR_Wrapper::initialize() {
 	std::cout << GetTrackedDeviceString(vr_pointer, vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_SerialNumber_String) << std::endl;
 }
 
+void VR_Wrapper::ProcessVREvent(const vr::VREvent_t& event) {
+	switch (event.eventType)
+	{
+		case vr::VREvent_TrackedDeviceDeactivated:
+		{
+			printf("Device %u detached.\n", event.trackedDeviceIndex);
+		}
+		break;
+		case vr::VREvent_TrackedDeviceUpdated:
+		{
+			printf("Device %u updated.\n", event.trackedDeviceIndex);
+		}
+		break;
+	}
+
+}
+
+void VR_Wrapper::handle_vr_input() {
+	vr::VREvent_t event;
+	while (vr_pointer->PollNextEvent(&event, sizeof(event)))
+	{
+		ProcessVREvent(event);
+	}
+	for (EHand eHand = Left; eHand <= Right; ((int&)eHand)++)
+	{
+		vr::InputPoseActionData_t poseData;
+		if (vr::VRInput()->GetPoseActionDataForNextFrame(m_rHand[eHand].m_actionPose, vr::TrackingUniverseStanding, &poseData, sizeof(poseData), vr::k_ulInvalidInputValueHandle) != vr::VRInputError_None
+			|| !poseData.bActive || !poseData.pose.bPoseIsValid)
+		{
+			m_rHand[eHand].m_bShowController = false;
+		}
+		else
+		{
+			m_rHand[eHand].m_rmat4Pose = ConvertSteamVRMatrixToMatrix4(poseData.pose.mDeviceToAbsoluteTracking);
+
+			vr::InputOriginInfo_t originInfo;
+			if (vr::VRInput()->GetOriginTrackedDeviceInfo(poseData.activeOrigin, &originInfo, sizeof(originInfo)) == vr::VRInputError_None
+				&& originInfo.trackedDeviceIndex != vr::k_unTrackedDeviceIndexInvalid)
+			{
+				std::string sRenderModelName = GetTrackedDeviceString(vr_pointer, originInfo.trackedDeviceIndex, vr::Prop_RenderModelName_String);
+				if (sRenderModelName != m_rHand[eHand].m_sRenderModelName)
+				{
+					//m_rHand[eHand].m_pRenderModel = FindOrLoadRenderModel(sRenderModelName.c_str());
+					m_rHand[eHand].m_sRenderModelName = sRenderModelName;
+				}
+			}
+		}
+	}
+}
+
 bool VR_Wrapper::initCompositor() {
 	EVRInitError peError = VRInitError_None;
 

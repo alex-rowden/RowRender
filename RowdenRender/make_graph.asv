@@ -1,0 +1,15 @@
+lon_range = min(Longitude):.00001:max(Longitude);
+lat_range = min(Latitude):.00001:max(Latitude);
+sig_data = zeros(length(lon_range), length(lat_range));
+
+for index=1:size(unique_bssids, 1)
+    if(length(bssid_tables(index).table.Longitude) ~= 3 && (bssid_tables(index).table.Frequency(1) == 12412)) 
+        vals = bssid_tables(index).gaussian;
+        if vals.sigma == -1
+            vals.sigma = avg_sigma / count;
+        end
+        z = gaussian(lon_range, lat_range, vals.sigma, vals.mu_x, vals.mu_y, vals.amplitude);
+        sig_data = max(sig_data, z);
+    end
+end
+mesh(sig_data);

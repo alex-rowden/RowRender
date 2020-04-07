@@ -18,11 +18,30 @@ public:
 	void terminate();
 	void composite(EVREye eye, GLuint tex);
 	void handoff();
+	void handle_vr_input();
+	void ProcessVREvent(const vr::VREvent_t& event);
 
 	glm::uvec2 getRenderTargetSize();
 	glm::mat4 getProjectionMatrix(Hmd_Eye eye);
 	glm::mat4 getViewMatrix(Hmd_Eye eye);
 	void updateHMDPoseMatrix();
 	glm::mat4 ConvertSteamVRMatrixToMatrix4(const HmdMatrix34_t& matPose);
+	struct ControllerInfo_t
+	{
+		vr::VRInputValueHandle_t m_source = vr::k_ulInvalidInputValueHandle;
+		vr::VRActionHandle_t m_actionPose = vr::k_ulInvalidActionHandle;
+		vr::VRActionHandle_t m_actionHaptic = vr::k_ulInvalidActionHandle;
+		glm::mat4 m_rmat4Pose;
+		//CGLRenderModel *m_pRenderModel = nullptr;
+		std::string m_sRenderModelName;
+		bool m_bShowController;
+	};
+
+	enum EHand
+	{
+		Left = 0,
+		Right = 1,
+	};
+	ControllerInfo_t m_rHand[2];
 };
 
