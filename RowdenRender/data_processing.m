@@ -5,7 +5,7 @@ bssid_tables = struct();
 default_sigma = -1;
 avg_sigma = 0;
 count = 0;
-show_n_plots = 0;
+show_n_plots = 10;
 for bssid_index=1:size(unique_bssids, 1)
     curr_table =  data(data.BSSID == unique_bssids{bssid_index, :}, :);
     bssid_tables(bssid_index).table = curr_table;
