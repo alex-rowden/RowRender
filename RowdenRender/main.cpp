@@ -351,11 +351,11 @@ int main() {
 	
 	clock_t start = clock();
 	std::vector<short> normal_x, normal_y;
-	std::vector<unsigned char> use_intensities, max_volume;
+	std::vector<float> use_intensities, max_volume;
 	WifiData wifi;
 	int dialation = 1;
 	int num_smooths = 1;
-	std::string filename = "umd_freqs";
+	std::string filename = "2Ghz_channels_float";
 	//std::string filename = "sphere_freqs";
 	wifi.loadBinary((filename + ".raw").c_str(), use_intensities, normal_x, normal_y);
 	//create_max_volume(use_intensities, wifi, max_volume);
@@ -697,7 +697,7 @@ int main() {
 	int tex_num = 0;
 	float max_iso_val = 0;
 	bool iso_change = false;
-	float increment = 4.0f;
+	float increment = 1.0f;
 	float old_increment = 0;
 	float volumeStepSize = .075;//.11 / 3.0;
 	float step_mod = 0;

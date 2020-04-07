@@ -16,6 +16,7 @@ public:
 	Texture2D(std::vector<unsigned char>* vals, int height, int width);
 	//Texture2D(std::vector<unsigned short>* vals, int height, int width);
 	Texture2D(unsigned char* vals, int height, int width);
+	Texture2D(float* vals, int height, int width);
 	Texture2D(unsigned short* vals, int height, int width);
 	unsigned int getID() { return texture; }
 	void init_from_vector(std::vector<glm::vec4> *color, int height, int width);

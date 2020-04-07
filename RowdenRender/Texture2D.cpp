@@ -101,6 +101,15 @@ Texture2D::Texture2D(unsigned char *vals, int height, int width) {
 
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16, width, height, 0, GL_RG, GL_SHORT, vals);
 	glGenerateMipmap(GL_TEXTURE_2D);
+}Texture2D::Texture2D(float *vals, int height, int width) {
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	this->height = height;
+	this->width = width;
+	numChannels = 2;
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, width, height, 0, GL_RED, GL_FLOAT, vals);
+	glGenerateMipmap(GL_TEXTURE_2D);
 }
 
 Texture2D::Texture2D(std::vector<std::string> faces)
