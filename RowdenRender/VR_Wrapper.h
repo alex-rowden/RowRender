@@ -6,6 +6,12 @@ using namespace vr;
 class VR_Wrapper
 {
 public:
+	enum class EHand
+	{
+		Left = 0,
+		Right = 1,
+		None = -1,
+	};
 	IVRSystem* vr_pointer = NULL;
 	vr::TrackedDevicePose_t trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
 	glm::mat4 DevicePose[vr::k_unMaxTrackedDeviceCount];
@@ -20,6 +26,9 @@ public:
 	void handoff();
 	void handle_vr_input();
 	void ProcessVREvent(const vr::VREvent_t& event);
+	EHand left_or_right(const vr::VREvent_t& event);
+	const char* EHand2str(const EHand hand);
+	const char* ButtonCode2str(uint32_t button);
 
 	glm::uvec2 getRenderTargetSize();
 	glm::mat4 getProjectionMatrix(Hmd_Eye eye);
@@ -37,11 +46,7 @@ public:
 		bool m_bShowController;
 	};
 
-	enum EHand
-	{
-		Left = 0,
-		Right = 1,
-	};
+	
 	ControllerInfo_t m_rHand[2];
 };
 

@@ -972,6 +972,7 @@ int main() {
 			}
 		}
 		volume_shader.SetUniform1i("enabledVolumes", enabledColors);
+		vr.handle_vr_input();
 		
 		camera.fov = fov;
 		clock_t per_frame = clock();

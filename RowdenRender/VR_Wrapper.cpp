@@ -37,10 +37,74 @@ void VR_Wrapper::ProcessVREvent(const vr::VREvent_t& event) {
 		case vr::VREvent_TrackedDeviceUpdated:
 		{
 			printf("Device %u updated.\n", event.trackedDeviceIndex);
-		}
+		}case vr::VREvent_TrackedDeviceActivated:
+		{
+			printf("Device %u activated.\n", event.trackedDeviceIndex);
+		}case vr::VREvent_ButtonPress:
+		case vr::VREvent_ButtonTouch:
+			printf("%s Button %s pressed", EHand2str(left_or_right(event)) , ButtonCode2str(event.data.controller.button));
 		break;
 	}
 
+}
+
+const char* VR_Wrapper::ButtonCode2str(uint32_t button) {
+	switch (button) {
+	case k_EButton_A:
+		return "A or X";
+		break;
+	case k_EButton_ApplicationMenu:
+		return "B or Y";
+		break;
+	case k_EButton_Grip:
+		return "Grip";
+		break;
+	case k_EButton_SteamVR_Trigger:
+		return "Trigger";
+		break;
+	default:
+		return "";//vr_pointer->GetButtonIdNameFromEnum();
+	}
+}
+
+const char* VR_Wrapper::EHand2str(const EHand hand) {
+	switch (hand) {
+	case EHand::Right:
+		return "Right";
+		break;
+	case EHand::Left:
+		return "Left";
+		break;
+	default:
+		return "EHand2str Error";
+		break;
+	}
+}
+
+VR_Wrapper::EHand VR_Wrapper::left_or_right(const vr::VREvent_t& event) {
+	ETrackedDeviceClass trackedDeviceClass =
+		vr_pointer->GetTrackedDeviceClass(event.trackedDeviceIndex);
+	if (trackedDeviceClass != ETrackedDeviceClass::TrackedDeviceClass_Controller) {
+		return EHand::None; //this is a placeholder, but there isn't a controller 
+		   //involved so the rest of the snippet should be skipped
+	}
+	ETrackedControllerRole role =
+		vr_pointer->GetControllerRoleForTrackedDeviceIndex(event.trackedDeviceIndex);
+	if (role == TrackedControllerRole_Invalid) {
+		// The controller is probably not visible to a base station.
+		//    Invalid role comes up more often than you might think.
+	}
+	else if (role == TrackedControllerRole_LeftHand) {
+		// Left hand
+		return EHand::Left;
+	}
+	else if (role == TrackedControllerRole_RightHand) {
+		// Right hand
+		return EHand::Right;
+	}
+	else {
+		return EHand::None;
+	}
 }
 
 void VR_Wrapper::handle_vr_input() {
@@ -49,27 +113,27 @@ void VR_Wrapper::handle_vr_input() {
 	{
 		ProcessVREvent(event);
 	}
-	for (EHand eHand = Left; eHand <= Right; ((int&)eHand)++)
+	for (EHand eHand = EHand::Left; eHand <= EHand::Right; ((int&)eHand)++)
 	{
 		vr::InputPoseActionData_t poseData;
-		if (vr::VRInput()->GetPoseActionDataForNextFrame(m_rHand[eHand].m_actionPose, vr::TrackingUniverseStanding, &poseData, sizeof(poseData), vr::k_ulInvalidInputValueHandle) != vr::VRInputError_None
+		if (vr::VRInput()->GetPoseActionDataForNextFrame(m_rHand[(int)eHand].m_actionPose, vr::TrackingUniverseStanding, &poseData, sizeof(poseData), vr::k_ulInvalidInputValueHandle) != vr::VRInputError_None
 			|| !poseData.bActive || !poseData.pose.bPoseIsValid)
 		{
-			m_rHand[eHand].m_bShowController = false;
+			m_rHand[(int)eHand].m_bShowController = false;
 		}
 		else
 		{
-			m_rHand[eHand].m_rmat4Pose = ConvertSteamVRMatrixToMatrix4(poseData.pose.mDeviceToAbsoluteTracking);
+			m_rHand[(int)eHand].m_rmat4Pose = ConvertSteamVRMatrixToMatrix4(poseData.pose.mDeviceToAbsoluteTracking);
 
 			vr::InputOriginInfo_t originInfo;
 			if (vr::VRInput()->GetOriginTrackedDeviceInfo(poseData.activeOrigin, &originInfo, sizeof(originInfo)) == vr::VRInputError_None
 				&& originInfo.trackedDeviceIndex != vr::k_unTrackedDeviceIndexInvalid)
 			{
 				std::string sRenderModelName = GetTrackedDeviceString(vr_pointer, originInfo.trackedDeviceIndex, vr::Prop_RenderModelName_String);
-				if (sRenderModelName != m_rHand[eHand].m_sRenderModelName)
+				if (sRenderModelName != m_rHand[(int)eHand].m_sRenderModelName)
 				{
 					//m_rHand[eHand].m_pRenderModel = FindOrLoadRenderModel(sRenderModelName.c_str());
-					m_rHand[eHand].m_sRenderModelName = sRenderModelName;
+					m_rHand[(int)eHand].m_sRenderModelName = sRenderModelName;
 				}
 			}
 		}
