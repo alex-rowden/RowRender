@@ -42,24 +42,77 @@ void VR_Wrapper::ProcessVREvent(const vr::VREvent_t& event) {
 			printf("Device %u activated.\n", event.trackedDeviceIndex);
 		}case vr::VREvent_ButtonPress:
 		case vr::VREvent_ButtonTouch:
-			printf("%s Button %s pressed", EHand2str(left_or_right(event)) , ButtonCode2str(event.data.controller.button));
+			printf("%s Button %s pressed", EHand2str(left_or_right(event)) , ButtonCode2str(event));
 		break;
 	}
 
 }
 
-const char* VR_Wrapper::ButtonCode2str(uint32_t button) {
-	switch (button) {
-	case k_EButton_A:
-		return "A or X";
+void VR_Wrapper::SaveControllerIDs() {
+	for (unsigned int id = 0; id < k_unMaxTrackedDeviceCount; id++) {
+		ETrackedDeviceClass trackedDeviceClass =
+			vr_pointer->GetTrackedDeviceClass(id);
+		if (trackedDeviceClass !=
+			ETrackedDeviceClass::TrackedDeviceClass_Controller ||
+			!vr_pointer->IsTrackedDeviceConnected(id))
+			continue;
+
+		//Confirmed that the device in question is a connected controller
+
+		if(left_or_right(id) == EHand::Right){
+			RightDeviceId = id;
+		}
+		else {
+			LeftDeviceId = id;
+		}
+	}
+}
+
+glm::mat4 getDeviceLocation(uint32_t id) {
+
+}
+
+VR_Wrapper::Button VR_Wrapper::ButtonCode2Button(const vr::VREvent_t&event) {
+	switch (event.data.controller.button) {
+	case k_EButton_A: {
+		EHand hand = left_or_right(event);
+		return (hand == EHand::Left) ? Button::X : (hand == EHand::Right) ? Button::A : Button::None;
 		break;
+	}
 	case k_EButton_ApplicationMenu:
-		return "B or Y";
+	{
+		EHand hand = left_or_right(event);
+		return (hand == EHand::Left) ? Button::Y : (hand == EHand::Right) ? Button::B : Button::None;
 		break;
-	case k_EButton_Grip:
-		return "Grip";
+	}case k_EButton_Grip:
+		return Button::Grip;
 		break;
 	case k_EButton_SteamVR_Trigger:
+		return Button::Trigger;
+		break;
+	default:
+		return Button::None;//vr_pointer->GetButtonIdNameFromEnum();
+	}
+}
+
+const char* VR_Wrapper::ButtonCode2str(const vr::VREvent_t&event) {
+	switch (ButtonCode2Button(event)) {
+	case Button::A:
+		return "A";
+		break;
+	case Button::B:
+		return "B";
+		break;
+	case Button::X:
+		return "X";
+		break;
+	case Button::Y:
+		return "Y";
+		break;
+	case Button::Grip:
+		return "Grip";
+		break;
+	case Button::Trigger:
 		return "Trigger";
 		break;
 	default:
@@ -82,14 +135,18 @@ const char* VR_Wrapper::EHand2str(const EHand hand) {
 }
 
 VR_Wrapper::EHand VR_Wrapper::left_or_right(const vr::VREvent_t& event) {
+	return left_or_right(event.trackedDeviceIndex);
+}
+
+VR_Wrapper::EHand VR_Wrapper::left_or_right(vr::TrackedDeviceIndex_t trackedDeviceIndex) {
 	ETrackedDeviceClass trackedDeviceClass =
-		vr_pointer->GetTrackedDeviceClass(event.trackedDeviceIndex);
+		vr_pointer->GetTrackedDeviceClass(trackedDeviceIndex);
 	if (trackedDeviceClass != ETrackedDeviceClass::TrackedDeviceClass_Controller) {
 		return EHand::None; //this is a placeholder, but there isn't a controller 
 		   //involved so the rest of the snippet should be skipped
 	}
 	ETrackedControllerRole role =
-		vr_pointer->GetControllerRoleForTrackedDeviceIndex(event.trackedDeviceIndex);
+		vr_pointer->GetControllerRoleForTrackedDeviceIndex(trackedDeviceIndex);
 	if (role == TrackedControllerRole_Invalid) {
 		// The controller is probably not visible to a base station.
 		//    Invalid role comes up more often than you might think.
@@ -105,6 +162,15 @@ VR_Wrapper::EHand VR_Wrapper::left_or_right(const vr::VREvent_t& event) {
 	else {
 		return EHand::None;
 	}
+}
+
+glm::mat4 VR_Wrapper::getControllerPose(uint32_t id) {
+	TrackedDevicePose_t trackedDevicePose;
+	VRControllerState_t controllerState;
+	vr_pointer->GetControllerStateWithPose(
+		TrackingUniverseStanding, id, &controllerState,
+		sizeof(controllerState), &trackedDevicePose);
+	return ConvertSteamVRMatrixToMatrix4(trackedDevicePose.mDeviceToAbsoluteTracking);
 }
 
 void VR_Wrapper::handle_vr_input() {

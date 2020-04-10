@@ -502,6 +502,8 @@ int main() {
 	Tree.setModel();
 	Model volume_cube = Model("Content\\Models\\cube\\cube.obj");
 	volume_cube.setModel();
+	Model untex_cube = Model("Content\\Models\\cube\\cube.obj");
+	untex_cube.setModel();
 	std::vector<Texture2D> volume_sets = std::vector<Texture2D>();
 	volume_sets.resize(wifi.numSlices);
 	std::vector<unsigned short> normal;
@@ -973,6 +975,8 @@ int main() {
 		}
 		volume_shader.SetUniform1i("enabledVolumes", enabledColors);
 		vr.handle_vr_input();
+
+		
 		
 		camera.fov = fov;
 		clock_t per_frame = clock();
@@ -1048,7 +1052,7 @@ int main() {
 			std::cout << "Render Campus Model " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
 		}
-		campus_map_sp.SetUniform4fv("model", campusTransform);
+		
 		//campus_map_sp.SetUniform4fv("camera", camera.getView());
 		//campus_map_sp.SetUniform4fv("projection", camera.getProjection());
 		
@@ -1078,7 +1082,7 @@ int main() {
 		volume_shader.SetUniform2f("HalfwayVecP", HalfwayVecP);
 		glm::vec2 sincosHalfwayTheta = glm::vec2(sin(HalfwayVecP.x), cos(HalfwayVecP.x));
 		volume_shader.SetUniform2f("sincosHalfwayTheta", sincosHalfwayTheta);
-		
+		vr.SaveControllerIDs();
 		//vr::VRCompositor()->WaitGetPoses(trackedDevicePose, vr::k_unMaxTrackedDeviceCount, nullptr, 0); //update Poses
 		vr.updateHMDPoseMatrix();
 		for (int i = 0; i < 2; i++) {
@@ -1094,7 +1098,8 @@ int main() {
 			}
 
 			glm::mat4 ProjectionMat = vr.getProjectionMatrix(curr_eye);
-			glm::mat4 ViewMat = glm::rotate(vr.getViewMatrix(curr_eye), glm::radians(-90.0f), glm::vec3(1, 0, 0));
+			glm::mat4 unRotView = vr.getViewMatrix(curr_eye);
+			glm::mat4 ViewMat = glm::rotate(unRotView, glm::radians(-90.0f), glm::vec3(1, 0, 0));
 
 			glBindFramebuffer(GL_FRAMEBUFFER, curr_fb.m_nRenderFramebufferId);
 			glViewport(0, 0, RenderSize.x, RenderSize.y);
@@ -1112,8 +1117,16 @@ int main() {
 			skybox_shader.Use();
 			render(skybox, &skybox_shader);
 			glDepthMask(GL_TRUE);
+			campus_map_sp.Use();
+			campus_map_sp.SetUniform4fv("camera", unRotView);
+			campus_map_sp.SetUniform4fv("model", glm::rotate(vr.getControllerPose(vr.RightDeviceId) * glm::scale(glm::mat4(1), .1f * glm::vec3(1)), glm::radians(-0.0f), glm::vec3(1, 0, 0)));
+			render(untex_cube, &campus_map_sp);
+			campus_map_sp.SetUniform4fv("model", glm::rotate(vr.getControllerPose(vr.LeftDeviceId) * glm::scale(glm::mat4(1), .1f * glm::vec3(1)), glm::radians(-0.0f), glm::vec3(1, 0, 0)));
+			render(untex_cube, &campus_map_sp);
+			campus_map_sp.SetUniform4fv("camera", ViewMat);
 			sp.Use();
 			render(model, &sp);
+			campus_map_sp.SetUniform4fv("model", campusTransform);
 			campus_map_sp.Use();
 			render(campusMap, &campus_map_sp);
 			tree_shader.Use();
