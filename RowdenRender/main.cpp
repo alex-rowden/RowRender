@@ -144,7 +144,7 @@ void MessageCallback(GLenum source,
 }
 
 void LoadCampusModel(Model *completeCampus) {
-	completeCampus->addModel(new Model("Content/Models/Buildings/flat_campus.fbx"));
+	completeCampus->addModel(new Model("Content/Models/Buildings/flipped_norms.fbx"));
 	completeCampus->setModel();
 }
 
@@ -351,11 +351,11 @@ int main() {
 	
 	clock_t start = clock();
 	std::vector<short> normal_x, normal_y;
-	std::vector<float> use_intensities, max_volume;
+	std::vector<unsigned char> use_intensities, max_volume;
 	WifiData wifi;
-	int dialation = 1;
-	int num_smooths = 1;
-	std::string filename = "2Ghz_channels_float";
+	
+	std::string filename = "umd_freqs";
+	//std::string filename = "2Ghz_channels_float";
 	//std::string filename = "sphere_freqs";
 	wifi.loadBinary((filename + ".raw").c_str(), use_intensities, normal_x, normal_y);
 	//create_max_volume(use_intensities, wifi, max_volume);
@@ -406,12 +406,12 @@ int main() {
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 	std::vector<std::string> skybox_files;
 	
-	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/miramar_lf.png");
-	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/miramar_rt.png");
-	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/miramar_bk.png");
-	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/miramar_ft.png");
-	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/miramar_up.png");
-	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/miramar_dn.png");
+	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/skybox/left.jpg");
+	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/skybox/right.jpg");
+	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/skybox/front.jpg");
+	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/skybox/back.jpg");
+	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/skybox/top.jpg");
+	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/skybox/bottom.jpg");
 
 
 	Texture2D texture = Texture2D("Content\\Textures\\CampusMap.png");
@@ -430,10 +430,13 @@ int main() {
 	campusMap.getMeshes().at(0)->setTexture(texture, 0);
 	Model RayTraced = Model("Content\\Models\\quad\\quad_centered.obj");
 	RayTraced.setModel();
+	Model Blur = Model("Content\\Models\\quad\\quad_centered.obj");
+	Blur.setModel();
 	Model Tree = Model("Content\\Models\\tree_scaled.FBX");
 	Tree.setModel();
 	Model volume_cube = Model("Content\\Models\\cube\\cube.obj");
 	volume_cube.setModel();
+
 	std::vector<Texture2D> volume_sets = std::vector<Texture2D>();
 	volume_sets.resize(wifi.numSlices);
 	std::vector<unsigned short> normal;
@@ -600,7 +603,7 @@ int main() {
 	Shape myShape;
 
 	//setup camera
-	Camera camera = Camera(glm::vec3(49.2877, 18.2977, 3.57346), glm::vec3(50, 49.999, 0), 60.0f, w.width/(float)w.height);
+	Camera camera = Camera(glm::vec3(36.9, 13.1627, 1.514), glm::vec3(40.3, 46.682, 3.57), 60.0f, w.width/(float)w.height);
 	//Camera camera = Camera(glm::vec3(34,37.5, .5), glm::vec3(35, 37.5, 0.5), 90.0f, w.width / w.height);
 	w.SetCamera(&camera);
 	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
@@ -627,10 +630,10 @@ int main() {
 
 	Lights lights = Lights();
 	float toNorm = 1 / 255.0;
-	glm::vec3 color = glm::vec3(191, 95, 57) / 255.0f;
+	glm::vec3 color = glm::vec3(252, 202, 158) / 255.0f;
 	lights.addPointLight(50.0f * glm::vec3(1, 1, 2), .1, 0.01, 0, color, color, glm::vec3(1, 1, 1));
-	sp.SetUniform1f("ambient_coeff", .1);
-	sp.SetUniform1f("spec_coeff", .4);
+	sp.SetUniform1f("ambient_coeff", .2);
+	sp.SetUniform1f("spec_coeff", .3);
 	sp.SetUniform1f("diffuse_coeff", .5);
 	sp.SetUniform1i("shininess", 32);
 	//projection = glm::perspective(glm::radians(45.0f), 800/600.0f, 0.1f, 1000.0f);
@@ -682,35 +685,35 @@ int main() {
 		start = clock();
 	}
 	//Rendering Parameters
-	float center = .169;//.56; //.2075
-	float width = .015;//.015
-	float base_opac = 0.1;
+	float center = .017;//.56; //.2075
+	float width = .001;//.015
+	float base_opac = 0.379;
 	float bubble_top = 1.0f;
-	float bubble_bottom = 0;
-	float bubble_max_opac = .1f;
-	float bubble_min_opac = .025f;
+	float bubble_bottom = .836;
+	float bubble_max_opac = .032f;
+	float bubble_min_opac = .0001f;
 	float spec_term = .05;
 	float sil_term = .95;
 	bool color_aug = false;
-	float tune = .08f;
-	float fov = 90;
+	float tune = .01f;
+	float fov = 60;
 	int tex_num = 0;
 	float max_iso_val = 0;
 	bool iso_change = false;
-	float increment = 1.0f;
+	float increment = 5.0f;
 	float old_increment = 0;
-	float volumeStepSize = .075;//.11 / 3.0;
+	float volumeStepSize = .10;//.11 / 3.0;
 	float step_mod = 0;
 	float shade_opac = 1;
-	float box_z_min = 0.01;
-	glm::vec3 color1 = glm::vec3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
-	glm::vec3 color2 = glm::vec3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
-	glm::vec3 color3 = glm::vec3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
-	glm::vec3 color4 = glm::vec3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
-	glm::vec3 color5 = glm::vec3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
+	float box_z_min = 0.001;
+	glm::vec3 color1 = glm::vec3(255, 255, 178) / 225.0f;
+	glm::vec3 color2 = glm::vec3(254, 204, 92) / 225.0f;
+	glm::vec3 color3 = glm::vec3(253, 141, 60) / 255.0f;
+	glm::vec3 color4 = glm::vec3(240, 59, 32) / 255.0f;
+	glm::vec3 color5 = glm::vec3(180, 0, 38) / 255.0f;
 	glm::vec3 color6 = glm::vec3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
 	glm::vec3 intersection_color = glm::vec3(0);
-	bool enable_color[6] = { true, false, false, false, false, true };
+	bool enable_color[6] = { false, true, false, false, false, false };
 	//bool lighting_enabled = false;
 	
 	//glGenTextures(1, &temp_tex);
@@ -775,7 +778,22 @@ int main() {
 		return 0;
 	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	
+	Texture2D toBlur = Texture2D();
+	GLuint preprocess;
+	GLuint preprocess_tex = toBlur.getID();
+	glGenFramebuffers(1, &preprocess);
+	glBindFramebuffer(GL_FRAMEBUFFER, preprocess);
+	glBindTexture(GL_TEXTURE_2D, preprocess_tex);
+	// Give an empty image to OpenGL ( the last "0" )
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, resolution.x, resolution.y, 0, GL_RGBA, GL_FLOAT, 0);
+
+	// Poor filtering. Needed !
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, preprocess_tex, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	//front_hit.SetTextureID(front_hit_point_tex);
 	front_hit.giveName("fhp");
 	RayTraced.getMeshes().at(0)->addTexture(front_hit);
@@ -786,7 +804,7 @@ int main() {
 	RayTraced.getMeshes().at(0)->addTexture(back_hit);
 
 	volume_shader.SetUniform1i("numTex", wifi.numSlices);
-	float volume_z = 21;
+	float volume_z = 11.5;
 
 	while (!glfwWindowShouldClose(w.getWindow())) //main render loop
 	{
@@ -800,14 +818,14 @@ int main() {
 		ImGui::SliderFloat("IsoVal Center", &center, 0.0f, 1.0f);
 		ImGui::SliderFloat("IsoVal width", &width, 0.0f, fmin(center/2.0, 1-center/2.0));
 
-		ImGui::SliderFloat("Base Opacity", &base_opac, 0.0f, 1.0f);
+		ImGui::SliderFloat("Base Opacity", &base_opac, 0.0f, 1.f);
 		ImGui::SliderFloat("Sillhoutte Term", &sil_term, 0.0f, 1.0f);
 		ImGui::SliderFloat("bubble top", &bubble_top, 0.0f, 1.0f);
 		ImGui::SliderFloat("bubble bottom", &bubble_bottom, 0.0f, bubble_top);
 		ImGui::SliderFloat("bubble max opac", &bubble_max_opac, 0.0f, 1.0f);
 		ImGui::SliderFloat("bubble min opac", &bubble_min_opac, 0.0f, bubble_max_opac);
-		ImGui::SliderFloat("Debug", &tune, 0.0f, 3.0f);
-		ImGui::SliderFloat("Step Size", &volumeStepSize, 0.001f, .1f);
+		ImGui::SliderFloat("Debug", &tune, 0.0f, 1.0f);
+		ImGui::SliderFloat("Step Size", &volumeStepSize, 0.001f, .2f);
 		ImGui::SliderFloat("Step mod", &step_mod, 0.0f, 20.0f);
 		
 		ImGui::SliderFloat("Increment", &increment, 0.0f, 10.0f);
@@ -946,7 +964,7 @@ int main() {
 		skybox_shader.SetUniform4fv("view", glm::mat4(glm::mat3(camera.getView())));
 
 		glDepthMask(GL_FALSE);
-		render(skybox, &skybox_shader);
+		//render(skybox, &skybox_shader);
 		glDepthMask(GL_TRUE);
 		if (BENCHMARK) {
 			std::cout << "Render Skybox " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
@@ -1062,9 +1080,10 @@ int main() {
 		glm::vec2 sincosHalfwayTheta = glm::vec2(sin(HalfwayVecP.x), cos(HalfwayVecP.x));
 		volume_shader.SetUniform2f("sincosHalfwayTheta", sincosHalfwayTheta);
 
-
+		//glBindFramebuffer(GL_FRAMEBUFFER, preprocess);
 		render(RayTraced, &volume_shader);
-
+		//glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		
 		//glEnable(GL_CULL_FACE);
 		//glCullFace(GL_BACK);
 		if (BENCHMARK) {
@@ -1105,7 +1124,7 @@ int main() {
 			std::cout << "Full frame " << (double)((clock() - per_frame)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
 		}
-		glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+		glClearColor(135/255.0f, 206/255.0f, 235/255.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	}
 	ImGui_ImplOpenGL3_Shutdown();

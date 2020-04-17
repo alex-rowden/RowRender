@@ -90,7 +90,7 @@ Texture2D::Texture2D(unsigned char *vals, int height, int width) {
 	this->width = width;
 	numChannels = 1;
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, vals);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, vals);
 	glGenerateMipmap(GL_TEXTURE_2D);
 }Texture2D::Texture2D(unsigned short *vals, int height, int width) {
 	glGenTextures(1, &texture);
@@ -117,6 +117,7 @@ Texture2D::Texture2D(std::vector<std::string> faces)
 	is_cube = true;
 	glGenTextures(1, &texture);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
+	//stbi_set_flip_vertically_on_load(true);
 
 	
 	for (unsigned int i = 0; i < faces.size(); i++)

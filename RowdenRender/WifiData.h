@@ -45,6 +45,8 @@ public:
 	bool loadCSV(const char*);
 	bool loadBinary(const char*, std::vector<float>&);
 	bool loadBinary(const char*, std::vector<float>&, std::vector<short>&, std::vector<short>&, unsigned int sample_step = 1);
+	bool loadBinary(const char*, std::vector<unsigned char>&);
+	bool loadBinary(const char*, std::vector<unsigned char>&, std::vector<short>&, std::vector<short>&, unsigned int sample_step = 1);
 	float **GetIDIntensities(std::string, std::string mac = "");
 	glm::vec2 getLatVec() { return glm::vec2(minLat, maxLat); }
 	glm::vec2 getLonVec() { return glm::vec2(minLon, maxLon); }
