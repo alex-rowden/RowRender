@@ -406,12 +406,12 @@ int main() {
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 	std::vector<std::string> skybox_files;
 	
-	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/skybox/left.jpg");
-	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/skybox/right.jpg");
-	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/skybox/front.jpg");
-	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/skybox/back.jpg");
-	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/skybox/top.jpg");
-	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/skybox/bottom.jpg");
+	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/miramar_lf.png");
+	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/miramar_rt.png");
+	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/miramar_bk.png");
+	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/miramar_ft.png");
+	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/miramar_up.png");
+	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/miramar_dn.png");
 
 
 	Texture2D texture = Texture2D("Content\\Textures\\CampusMap.png");
@@ -451,6 +451,8 @@ int main() {
 		Texture2D volume_data = Texture2D(&use_intensities[i * wifi.numLonCells * wifi.numLatCells], wifi.numLonCells, wifi.numLatCells);
 		Texture2D normal_data = Texture2D(&normal[2 * i * wifi.numLonCells * wifi.numLatCells], wifi.numLonCells, wifi.numLatCells);
 		volume_data.setTexMinMagFilter(GL_LINEAR, GL_LINEAR);
+		volume_data.setTexParameterWrap(GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
+		volume_data.setBorderColor(glm::vec4(0, 0, 0, 0));
 		normal_data.setTexMinMagFilter(GL_NEAREST, GL_NEAREST);
 		volume_data.giveName("volume" + std::to_string(i));
 		normal_data.giveName("normal" + std::to_string(i));
@@ -472,10 +474,10 @@ int main() {
 	
 	volume_shader.SetUniform1f("zNear", .1f);
 	volume_shader.SetUniform1f("zFar", 1000.f);
-	float ambientStrength = .2f;
+	float ambientStrength = .5f;
 	glm::vec3 lightDir = normalize(glm::vec3(0, 0.5, 0.5));
-	float specularStrength = .45;
-	float diffuseStrength = .35;
+	float specularStrength = .2;
+	float diffuseStrength = .7;
 	float shininess = 64;
 	volume_shader.SetUniform1f("shininess", shininess);
 	volume_shader.SetUniform1f("ambientStrength", ambientStrength);
@@ -706,6 +708,7 @@ int main() {
 	float step_mod = 0;
 	float shade_opac = 1;
 	float box_z_min = 0.001;
+	float fcp = 0.1;
 	glm::vec3 color1 = glm::vec3(255, 255, 178) / 225.0f;
 	glm::vec3 color2 = glm::vec3(254, 204, 92) / 225.0f;
 	glm::vec3 color3 = glm::vec3(253, 141, 60) / 255.0f;
@@ -825,6 +828,7 @@ int main() {
 		ImGui::SliderFloat("bubble max opac", &bubble_max_opac, 0.0f, 1.0f);
 		ImGui::SliderFloat("bubble min opac", &bubble_min_opac, 0.0f, bubble_max_opac);
 		ImGui::SliderFloat("Debug", &tune, 0.0f, 1.0f);
+		ImGui::SliderFloat("Front Clip Plane", &fcp, 0.1f, 10.0f);
 		ImGui::SliderFloat("Step Size", &volumeStepSize, 0.001f, .2f);
 		ImGui::SliderFloat("Step mod", &step_mod, 0.0f, 20.0f);
 		
@@ -867,6 +871,7 @@ int main() {
 		volume_shader.SetUniform3f("color4", color4);
 		volume_shader.SetUniform3f("color5", color5);
 		volume_shader.SetUniform3f("shade_color", intersection_color);
+		volume_shader.SetUniform1f("fcp", fcp);
 
 		volume_shader.SetUniform1f("bubble_min", bubble_bottom);
 		volume_shader.SetUniform1f("bubble_max", bubble_top);
@@ -964,7 +969,7 @@ int main() {
 		skybox_shader.SetUniform4fv("view", glm::mat4(glm::mat3(camera.getView())));
 
 		glDepthMask(GL_FALSE);
-		//render(skybox, &skybox_shader);
+		render(skybox, &skybox_shader);
 		glDepthMask(GL_TRUE);
 		if (BENCHMARK) {
 			std::cout << "Render Skybox " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
@@ -1059,7 +1064,7 @@ int main() {
 		front_back_shader.Use();
 		front_back_shader.SetUniform4fv("model", glm::translate(glm::scale(glm::mat4(1), glm::vec3(50, 50, volume_z)), glm::vec3(1, 1, box_z_min + .5)));
 		front_back_shader.SetUniform4fv("camera", camera.getView());
-		front_back_shader.SetUniform4fv("projection", camera.getProjection());
+		front_back_shader.SetUniform4fv("projection", camera.getProjection(fcp));
 		front_back_shader.SetUniform3f("box_min", box_min);
 		front_back_shader.SetUniform3f("volume_scale", volume_scale);
 		glEnable(GL_CULL_FACE);
@@ -1113,7 +1118,7 @@ int main() {
 		}
 		ImGui::Render();
 		
-		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+		//ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 		if (BENCHMARK) {
 			std::cout << "Render GUI " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
@@ -1124,7 +1129,10 @@ int main() {
 			std::cout << "Full frame " << (double)((clock() - per_frame)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
 		}
+		//glClearColor(1,1,1, 1);
 		glClearColor(135/255.0f, 206/255.0f, 235/255.0f, 1.0f);
+		//glClearColor(.22, .69, .87, 1);
+		//glClearColor(.196078, .6, .8, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	}
 	ImGui_ImplOpenGL3_Shutdown();
