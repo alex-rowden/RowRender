@@ -130,7 +130,9 @@ void main() {
 		vec3 color;
 		float volume_sample;
 		vec3 normal_sample;
+		bool inRange = false;
 		bool shade_intersection = false;
+		float last_sample = 0;
 		for (int i = 0; i < numTex; i++) {
 			if ((enabledVolumes & (1 << i)) < 1 && !firstStep)
 				continue;
@@ -188,6 +190,10 @@ void main() {
 			nextDistance = min(nextDistance, StepSize * (1 + step_mod * min(abs(volume_sample - IsoValRange.x), abs(volume_sample - IsoValRange.y))));
 			nextDistance = nextDistance + StepSize * tune * texture(noise, vec2(normal_sample)).r;
 			above = above_arr[i];
+			if (volume_sample < IsoValRange.y && volume_sample > IsoValRange.x) {
+				inRange = true;
+				last_sample = volume_sample;
+			}
 			if (above && (volume_sample > IsoValRange.y)) {
 				continue;
 			}
@@ -205,7 +211,6 @@ void main() {
 				else{
 					opaque_self = base_opac;
 				}
-				shade_intersection = true;
 				float sinphi = sin(phi);
 				vec3 normal = vec3(sinphi * cos(theta), sinphi * sin(theta), cos(phi));
 
@@ -216,20 +221,24 @@ void main() {
 				//spec = specularStrength * pow(dot(halfway))
 				color_self = ambientStrength * color + diffuse * color + spec * vec3(1, 1, 1);
 
-				float bubble_coefficient = 1 - (abs(dot(view_dir, normal)));
-				//float bubble_coefficient = 1 - (fabs(sdot(CameraDirP, normalP)));
+				float bubble_coefficient = 0;
+				if(bubble_term != 0){
+					bubble_coefficient = 1 - (abs(dot(view_dir, normal)));
+					//float bubble_coefficient = 1 - (fabs(sdot(CameraDirP, normalP)));
 
 
-				if (opaque_self > 1e-5) {
-					if (bubble_coefficient > bubble_min) {
-						bubble_coefficient = bubble_min;
+					if (opaque_self > 1e-5) {
+						if (bubble_coefficient > bubble_min) {
+							bubble_coefficient = bubble_min;
+						}
+						else if (bubble_coefficient < bubble_max) {
+							bubble_coefficient = bubble_max;
+						}
+
+						float norm = (((bubble_coefficient - bubble_max) / (bubble_min - bubble_max)));
+						bubble_coefficient = (norm * (max_opac - min_opac)) + min_opac;
 					}
-					else if (bubble_coefficient < bubble_max) {
-						bubble_coefficient = bubble_max;
-					}
-
-					float norm = (((bubble_coefficient - bubble_max) / (bubble_min - bubble_max)));
-					bubble_coefficient = (norm * (max_opac - min_opac)) + min_opac;
+				
 
 
 
@@ -240,12 +249,14 @@ void main() {
 																										//if (ShadingTerms.y > 0) {
 					//color_self *= powf(1 - bubble_coefficient, 1 / tune);
 				//} 
+			} 
+			if (inRange) {
+				shade_intersection = true;
 			}
-
-			if (!firstStep) {
-				color_composited += ((1.f - opaque_composited) * color_self * opaque_self);
-				opaque_composited += (1.f - opaque_composited) * opaque_self;
-			}
+			
+			color_composited += ((1.f - opaque_composited) * color_self * opaque_self);
+			opaque_composited += (1.f - opaque_composited) * opaque_self;
+			
 			if (opaque_composited > .99) { 
 				FragColor = vec4(color_composited, opaque_composited);
 				return;

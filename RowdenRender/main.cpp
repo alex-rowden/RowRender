@@ -144,7 +144,7 @@ void MessageCallback(GLenum source,
 }
 
 void LoadCampusModel(Model *completeCampus) {
-	completeCampus->addModel(new Model("Content/Models/Buildings/flipped_norms.fbx"));
+	completeCampus->addModel(new Model("Content/Models/Buildings/campus.fbx"));
 	completeCampus->setModel();
 }
 
@@ -605,7 +605,8 @@ int main() {
 	Shape myShape;
 
 	//setup camera
-	Camera camera = Camera(glm::vec3(36.9, 13.1627, 1.514), glm::vec3(40.3, 46.682, 3.57), 60.0f, w.width/(float)w.height);
+	Camera camera = Camera(glm::vec3(49.2877, 18.2977, 3.57346), glm::vec3(50, 49.999, 0), 60.0f, w.width / (float)w.height);
+	//Camera camera = Camera(glm::vec3(36.9, 13.1627, 1.514), glm::vec3(40.3, 46.682, 3.57), 60.0f, w.width/(float)w.height);
 	//Camera camera = Camera(glm::vec3(34,37.5, .5), glm::vec3(35, 37.5, 0.5), 90.0f, w.width / w.height);
 	w.SetCamera(&camera);
 	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
@@ -633,13 +634,18 @@ int main() {
 	Lights lights = Lights();
 	float toNorm = 1 / 255.0;
 	glm::vec3 color = glm::vec3(252, 202, 158) / 255.0f;
-	lights.addPointLight(50.0f * glm::vec3(1, 1, 2), .1, 0.01, 0, color, color, glm::vec3(1, 1, 1));
-	sp.SetUniform1f("ambient_coeff", .2);
+	glm::vec3 purple = glm::vec3(177, 156, 217) / 255.0f;
+	glm::vec3 gold = glm::vec3(217, 208, 156) / 255.0f;
+	//glm::vec3 
+	//lights.addPointLight(50.0f * glm::vec3(1, 1, 2), .1, 0.01, 0, color, color, glm::vec3(1, 1, 1));
+	lights.addPointLight(50.0f * glm::vec3(1, .1, .2), 1.5, 0.0, 0, purple, purple, glm::vec3(1, 1, 1));
+	lights.addPointLight(50.0f * glm::vec3(.1, 1, .2), 1.75, 0.0, 0, gold, gold, glm::vec3(1, 1, 1));
+	sp.SetUniform1f("ambient_coeff", .1);
 	sp.SetUniform1f("spec_coeff", .3);
-	sp.SetUniform1f("diffuse_coeff", .5);
+	sp.SetUniform1f("diffuse_coeff", .6);
 	sp.SetUniform1i("shininess", 32);
 	//projection = glm::perspective(glm::radians(45.0f), 800/600.0f, 0.1f, 1000.0f);
-	glm::mat4 light_transform = glm::translate(glm::mat4(1.0f), glm::vec3(3, 3, 3));
+	//glm::mat4 light_transform = glm::translate(glm::mat4(1.0f), glm::vec3(3, 3, 3));
 
 	glm::mat4 campusTransform;
 	std::vector<glm::vec3> positions;
@@ -697,14 +703,14 @@ int main() {
 	float spec_term = .05;
 	float sil_term = .95;
 	bool color_aug = false;
-	float tune = .01f;
-	float fov = 60;
+	float tune = .45f;
+	float fov = 90;
 	int tex_num = 0;
 	float max_iso_val = 0;
 	bool iso_change = false;
 	float increment = 5.0f;
 	float old_increment = 0;
-	float volumeStepSize = .10;//.11 / 3.0;
+	float volumeStepSize = .05;//.11 / 3.0;
 	float step_mod = 0;
 	float shade_opac = 1;
 	float box_z_min = 0.001;
@@ -716,7 +722,7 @@ int main() {
 	glm::vec3 color5 = glm::vec3(180, 0, 38) / 255.0f;
 	glm::vec3 color6 = glm::vec3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
 	glm::vec3 intersection_color = glm::vec3(0);
-	bool enable_color[6] = { false, true, false, false, false, false };
+	bool enable_color[6] = { true, false, false, false, false, false };
 	//bool lighting_enabled = false;
 	
 	//glGenTextures(1, &temp_tex);
@@ -836,7 +842,7 @@ int main() {
 		ImGui::SliderFloat("Cube Z", &volume_z, 1.0f, 50.0f);
 		ImGui::SliderFloat("Cube Z min", &box_z_min, -10.0f, 1.0f);
 		ImGui::Checkbox("Shade intersection", &color_aug);
-		ImGui::SliderFloat("Specular Term", &spec_term, 0.0f, 1.0f);
+		ImGui::SliderFloat("Specular Term", &spec_term, 0.0f, 10.0f);
 		ImGui::SliderFloat("FOV", &fov, 0.0f, 90.0f);
 		ImGui::Checkbox("Enable Channel 1", &enable_color[0]);
 		if(enable_color[0])
@@ -969,18 +975,18 @@ int main() {
 		skybox_shader.SetUniform4fv("view", glm::mat4(glm::mat3(camera.getView())));
 
 		glDepthMask(GL_FALSE);
-		render(skybox, &skybox_shader);
+		//render(skybox, &skybox_shader);
 		glDepthMask(GL_TRUE);
 		if (BENCHMARK) {
 			std::cout << "Render Skybox " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
 		}
 		sp.SetUniform4fv("model", transformation);
-		sp.SetUniform3fv("normalMatrix", glm::mat3(glm::transpose(glm::inverse(transformation * camera.getView()))));
+		sp.SetUniform3fv("normalMatrix", glm::mat3(glm::transpose(glm::inverse(transformation))));
 		sp.SetUniform4fv("camera", camera.getView());
 		sp.SetUniform4fv("projection", camera.getProjection());
 		sp.SetLights(lights);
-		sp.SetUniform3f("viewPos", camera.getPosition());
+		sp.SetUniform3f("view", camera.getPosition());
 		render(model, &sp);
 		if (BENCHMARK) {
 			std::cout << "Render Campus Model " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
@@ -1086,7 +1092,7 @@ int main() {
 		volume_shader.SetUniform2f("sincosHalfwayTheta", sincosHalfwayTheta);
 
 		//glBindFramebuffer(GL_FRAMEBUFFER, preprocess);
-		render(RayTraced, &volume_shader);
+		//render(RayTraced, &volume_shader);
 		//glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		
 		//glEnable(GL_CULL_FACE);
@@ -1118,7 +1124,7 @@ int main() {
 		}
 		ImGui::Render();
 		
-		//ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 		if (BENCHMARK) {
 			std::cout << "Render GUI " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
@@ -1134,6 +1140,7 @@ int main() {
 		//glClearColor(.22, .69, .87, 1);
 		//glClearColor(.196078, .6, .8, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glFinish();
 	}
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
