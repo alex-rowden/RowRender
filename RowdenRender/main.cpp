@@ -638,11 +638,11 @@ int main() {
 	glm::vec3 gold = glm::vec3(217, 208, 156) / 255.0f;
 	//glm::vec3 
 	//lights.addPointLight(50.0f * glm::vec3(1, 1, 2), .1, 0.01, 0, color, color, glm::vec3(1, 1, 1));
-	lights.addPointLight(50.0f * glm::vec3(1, .1, .2), 1.5, 0.0, 0, purple, purple, glm::vec3(1, 1, 1));
-	lights.addPointLight(50.0f * glm::vec3(.1, 1, .2), 1.75, 0.0, 0, gold, gold, glm::vec3(1, 1, 1));
-	sp.SetUniform1f("ambient_coeff", .1);
+	lights.addPointLight(50.0f * glm::vec3(1, .1, .5), .9, 0.0, 0, purple, purple, glm::vec3(1, 1, 1));
+	lights.addPointLight(50.0f * glm::vec3(.1, 1, .5), .75, 0.0, 0, gold, gold, glm::vec3(1, 1, 1));
+	sp.SetUniform1f("ambient_coeff", .2);
 	sp.SetUniform1f("spec_coeff", .3);
-	sp.SetUniform1f("diffuse_coeff", .6);
+	sp.SetUniform1f("diffuse_coeff", .5);
 	sp.SetUniform1i("shininess", 32);
 	//projection = glm::perspective(glm::radians(45.0f), 800/600.0f, 0.1f, 1000.0f);
 	//glm::mat4 light_transform = glm::translate(glm::mat4(1.0f), glm::vec3(3, 3, 3));
