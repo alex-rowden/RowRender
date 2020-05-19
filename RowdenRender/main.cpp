@@ -9,7 +9,7 @@
 #include "ShaderProgram.h"
 #include "Texture2D.h"
 #include "Model.h"
-
+//#include <tinyxml2.h>
 #include <random>
 #include <fstream>
 #include <iostream>
@@ -113,7 +113,6 @@ std::string getexepath()
 	return std::string(result, GetModuleFileName(NULL, result, MAX_PATH));
 }
 */
-
 void MessageCallback(GLenum source,
 	GLenum type,
 	GLuint id,
@@ -162,11 +161,11 @@ void MessageCallback(GLenum source,
 }
 
 void LoadCampusModel(Model *completeCampus) {
-	completeCampus->addModel(new Model("Content/Models/Buildings/flat_campus.fbx"));
+	completeCampus->addModel(new Model("Content/Models/Buildings/campus.fbx"));
 	completeCampus->setModel();
 }
 
-int get3DIndex(int i, int j, int k, int x_dim, int y_dim, int num_cells) {
+int get3DIndex(int i, int j, int k, int x_dim, int y_dim, int num_cells) {                                                                         
 	if (i >= x_dim || j >= y_dim || k >= num_cells) {
 		return -1;
 	}
@@ -325,7 +324,6 @@ void cudaPrint() {
 	}
 }
 */
-
 void setupDearIMGUI(GLFWwindow *window) {
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -414,9 +412,9 @@ int main() {
 	std::vector<short> normal_x, normal_y;
 	std::vector<unsigned char> use_intensities, max_volume;
 	WifiData wifi;
-	int dialation = 1;
-	int num_smooths = 1;
+	
 	std::string filename = "umd_freqs";
+	//std::string filename = "2Ghz_channels_float";
 	//std::string filename = "sphere_freqs";
 	wifi.loadBinary((filename + ".raw").c_str(), use_intensities, normal_x, normal_y);
 	//create_max_volume(use_intensities, wifi, max_volume);
@@ -474,12 +472,12 @@ int main() {
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 	std::vector<std::string> skybox_files;
 	
-	skybox_files.emplace_back(wrk_dir + "/Content/Textures/Skyboxes/miramar_lf.png");
-	skybox_files.emplace_back(wrk_dir + "/Content/Textures/Skyboxes/miramar_rt.png");
-	skybox_files.emplace_back(wrk_dir + "/Content/Textures/Skyboxes/miramar_bk.png");
-	skybox_files.emplace_back(wrk_dir + "/Content/Textures/Skyboxes/miramar_ft.png");
-	skybox_files.emplace_back(wrk_dir + "/Content/Textures/Skyboxes/miramar_up.png");
-	skybox_files.emplace_back(wrk_dir + "/Content/Textures/Skyboxes/miramar_dn.png");
+	skybox_files.emplace_back("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/Content/Textures/Skyboxes/miramar_lf.png");
+	skybox_files.emplace_back("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/Content/Textures/Skyboxes/miramar_rt.png");
+	skybox_files.emplace_back("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/Content/Textures/Skyboxes/miramar_bk.png");
+	skybox_files.emplace_back("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/Content/Textures/Skyboxes/miramar_ft.png");
+	skybox_files.emplace_back("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/Content/Textures/Skyboxes/miramar_up.png");
+	skybox_files.emplace_back("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/Content/Textures/Skyboxes/miramar_dn.png");
 
 
 	Texture2D texture = Texture2D("Content\\Textures\\CampusMap.png");
@@ -498,6 +496,8 @@ int main() {
 	campusMap.getMeshes().at(0)->setTexture(texture, 0);
 	Model RayTraced = Model("Content\\Models\\quad\\quad_centered.obj");
 	RayTraced.setModel();
+	Model Blur = Model("Content\\Models\\quad\\quad_centered.obj");
+	Blur.setModel();
 	Model Tree = Model("Content\\Models\\tree_scaled.FBX");
 	Tree.setModel();
 	Model volume_cube = Model("Content\\Models\\cube\\cube.obj");
@@ -518,6 +518,8 @@ int main() {
 		Texture2D volume_data = Texture2D(&use_intensities[i * wifi.numLonCells * wifi.numLatCells], wifi.numLonCells, wifi.numLatCells);
 		Texture2D normal_data = Texture2D(&normal[2 * i * wifi.numLonCells * wifi.numLatCells], wifi.numLonCells, wifi.numLatCells);
 		volume_data.setTexMinMagFilter(GL_LINEAR, GL_LINEAR);
+		volume_data.setTexParameterWrap(GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
+		volume_data.setBorderColor(glm::vec4(0, 0, 0, 0));
 		normal_data.setTexMinMagFilter(GL_NEAREST, GL_NEAREST);
 		volume_data.giveName("volume" + std::to_string(i));
 		normal_data.giveName("normal" + std::to_string(i));
@@ -539,11 +541,11 @@ int main() {
 	
 	volume_shader.SetUniform1f("zNear", .1f);
 	volume_shader.SetUniform1f("zFar", 1000.f);
-	float ambientStrength = .2f;
-	glm::vec3 lightDir = normalize(glm::vec3(0, 0, 0.5));
-	float specularStrength = .45;
-	float diffuseStrength = .35;
-	float shininess = 128;
+	float ambientStrength = .5f;
+	glm::vec3 lightDir = normalize(glm::vec3(0, 0.5, 0.5));
+	float specularStrength = .2;
+	float diffuseStrength = .7;
+	float shininess = 64;
 	volume_shader.SetUniform1f("shininess", shininess);
 	volume_shader.SetUniform1f("ambientStrength", ambientStrength);
 	volume_shader.SetUniform1f("specularStrength", specularStrength);
@@ -639,7 +641,6 @@ int main() {
 	*/
 
 	
-	
 	time_t timer = time(NULL);
 	struct tm local_time;
 	localtime_s(&local_time, &timer);
@@ -651,10 +652,10 @@ int main() {
 	if (!CreateDirectory(foldername.c_str(), NULL)) {
 		std::cout << "directory creation failed" << std::endl;
 	}
-	Shape myShape;
-	//makeVolumetricShapeGPU(&myShape, use_intensities, wifi, num_cells, .65f);
-	//cudaPrint();
+
 #if(false)
+;
+
 		std::fstream out = std::fstream("wifi_data.raw", std::ios::binary | std::ios::out);
 
 		for (int i = 0; i < use_intensities.size(); i++) {
@@ -669,20 +670,21 @@ int main() {
 	glm::mat4 volume_transform = glm::rotate(glm::mat4(1), glm::radians(90.0f), glm::vec3(0, 1, 0));
 	//RTresult ret = rtBufferCreate(context->get(), RT_BUFFER_INPUT, &ray_buffer);
 
-
+	Shape myShape;
 
 	//setup camera
-	Camera camera = Camera(glm::vec3(25, 25, 0), glm::vec3(50, 49.999, 0), 90.0f, w.width/(float)w.height);
+	Camera camera = Camera(glm::vec3(49.2877, 18.2977, 3.57346), glm::vec3(50, 49.999, 0), 60.0f, w.width / (float)w.height);
+	//Camera camera = Camera(glm::vec3(36.9, 13.1627, 1.514), glm::vec3(40.3, 46.682, 3.57), 60.0f, w.width/(float)w.height);
 	//Camera camera = Camera(glm::vec3(34,37.5, .5), glm::vec3(35, 37.5, 0.5), 90.0f, w.width / w.height);
 	w.SetCamera(&camera);
-
+	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 	//sutil::displayBufferPPM("out.ppm", context["output_buffer"]->getBuffer());
 
-	Mesh volume = Mesh(&myShape);
+	//Mesh volume = Mesh(&myShape);
 
-	Model vol = Model();
-	vol.addMesh(&volume);
-	vol.setModel();
+	//Model vol = Model();
+	//vol.addMesh(&volume);
+	//vol.setModel();
 	//Texture2D wifi_intensities = Texture2D(&pixels, wifi.numLonCells, wifi.numLatCells);
 	//campusMap.getMeshes().at(0)->setTexture(wifi_intensities, 0);
 	Texture2D hdr_texture = Texture2D();
@@ -699,11 +701,17 @@ int main() {
 
 	Lights lights = Lights();
 	float toNorm = 1 / 255.0;
-	//lights.addPointLight(50.0f * glm::vec3(1, 1.5, 0), .1, .3, .003, toNorm * glm::vec3(255, 195, 12), toNorm * glm::vec3(255, 195, 12), toNorm * glm::vec3(255, 195, 12));
-	//lights.addPointLight(50.0f * glm::vec3(0, 1.5, 0), .1, .2, .003, toNorm * glm::vec3(121, 102, 162), toNorm * glm::vec3(121, 102, 162), toNorm * glm::vec3(121, 102, 162));
-	//projection = glm::perspective(glm::radians(45.0f), 800/600.0f, 0.1f, 1000.0f);
-	lights.addPointLight(50.0f * glm::vec3(1, 1, 2), .1, 0.01, 0, glm::vec3(.3,.01,.01), glm::vec3(.3,.01,.01), glm::vec3(1,1,1));
-	glm::mat4 light_transform = glm::translate(glm::mat4(1.0f), glm::vec3(3, 3, 3));
+	glm::vec3 color = glm::vec3(252, 202, 158) / 255.0f;
+	glm::vec3 purple = glm::vec3(177, 156, 217) / 255.0f;
+	glm::vec3 gold = glm::vec3(217, 208, 156) / 255.0f;
+	//glm::vec3 
+	//lights.addPointLight(50.0f * glm::vec3(1, 1, 2), .1, 0.01, 0, color, color, glm::vec3(1, 1, 1));
+	lights.addPointLight(50.0f * glm::vec3(1, .1, .5), .9, 0.0, 0, purple, purple, glm::vec3(1, 1, 1));
+	lights.addPointLight(50.0f * glm::vec3(.1, 1, .5), .75, 0.0, 0, gold, gold, glm::vec3(1, 1, 1));
+	sp.SetUniform1f("ambient_coeff", .2);
+	sp.SetUniform1f("spec_coeff", .3);
+	sp.SetUniform1f("diffuse_coeff", .5);
+	sp.SetUniform1i("shininess", 32);
 
 	glm::mat4 campusTransform;
 	std::vector<glm::vec3> positions;
@@ -751,13 +759,13 @@ int main() {
 		start = clock();
 	}
 	//Rendering Parameters
-	float center = .05;//.56; //.2075
-	float width = .005;//.015
-	float base_opac = 0.06;
+	float center = .017;//.56; //.2075
+	float width = .001;//.015
+	float base_opac = 0.379;
 	float bubble_top = 1.0f;
-	float bubble_bottom = .95;
-	float bubble_max_opac = .1f;
-	float bubble_min_opac = .025f;
+	float bubble_bottom = .836;
+	float bubble_max_opac = .032f;
+	float bubble_min_opac = .0001f;
 	float spec_term = .05;
 	float sil_term = .95;
 	bool color_aug = false;
@@ -768,18 +776,19 @@ int main() {
 	bool iso_change = false;
 	float increment = 10.0f;
 	float old_increment = 0;
-	float volumeStepSize = .11;//.11 / 3.0;
+	float volumeStepSize = .05;//.11 / 3.0;
 	float step_mod = 0;
 	float shade_opac = 1;
-	float box_z_min = 0;
-	glm::vec3 color1 = glm::vec3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
-	glm::vec3 color2 = glm::vec3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
-	glm::vec3 color3 = glm::vec3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
-	glm::vec3 color4 = glm::vec3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
-	glm::vec3 color5 = glm::vec3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
+	float box_z_min = 0.001;
+	float fcp = 0.1;
+	glm::vec3 color1 = glm::vec3(255, 255, 178) / 225.0f;
+	glm::vec3 color2 = glm::vec3(254, 204, 92) / 225.0f;
+	glm::vec3 color3 = glm::vec3(253, 141, 60) / 255.0f;
+	glm::vec3 color4 = glm::vec3(240, 59, 32) / 255.0f;
+	glm::vec3 color5 = glm::vec3(180, 0, 38) / 255.0f;
 	glm::vec3 color6 = glm::vec3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
 	glm::vec3 intersection_color = glm::vec3(0);
-	bool enable_color[6] = { true, false, false, false, false, true };
+	bool enable_color[6] = { true, false, false, false, false, false };
 	//bool lighting_enabled = false;
 	
 	//glGenTextures(1, &temp_tex);
@@ -846,15 +855,14 @@ int main() {
 		return 0;
 	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
 	CreateFrameBuffer(RenderSize.x, RenderSize.y, leftEyeDesc);
 	CreateFrameBuffer(RenderSize.x, RenderSize.y, rightEyeDesc);
 
 	std::vector<glm::vec4> pink = std::vector<glm::vec4>();
 	std::vector<glm::vec4> yellow = std::vector<glm::vec4>();
 
-	pink.resize(RenderSize.x * RenderSize.y);
-	yellow.resize(RenderSize.x * RenderSize.y);
+	pink.resize(RenderSize.x* RenderSize.y);
+	yellow.resize(RenderSize.x* RenderSize.y);
 
 	for (int i = 0; i < RenderSize.x * RenderSize.y; i++) {
 		pink.at(i) = glm::vec4(1, 0, 1, 1);
@@ -872,7 +880,7 @@ int main() {
 	RayTraced.getMeshes().at(0)->addTexture(back_hit);
 
 	volume_shader.SetUniform1i("numTex", wifi.numSlices);
-	float volume_z = 8.0;
+	float volume_z = 8.0f;
 
 	while (!glfwWindowShouldClose(w.getWindow())) //main render loop
 	{
@@ -886,21 +894,22 @@ int main() {
 		ImGui::SliderFloat("IsoVal Center", &center, 0.0f, 1.0f);
 		ImGui::SliderFloat("IsoVal width", &width, 0.0f, fmin(center/2.0, 1-center/2.0));
 
-		ImGui::SliderFloat("Base Opacity", &base_opac, 0.0f, 1.0f);
+		ImGui::SliderFloat("Base Opacity", &base_opac, 0.0f, 1.f);
 		ImGui::SliderFloat("Sillhoutte Term", &sil_term, 0.0f, 1.0f);
 		ImGui::SliderFloat("bubble top", &bubble_top, 0.0f, 1.0f);
 		ImGui::SliderFloat("bubble bottom", &bubble_bottom, 0.0f, bubble_top);
 		ImGui::SliderFloat("bubble max opac", &bubble_max_opac, 0.0f, 1.0f);
 		ImGui::SliderFloat("bubble min opac", &bubble_min_opac, 0.0f, bubble_max_opac);
-		ImGui::SliderFloat("Debug", &tune, 0.0f, 3.0f);
-		ImGui::SliderFloat("Step Size", &volumeStepSize, 0.001f, .1f);
+		ImGui::SliderFloat("Debug", &tune, 0.0f, 1.0f);
+		ImGui::SliderFloat("Front Clip Plane", &fcp, 0.1f, 10.0f);
+		ImGui::SliderFloat("Step Size", &volumeStepSize, 0.001f, .2f);
 		ImGui::SliderFloat("Step mod", &step_mod, 0.0f, 20.0f);
 		
 		ImGui::SliderFloat("Increment", &increment, 0.0f, 10.0f);
 		ImGui::SliderFloat("Cube Z", &volume_z, 1.0f, 50.0f);
 		ImGui::SliderFloat("Cube Z min", &box_z_min, -10.0f, 1.0f);
 		ImGui::Checkbox("Shade intersection", &color_aug);
-		ImGui::SliderFloat("Specular Term", &spec_term, 0.0f, 1.0f);
+		ImGui::SliderFloat("Specular Term", &spec_term, 0.0f, 10.0f);
 		ImGui::SliderFloat("FOV", &fov, 0.0f, 90.0f);
 		ImGui::Checkbox("Enable Channel 1", &enable_color[0]);
 		if(enable_color[0])
@@ -935,6 +944,7 @@ int main() {
 		volume_shader.SetUniform3f("color4", color4);
 		volume_shader.SetUniform3f("color5", color5);
 		volume_shader.SetUniform3f("shade_color", intersection_color);
+		volume_shader.SetUniform1f("fcp", fcp);
 
 		volume_shader.SetUniform1f("bubble_min", bubble_bottom);
 		volume_shader.SetUniform1f("bubble_max", bubble_top);
@@ -1034,20 +1044,20 @@ int main() {
 		//skybox_shader.SetUniform4fv("projection", camera.getProjection());
 		//skybox_shader.SetUniform4fv("view", glm::mat4(glm::mat3(camera.getView())));
 
-		
-		
-		
+		glDepthMask(GL_FALSE);
+		//render(skybox, &skybox_shader);
+		glDepthMask(GL_TRUE);
 		if (BENCHMARK) {
 			std::cout << "Render Skybox " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
 		}
 		sp.SetUniform4fv("model", transformation);
-		sp.SetUniform3fv("normalMatrix", glm::mat3(glm::transpose(glm::inverse(transformation * camera.getView()))));
-		//sp.SetUniform4fv("camera", camera.getView());
-		//sp.SetUniform4fv("projection", camera.getProjection());
+		sp.SetUniform3fv("normalMatrix", glm::mat3(glm::transpose(glm::inverse(transformation))));
+		sp.SetUniform4fv("camera", camera.getView());
+		sp.SetUniform4fv("projection", camera.getProjection());
 		sp.SetLights(lights);
-		sp.SetUniform3f("viewPos", camera.getPosition());
-		
+		sp.SetUniform3f("view", camera.getPosition());
+		render(model, &sp);
 		if (BENCHMARK) {
 			std::cout << "Render Campus Model " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
@@ -1215,7 +1225,7 @@ int main() {
 			//updateBoundingBox(center + width / 2.0f, max_volume);
 			max_iso_val = center + width / 2.0f;
 		}
-
+		
 		
 		
 
@@ -1259,7 +1269,12 @@ int main() {
 			std::cout << "Full frame " << (double)((clock() - per_frame)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
 		}
+		//glClearColor(1,1,1, 1);
+		glClearColor(135/255.0f, 206/255.0f, 235/255.0f, 1.0f);
+		//glClearColor(.22, .69, .87, 1);
+		//glClearColor(.196078, .6, .8, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glFinish();
 	}
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();

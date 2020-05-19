@@ -15,7 +15,7 @@ for bssid_index=1:size(unique_bssids, 1)
     [amp, ind] = max(Z);
     sum_intensities = sum(Z);
     sigma_est = cov(Z);
-    
+     
     if(length(Z) > 3)
         
         [fit, gof] = gaussianFit(X, Y, Z, [amp, sum(X .* Z)/sum_intensities, sum(Y .* Z)/sum_intensities, sigma_est], count < show_n_plots);

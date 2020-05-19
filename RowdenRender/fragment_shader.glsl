@@ -31,6 +31,8 @@ uniform sampler2D texture_specular7;
 uniform sampler2D texture_specular8;
 uniform sampler2D texture_specular9;
 uniform sampler2D texture_specular10;
+uniform float ambient_coeff, diffuse_coeff, spec_coeff;
+uniform int shininess;
 
 #define NR_POINT_LIGHTS 1
 struct PointLight {
@@ -55,19 +57,19 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir)
 	float diff = max(dot(normal, lightDir), 0.0);
 	// specular shading
 	vec3 reflectDir = reflect(-lightDir, normal);
-	float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+	float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
 	// attenuation
-	float distance = length(light.position - fragPos);
-	float attenuation = 1.0 / (light.constant + light.linear * distance +
-		light.quadratic * (distance * distance));
+	//float distance = length(light.position - fragPos);
+	//float attenuation = 1.0 / (light.constant + light.linear * distance +
+	//	light.quadratic * (distance * distance));
 	// combine results
 	vec3 ambient = light.ambient * vec3(texture(texture_diffuse1, TexCoord));
 	vec3 diffuse = light.diffuse * diff * vec3(texture(texture_diffuse1, TexCoord));
 	vec3 specular = light.specular * spec * vec3(1, 1, 1);
-	ambient *= attenuation;
-	diffuse *= attenuation;
-	specular *= attenuation;
-	return (ambient + diffuse + specular);
+	//ambient *= attenuation;
+	//diffuse *= attenuation;
+	//specular *= attenuation;
+	return light.constant * (ambient * ambient_coeff + diffuse * diffuse_coeff + specular * spec_coeff);
 }
 
 void main()
