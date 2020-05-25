@@ -351,10 +351,10 @@ int main() {
 	
 	clock_t start = clock();
 	std::vector<short> normal_x, normal_y;
-	std::vector<unsigned char> use_intensities, max_volume;
+	std::vector<float> use_intensities, max_volume;
 	WifiData wifi;
 	
-	std::string filename = "umd_freqs";
+	std::string filename = "gaussian_freqs";
 	//std::string filename = "2Ghz_channels_float";
 	//std::string filename = "sphere_freqs";
 	wifi.loadBinary((filename + ".raw").c_str(), use_intensities, normal_x, normal_y);
@@ -1096,7 +1096,7 @@ int main() {
 		volume_shader.SetUniform2f("sincosHalfwayTheta", sincosHalfwayTheta);
 
 		//glBindFramebuffer(GL_FRAMEBUFFER, preprocess);
-		//render(RayTraced, &volume_shader);
+		render(RayTraced, &volume_shader);
 		//glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		
 		//glEnable(GL_CULL_FACE);
