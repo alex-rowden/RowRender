@@ -1096,7 +1096,7 @@ int main() {
 		volume_shader.SetUniform2f("sincosHalfwayTheta", sincosHalfwayTheta);
 
 		//glBindFramebuffer(GL_FRAMEBUFFER, preprocess);
-		//render(RayTraced, &volume_shader);
+		render(RayTraced, &volume_shader);
 		//glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		
 		//glEnable(GL_CULL_FACE);
