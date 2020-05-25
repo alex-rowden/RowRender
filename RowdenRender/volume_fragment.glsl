@@ -9,8 +9,8 @@ in vec2 TexCoord;
 
 
 //uniform sampler2D texture_diffuse1;
-uniform sampler2D volume0;
-uniform sampler2D volume1;
+uniform highp sampler2D volume0;
+uniform highp sampler2D volume1;
 uniform sampler2D volume2;
 uniform sampler2D volume3;
 uniform sampler2D volume4;
@@ -21,9 +21,9 @@ uniform sampler2D normal2;
 uniform sampler2D normal3;
 uniform sampler2D normal4;
 uniform sampler2D normal5;
-uniform sampler2D fhp;
-uniform sampler2D bhp;
-uniform sampler2D depth_tex;
+uniform highp sampler2D fhp;
+uniform highp sampler2D bhp;
+uniform highp sampler2D depth_tex;
 uniform sampler2D noise;
 
 uniform vec3 viewPos;
@@ -133,7 +133,7 @@ void main() {
 		bool inRange = false;
 		bool shade_intersection = false;
 		float last_sample = 0;
-		for (int i = 0; i < numTex; i++) {
+		for (int i = 0; i < 5; i++) {
 			if ((enabledVolumes & (1 << i)) < 1 && !firstStep)
 				continue;
 

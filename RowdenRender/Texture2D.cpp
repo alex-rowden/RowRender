@@ -97,7 +97,7 @@ Texture2D::Texture2D(unsigned char *vals, int height, int width) {
 	glBindTexture(GL_TEXTURE_2D, texture);
 	this->height = height;
 	this->width = width;
-	numChannels = 2;
+	numChannels = 1;
 
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16, width, height, 0, GL_RG, GL_SHORT, vals);
 	glGenerateMipmap(GL_TEXTURE_2D);
@@ -106,9 +106,9 @@ Texture2D::Texture2D(unsigned char *vals, int height, int width) {
 	glBindTexture(GL_TEXTURE_2D, texture);
 	this->height = height;
 	this->width = width;
-	numChannels = 2;
+	numChannels = 1;
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, width, height, 0, GL_RED, GL_FLOAT, vals);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, width, height, 0, GL_RED, GL_FLOAT, vals);
 	glGenerateMipmap(GL_TEXTURE_2D);
 }
 
