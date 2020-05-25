@@ -358,6 +358,7 @@ int main() {
 	//std::string filename = "2Ghz_channels_float";
 	//std::string filename = "sphere_freqs";
 	wifi.loadBinary((filename + ".raw").c_str(), use_intensities, normal_x, normal_y);
+	
 	//create_max_volume(use_intensities, wifi, max_volume);
 	max_volume = use_intensities;
 	
@@ -421,7 +422,10 @@ int main() {
 	//texture.setTexParameterWrap(GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT);
 	Model model;
 	LoadCampusModel(&model);
-	model.getMeshes()[0]->SetUniformColor(glm::vec4(1, 1, 1, 1));
+	Texture2D white = Texture2D(Texture2D::COLORS::WHITE);
+	model.getMeshes()[0]->setTexture(white, 0);
+	model.getMeshes()[0]->setTexture(white, 1);
+	//model.getMeshes()[0]->SetUniformColor(glm::vec4(1, 1, 1, 1));
 	Model skybox = Model("Content\\Models\\cube\\cube.obj");
 	skybox.setModel();
 	skybox.getMeshes().at(0)->setTexture(skybox_tex, 0);
@@ -634,15 +638,15 @@ int main() {
 	Lights lights = Lights();
 	float toNorm = 1 / 255.0;
 	glm::vec3 color = glm::vec3(252, 202, 158) / 255.0f;
-	glm::vec3 purple = glm::vec3(177, 156, 217) / 255.0f;
-	glm::vec3 gold = glm::vec3(217, 208, 156) / 255.0f;
+	glm::vec3 purple = glm::vec3(106, 93, 141) / 255.0f;
+	glm::vec3 gold = glm::vec3(241, 198, 101) / 255.0f;
 	//glm::vec3 
 	//lights.addPointLight(50.0f * glm::vec3(1, 1, 2), .1, 0.01, 0, color, color, glm::vec3(1, 1, 1));
-	lights.addPointLight(50.0f * glm::vec3(1, .1, .5), .9, 0.0, 0, purple, purple, glm::vec3(1, 1, 1));
-	lights.addPointLight(50.0f * glm::vec3(.1, 1, .5), .75, 0.0, 0, gold, gold, glm::vec3(1, 1, 1));
-	sp.SetUniform1f("ambient_coeff", .2);
-	sp.SetUniform1f("spec_coeff", .3);
-	sp.SetUniform1f("diffuse_coeff", .5);
+	//lights.addPointLight(50.0f * glm::vec3(1, .1, .5), .9, 0.0, 0, purple, purple, glm::vec3(1, 1, 1));
+	lights.addPointLight(50.0f * glm::vec3(0, 1, .5), 1, 0.0, 0, gold, gold, glm::vec3(1, 1, 1));
+	sp.SetUniform1f("ambient_coeff", .3);
+	sp.SetUniform1f("spec_coeff", .1);
+	sp.SetUniform1f("diffuse_coeff", .7);
 	sp.SetUniform1i("shininess", 32);
 	//projection = glm::perspective(glm::radians(45.0f), 800/600.0f, 0.1f, 1000.0f);
 	//glm::mat4 light_transform = glm::translate(glm::mat4(1.0f), glm::vec3(3, 3, 3));

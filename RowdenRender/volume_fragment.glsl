@@ -144,7 +144,7 @@ void main() {
 				volume_sample = texture(volume0, vec2(vol_u, vol_v)).r - vol_w * increment;
 				normal_sample = texture(normal0, vec2(vol_u, vol_v)).rgb;
 				if (firstStep) {
-					above_arr[i] = volume_sample > IsoValRange.y;
+					above_arr[i] = volume_sample > IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f;
 
 				}
 				//color = make_float4(0, 0, 1, 1.0f);
@@ -154,28 +154,28 @@ void main() {
 				volume_sample = texture(volume1, vec2(vol_u, vol_v)).r - vol_w * increment;
 				normal_sample = texture(normal1, vec2(vol_u, vol_v)).rgb;
 				if (firstStep) {
-					above_arr[i] = volume_sample > IsoValRange.y;
+					above_arr[i] = volume_sample > IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f;
 				}				break;
 			case 2:
 				color = vec3(color3);
 				volume_sample = texture(volume2, vec2(vol_u, vol_v)).r - vol_w * increment;
 				normal_sample = texture(normal2, vec2(vol_u, vol_v)).rgb;
 				if (firstStep) {
-					above_arr[i] = volume_sample > IsoValRange.y;
+					above_arr[i] = volume_sample > IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f;
 				}				break;
 			case 3:
 				color = vec3(color4);
 				volume_sample = texture(volume3, vec2(vol_u, vol_v)).r - vol_w * increment;
 				normal_sample = texture(normal3, vec2(vol_u, vol_v)).rgb;
 				if (firstStep) {
-					above_arr[i] = volume_sample > IsoValRange.y;
+					above_arr[i] = volume_sample > IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f;
 				}				break;
 			case 4:
 				color = vec3(color5);
 				volume_sample = texture(volume4, vec2(vol_u, vol_v)).r - vol_w * increment;
 				normal_sample = texture(normal4, vec2(vol_u, vol_v)).rgb;
 				if (firstStep) {
-					above_arr[i] = volume_sample > IsoValRange.y;
+					above_arr[i] = volume_sample > IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f;
 				}				break;
 			default:
 				color = vec3(1.0, 1.0f, 1.0f);
@@ -187,69 +187,71 @@ void main() {
 			float opaque_self = 0;
 			float phi = normal_sample.x * M_PIf;
 			float theta = normal_sample.y * M_PIf * 2 - M_PIf;
-			nextDistance = min(nextDistance, StepSize * (1 + step_mod * min(abs(volume_sample - IsoValRange.x), abs(volume_sample - IsoValRange.y))));
+			nextDistance = min(nextDistance, StepSize * (1 + step_mod * (IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f)));
 			nextDistance = nextDistance + StepSize * tune * texture(noise, vec2(normal_sample)).r;
 			above = above_arr[i];
-			if (volume_sample < IsoValRange.y && volume_sample > IsoValRange.x) {
+			if ((volume_sample < IsoValRange.y && volume_sample > IsoValRange.x) && !inRange) {
 				inRange = true;
 				last_sample = volume_sample;
 			}
-			if (above && (volume_sample > IsoValRange.y)) {
-				continue;
-			}
-			else if (!above && volume_sample < IsoValRange.y) {
-				continue;
-			}
-			
-			else {
 				
-				above_arr[i] = !above;//volume_sample > IsoValRange.y;
+			//volume_sample > IsoValRange.y;
+			if ((above && (volume_sample < IsoValRange.x)) || (!above && volume_sample > IsoValRange.y)) {
+				opaque_self = base_opac * (1 - abs(volume_sample - IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f));
 				if (shade_intersection && (enable_intersection > 0)) {
-					color = shade_color;
-					opaque_self = shade_opac;
+					float shade_coeff = 1;//(1 - abs(volume_sample - last_sample));
+					color = shade_color * shade_coeff + color * (1 - shade_coeff);
+					opaque_self = base_opac * (1 - abs(volume_sample - IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f));
+					opaque_self = opaque_self + shade_opac * shade_coeff;
 				}
-				else{
-					opaque_self = base_opac;
+				else if ((above && (volume_sample > (IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f))) || (!above && volume_sample < (IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f))) {
+					if (inRange)
+						shade_intersection = true;
+					continue;
 				}
-				float sinphi = sin(phi);
-				vec3 normal = vec3(sinphi * cos(theta), sinphi * sin(theta), cos(phi));
+				above_arr[i] = !above;
+			}
+			else {
+				if (inRange) { shade_intersection = true;  }continue;
+		}
+			float sinphi = sin(phi);
+			vec3 normal = vec3(sinphi * cos(theta), sinphi * sin(theta), cos(phi));
 
-				vec2 normalP = vec2(phi, theta);
-				vec2 sincosnorm = vec2(sin(theta), cos(theta));
-				float diffuse = diffuseStrength * max(0, sdot(sincosLightTheta, sincosnorm, lightDirP.y, phi));
-				float spec = specularStrength * pow(max(sdot(sincosHalfwayTheta, sincosnorm, HalfwayVecP.y, phi), 0), shininess);
-				//spec = specularStrength * pow(dot(halfway))
-				color_self = ambientStrength * color + diffuse * color + spec * vec3(1, 1, 1);
+			vec2 normalP = vec2(phi, theta);
+			vec2 sincosnorm = vec2(sin(theta), cos(theta));
+			float diffuse = diffuseStrength * max(0, sdot(sincosLightTheta, sincosnorm, lightDirP.y, phi));
+			float spec = specularStrength * pow(max(sdot(sincosHalfwayTheta, sincosnorm, HalfwayVecP.y, phi), 0), shininess);
+			//spec = specularStrength * pow(dot(halfway))
+			color_self = ambientStrength * color + diffuse * color + spec * vec3(1, 1, 1);
 
-				float bubble_coefficient = 0;
-				if(bubble_term != 0){
-					bubble_coefficient = 1 - (abs(dot(view_dir, normal)));
-					//float bubble_coefficient = 1 - (fabs(sdot(CameraDirP, normalP)));
+			float bubble_coefficient = 0;
+			if(bubble_term != 0){
+				bubble_coefficient = 1 - (abs(dot(view_dir, normal)));
+				//float bubble_coefficient = 1 - (fabs(sdot(CameraDirP, normalP)));
 
 
-					if (opaque_self > 1e-5) {
-						if (bubble_coefficient > bubble_min) {
-							bubble_coefficient = bubble_min;
-						}
-						else if (bubble_coefficient < bubble_max) {
-							bubble_coefficient = bubble_max;
-						}
-
-						float norm = (((bubble_coefficient - bubble_max) / (bubble_min - bubble_max)));
-						bubble_coefficient = (norm * (max_opac - min_opac)) + min_opac;
+				if (opaque_self > 1e-5) {
+					if (bubble_coefficient > bubble_min) {
+						bubble_coefficient = bubble_min;
 					}
-				
+					else if (bubble_coefficient < bubble_max) {
+						bubble_coefficient = bubble_max;
+					}
 
-
-
+					float norm = (((bubble_coefficient - bubble_max) / (bubble_min - bubble_max)));
+					bubble_coefficient = (norm * (max_opac - min_opac)) + min_opac;
 				}
 				
+
+
+
+			}
+			if ( !(shade_intersection && (enable_intersection > 0)))
 				opaque_self = opaque_self + (bubble_term * bubble_coefficient + ((spec_term)*spec));// 0.5f);
 				
-																										//if (ShadingTerms.y > 0) {
-					//color_self *= powf(1 - bubble_coefficient, 1 / tune);
-				//} 
-			} 
+																									//if (ShadingTerms.y > 0) {
+				//color_self *= powf(1 - bubble_coefficient, 1 / tune);
+			//} 
 			if (inRange) {
 				shade_intersection = true;
 			}
