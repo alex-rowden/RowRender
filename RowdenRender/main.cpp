@@ -609,7 +609,8 @@ int main() {
 	Shape myShape;
 
 	//setup camera
-	Camera camera = Camera(glm::vec3(49.2877, 18.2977, 3.57346), glm::vec3(50, 49.999, 0), 60.0f, w.width / (float)w.height);
+	Camera camera = Camera(50.0f * glm::vec3(0, 1, .5), glm::vec3(50, 49.999, 0), 60.0f, w.width / (float)w.height);
+	//Camera camera = Camera(glm::vec3(49.2877, 18.2977, 3.57346), glm::vec3(50, 49.999, 0), 60.0f, w.width / (float)w.height);
 	//Camera camera = Camera(glm::vec3(36.9, 13.1627, 1.514), glm::vec3(40.3, 46.682, 3.57), 60.0f, w.width/(float)w.height);
 	//Camera camera = Camera(glm::vec3(34,37.5, .5), glm::vec3(35, 37.5, 0.5), 90.0f, w.width / w.height);
 	w.SetCamera(&camera);
@@ -708,7 +709,7 @@ int main() {
 	float sil_term = .95;
 	bool color_aug = false;
 	float tune = .45f;
-	float fov = 90;
+	float fov = 60;
 	int tex_num = 0;
 	float max_iso_val = 0;
 	bool iso_change = false;

@@ -192,16 +192,16 @@ void main() {
 			above = above_arr[i];
 			if ((volume_sample < IsoValRange.y && volume_sample > IsoValRange.x) && !inRange) {
 				inRange = true;
-				last_sample = volume_sample;
+				//last_sample = volume_sample;
 			}
 				
 			//volume_sample > IsoValRange.y;
 			if ((above && (volume_sample < IsoValRange.x)) || (!above && volume_sample > IsoValRange.y)) {
 				opaque_self = base_opac * (1 - abs(volume_sample - IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f));
 				if (shade_intersection && (enable_intersection > 0)) {
-					float shade_coeff = 1;//(1 - abs(volume_sample - last_sample));
+					float shade_coeff = pow((1 - abs(volume_sample - last_sample)), 2);
 					color = shade_color * shade_coeff + color * (1 - shade_coeff);
-					opaque_self = base_opac * (1 - abs(volume_sample - IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f));
+					//opaque_self = base_opac * (1 - abs(volume_sample - IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f));
 					opaque_self = opaque_self + shade_opac * shade_coeff;
 				}
 				else if ((above && (volume_sample > (IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f))) || (!above && volume_sample < (IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f))) {
@@ -254,6 +254,7 @@ void main() {
 			//} 
 			if (inRange) {
 				shade_intersection = true;
+				last_sample = volume_sample;
 			}
 			
 			color_composited += ((1.f - opaque_composited) * color_self * opaque_self);
