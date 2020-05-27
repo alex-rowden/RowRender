@@ -34,6 +34,7 @@ uniform sampler2D texture_specular10;
 uniform float ambient_coeff, diffuse_coeff, spec_coeff;
 uniform int shininess;
 
+
 #define NR_POINT_LIGHTS 1
 struct PointLight {
 	vec3 position;

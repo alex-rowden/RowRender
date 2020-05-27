@@ -609,7 +609,7 @@ int main() {
 	Shape myShape;
 
 	//setup camera
-	Camera camera = Camera(50.0f * glm::vec3(0, 1, .5), glm::vec3(50, 49.999, 0), 60.0f, w.width / (float)w.height);
+	Camera camera = Camera( glm::vec3(0, 50, 0), glm::vec3(0,0, 0), 60.0f, w.width / (float)w.height);
 	//Camera camera = Camera(glm::vec3(49.2877, 18.2977, 3.57346), glm::vec3(50, 49.999, 0), 60.0f, w.width / (float)w.height);
 	//Camera camera = Camera(glm::vec3(36.9, 13.1627, 1.514), glm::vec3(40.3, 46.682, 3.57), 60.0f, w.width/(float)w.height);
 	//Camera camera = Camera(glm::vec3(34,37.5, .5), glm::vec3(35, 37.5, 0.5), 90.0f, w.width / w.height);
@@ -644,10 +644,11 @@ int main() {
 	//glm::vec3 
 	//lights.addPointLight(50.0f * glm::vec3(1, 1, 2), .1, 0.01, 0, color, color, glm::vec3(1, 1, 1));
 	//lights.addPointLight(50.0f * glm::vec3(1, .1, .5), .9, 0.0, 0, purple, purple, glm::vec3(1, 1, 1));
-	lights.addPointLight(50.0f * glm::vec3(0, 1, .5), 1, 0.0, 0, gold, gold, glm::vec3(1, 1, 1));
-	sp.SetUniform1f("ambient_coeff", .3);
-	sp.SetUniform1f("spec_coeff", .1);
-	sp.SetUniform1f("diffuse_coeff", .7);
+	//lights.addPointLight(50.0f * glm::vec3(0, 1, .5), 1, 0.0, 0, gold, gold, glm::vec3(1, 1, 1));
+	lights.addPointLight(glm::vec3(0, 50, 0), 1, 0.0, 0, gold, gold, glm::vec3(1, 1, 1));
+	sp.SetUniform1f("ambient_coeff", 0);
+	sp.SetUniform1f("spec_coeff", 0);
+	sp.SetUniform1f("diffuse_coeff", 1);
 	sp.SetUniform1i("shininess", 32);
 	//projection = glm::perspective(glm::radians(45.0f), 800/600.0f, 0.1f, 1000.0f);
 	//glm::mat4 light_transform = glm::translate(glm::mat4(1.0f), glm::vec3(3, 3, 3));
@@ -968,11 +969,11 @@ int main() {
 			start = clock();
 		}
 
-		glm::mat4 transformation = glm::translate(glm::mat4(1), glm::vec3(75, 40.7, .6));
+		glm::mat4 transformation = glm::translate(glm::mat4(1), glm::vec3(75, 40.7, .6) - glm::vec3(50, 50, 0));
 		transformation = glm::scale(transformation,   glm::vec3(0.00996, 0.012782, 0.0155));// glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
 		//transformation = glm::rotate(transformation, glm::radians(180.0f), glm::vec3(0, 1, 0));
 
-		campusTransform = glm::translate(glm::mat4(1), glm::vec3(0, 0, 0));
+		campusTransform = glm::translate(glm::mat4(1), glm::vec3(0, 0, 0) - glm::vec3(50, 50, 0));
 		campusTransform = glm::scale(campusTransform, scale * glm::vec3(100, 100, 100));
 
 
@@ -987,7 +988,7 @@ int main() {
 			start = clock();
 		}
 		sp.SetUniform4fv("model", transformation);
-		sp.SetUniform3fv("normalMatrix", glm::mat3(glm::transpose(glm::inverse(transformation))));
+		sp.SetUniform3fv("normalMatrix", glm::mat3(glm::transpose(glm::inverse( transformation))));
 		sp.SetUniform4fv("camera", camera.getView());
 		sp.SetUniform4fv("projection", camera.getProjection());
 		sp.SetLights(lights);
@@ -1008,7 +1009,7 @@ int main() {
 		instance_shader.Use();
 		instance_shader.SetUniform4fv("projection", camera.getProjection());
 		instance_shader.SetUniform4fv("view", camera.getView());
-		instance_shader.SetUniform4fv("transform", glm::scale(glm::translate(glm::mat4(1), glm::vec3(72.099, 63.9, 0) + w.translate), glm::vec3(.00095, .00159, .0009) + w.scale));
+		instance_shader.SetUniform4fv("transform", glm::scale(glm::translate(glm::mat4(1), glm::vec3(72.099, 63.9, 0) + w.translate - glm::vec3(50, 50, 0)), glm::vec3(.00095, .00159, .0009) + w.scale));
 		render(Tree, &instance_shader);
 		if (BENCHMARK) {
 			std::cout << "Render Trees " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
@@ -1073,7 +1074,7 @@ int main() {
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 		
 		front_back_shader.Use();
-		front_back_shader.SetUniform4fv("model", glm::translate(glm::scale(glm::mat4(1), glm::vec3(50, 50, volume_z)), glm::vec3(1, 1, box_z_min + .5)));
+		front_back_shader.SetUniform4fv("model", glm::translate(glm::scale(glm::mat4(1), glm::vec3(0, 0, volume_z)), glm::vec3(1, 1, box_z_min + .5)));
 		front_back_shader.SetUniform4fv("camera", camera.getView());
 		front_back_shader.SetUniform4fv("projection", camera.getProjection(fcp));
 		front_back_shader.SetUniform3f("box_min", box_min);
