@@ -18,6 +18,8 @@
 #include <functional>
 #include <glm/gtc/matrix_access.hpp>
 
+#define MAX(a,b) a<b? b:a
+#define MIN(a,b) a<b? a:b
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
@@ -465,15 +467,15 @@ int main() {
 	}
 	
 	Texture2D depth_texture = Texture2D();
-	depth_texture.setTexMinMagFilter(GL_NEAREST, GL_NEAREST);
+	depth_texture.setTexMinMagFilter(GL_LINEAR, GL_LINEAR);
 	depth_texture.giveName("depth_tex");
 	GLuint temp_tex;
 	temp_tex = depth_texture.getID();
 	RayTraced.getMeshes().at(0)->addTexture(depth_texture);
 	
 	glm::mat4 transformation = glm::scale(glm::mat4(1), scale * glm::vec3(-1, 1, -1));// glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
-	glm::vec3 volume_scale = glm::vec3(50.f, 50.f, 50.f);
-	glm::vec3 box_min = glm::vec3(25, 25, 0);
+	glm::vec3 volume_scale = glm::vec3(100.f, 100.f, 50.f);
+	glm::vec3 box_min = glm::vec3(-50, -50, 0);
 	volume_shader.SetUniform3f("volume_size", volume_scale);
 	
 	volume_shader.SetUniform1f("zNear", .1f);
@@ -643,12 +645,12 @@ int main() {
 	glm::vec3 gold = glm::vec3(241, 198, 101) / 255.0f;
 	//glm::vec3 
 	//lights.addPointLight(50.0f * glm::vec3(1, 1, 2), .1, 0.01, 0, color, color, glm::vec3(1, 1, 1));
-	//lights.addPointLight(50.0f * glm::vec3(1, .1, .5), .9, 0.0, 0, purple, purple, glm::vec3(1, 1, 1));
-	//lights.addPointLight(50.0f * glm::vec3(0, 1, .5), 1, 0.0, 0, gold, gold, glm::vec3(1, 1, 1));
-	lights.addPointLight(glm::vec3(0, 50, 0), 1, 0.0, 0, gold, gold, glm::vec3(1, 1, 1));
-	sp.SetUniform1f("ambient_coeff", 0);
-	sp.SetUniform1f("spec_coeff", 0);
-	sp.SetUniform1f("diffuse_coeff", 1);
+	//lights.addPointLight(50.0f * glm::vec3(1, .1, .5), 1, 0.0, 0, purple, purple, glm::vec3(1, 1, 1));
+	lights.addPointLight(50.0f * glm::vec3(0, 1, 0), 1, 0.0, 0, gold, gold, glm::vec3(1, 1, 1));
+	//lights.addPointLight(glm::vec3(0, 50, 0), 1, 0.0, 0, gold, gold, glm::vec3(1, 1, 1));
+	sp.SetUniform1f("ambient_coeff", .2);
+	sp.SetUniform1f("spec_coeff", .1);
+	sp.SetUniform1f("diffuse_coeff", .7);
 	sp.SetUniform1i("shininess", 32);
 	//projection = glm::perspective(glm::radians(45.0f), 800/600.0f, 0.1f, 1000.0f);
 	//glm::mat4 light_transform = glm::translate(glm::mat4(1.0f), glm::vec3(3, 3, 3));
@@ -699,11 +701,11 @@ int main() {
 		start = clock();
 	}
 	//Rendering Parameters
-	float center = .017;//.56; //.2075
+	float center = .959;//.56; //.2075
 	float width = .001;//.015
 	float base_opac = 0.379;
 	float bubble_top = 1.0f;
-	float bubble_bottom = .836;
+	float bubble_bottom = 0;
 	float bubble_max_opac = .032f;
 	float bubble_min_opac = .0001f;
 	float spec_term = .05;
@@ -714,11 +716,11 @@ int main() {
 	int tex_num = 0;
 	float max_iso_val = 0;
 	bool iso_change = false;
-	float increment = 5.0f;
+	float increment = 1.136f;
 	float old_increment = 0;
-	float volumeStepSize = .05;//.11 / 3.0;
+	float volumeStepSize = .1;//.11 / 3.0;
 	float step_mod = 0;
-	float shade_opac = 1;
+	float shade_opac = .9;
 	float box_z_min = 0.001;
 	float fcp = 0.1;
 	glm::vec3 color1 = glm::vec3(255, 255, 178) / 225.0f;
@@ -793,22 +795,7 @@ int main() {
 		return 0;
 	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	Texture2D toBlur = Texture2D();
-	GLuint preprocess;
-	GLuint preprocess_tex = toBlur.getID();
-	glGenFramebuffers(1, &preprocess);
-	glBindFramebuffer(GL_FRAMEBUFFER, preprocess);
-	glBindTexture(GL_TEXTURE_2D, preprocess_tex);
-	// Give an empty image to OpenGL ( the last "0" )
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, resolution.x, resolution.y, 0, GL_RGBA, GL_FLOAT, 0);
-
-	// Poor filtering. Needed !
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, preprocess_tex, 0);
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	
 	//front_hit.SetTextureID(front_hit_point_tex);
 	front_hit.giveName("fhp");
 	RayTraced.getMeshes().at(0)->addTexture(front_hit);
@@ -818,8 +805,9 @@ int main() {
 	back_hit.giveName("bhp");
 	RayTraced.getMeshes().at(0)->addTexture(back_hit);
 
-	volume_shader.SetUniform1i("numTex", wifi.numSlices);
-	float volume_z = 11.5;
+	//volume_shader.SetUniform1i("numTex", wifi.numSlices);
+	volume_shader.SetUniform1i("numTex", MIN(wifi.numSlices, 5));
+	float volume_z = 3.5;
 
 	while (!glfwWindowShouldClose(w.getWindow())) //main render loop
 	{
@@ -902,7 +890,7 @@ int main() {
 		
 		box_min.z = box_z_min;
 		volume_shader.SetUniform3f("box_min", box_min);
-		volume_shader.SetUniform3f("box_max", box_min + glm::vec3(50, 50.f, volume_z));
+		volume_shader.SetUniform3f("box_max", box_min + glm::vec3(100, 100.f, volume_z));
 		
 		if (center + width / 2.0f != max_iso_val) {
 			iso_change = true;
@@ -1074,7 +1062,9 @@ int main() {
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 		
 		front_back_shader.Use();
-		front_back_shader.SetUniform4fv("model", glm::translate(glm::scale(glm::mat4(1), glm::vec3(0, 0, volume_z)), glm::vec3(1, 1, box_z_min + .5)));
+		glm::mat4 scale = glm::scale(glm::mat4(1), glm::vec3(100, 100, volume_z));
+		glm::mat4 translate = glm::translate(glm::mat4(1), glm::vec3(0, 0, (box_z_min + .5) * volume_z));
+		front_back_shader.SetUniform4fv("model", translate * scale);
 		front_back_shader.SetUniform4fv("camera", camera.getView());
 		front_back_shader.SetUniform4fv("projection", camera.getProjection(fcp));
 		front_back_shader.SetUniform3f("box_min", box_min);

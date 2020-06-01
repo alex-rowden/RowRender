@@ -74,12 +74,12 @@ void main() {
 	//vec3 view_dir = vec3(0);
 	vec3 start = vec3(0);
 	vec3 end = vec3(0);
-	if (back.x < EPSILON || back.y < EPSILON || back.z < EPSILON) {
+	if (abs(back.x) < EPSILON || abs(back.y) < EPSILON || abs(back.z) < EPSILON) {
 		FragColor = vec4(0, 0, 1, 0);
 		return;
 	}
 
-	if (front.x < EPSILON || front.y < EPSILON || front.z < EPSILON) {
+	if (abs(front.x) < EPSILON || abs(front.y) < EPSILON || abs(front.z) < EPSILON) {
 		start = viewPos;
 		end = back;
 		//FragColor = vec4(vec3(1,0,0), 1.0);
@@ -99,12 +99,12 @@ void main() {
 	bool debug = false;
 
 
-	vec3 view_dir = normalize(back - start);
-	float i = .08 * (abs(texture(noise, vec2(view_dir)).r) + .2);
+	vec3 view_dir = normalize(end - start);
+	float curr_dist = .08 * (abs(texture(noise, vec2(view_dir)).r));
 	float distance = sqrt(dot(end - start, end - start));
 	float raw_depth = texture(depth_tex, TexCoord).x * 2.0f - 1;
 	float depth = 2.0 * zNear * zFar / (zFar + zNear - raw_depth * (zFar - zNear));
-	distance = min(distance - StepSize, depth);
+	distance = min(distance, depth);
 	float upperBoundStep = 5 * StepSize;
 	//FragColor = vec4(vec3(distance / 75.0f), 1.0);
 	//FragColor = vec4(viewPos / 50.0f, 1);
@@ -113,9 +113,9 @@ void main() {
 	bool above_arr[6] = { false, false, false, false, false, false };
 	bool above = false;
 	bool firstStep = true;
-	for (i; i < distance; i += nextDistance) {
+	for (curr_dist; curr_dist < distance; curr_dist += nextDistance) {
 		nextDistance = upperBoundStep;
-		vec3 texPoint =  start + view_dir * i;
+		vec3 texPoint =  start + view_dir * curr_dist;
 		//if (i > depth) {
 		//	FragColor = vec4(color_composited, opaque_composited);
 			//FragColor = vec4(vec3(depth / 75.0f), 1.0);
@@ -194,25 +194,38 @@ void main() {
 				inRange = true;
 				//last_sample = volume_sample;
 			}
-				
+			if (shade_intersection && (enable_intersection > 0)) {
+				float shade_coeff = 1.0;
+				if (IsoValRange.y - IsoValRange.x > 0)
+					shade_coeff = pow((1 - abs(volume_sample - last_sample) / (IsoValRange.y - IsoValRange.x)), 1);
+				else
+					shade_coeff = 1.0;
+				//float shade_coeff = pow((1 - abs(volume_sample - (IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f))), 1);
+				color = shade_color * shade_coeff;
+
+				//opaque_self = base_opac * (1 - abs(volume_sample - IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f));
+				opaque_self = opaque_self + shade_opac * shade_coeff;
+			}
 			//volume_sample > IsoValRange.y;
-			if ((above && (volume_sample < IsoValRange.x)) || (!above && volume_sample > IsoValRange.y)) {
-				opaque_self = base_opac * (1 - abs(volume_sample - IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f));
-				if (shade_intersection && (enable_intersection > 0)) {
-					float shade_coeff = pow((1 - abs(volume_sample - last_sample)), 2);
-					color = shade_color * shade_coeff + color * (1 - shade_coeff);
-					//opaque_self = base_opac * (1 - abs(volume_sample - IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f));
-					opaque_self = opaque_self + shade_opac * shade_coeff;
-				}
-				else if ((above && (volume_sample > (IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f))) || (!above && volume_sample < (IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f))) {
-					if (inRange)
+			if ((above && (volume_sample < (IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f))) || (!above && volume_sample > (IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f))) {
+				if(!(shade_intersection && (enable_intersection > 0)))
+					opaque_self = base_opac;
+				
+				if ((above && (volume_sample > (IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f))) || (!above && volume_sample < (IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f))) {
+					if (inRange && !shade_intersection) {
 						shade_intersection = true;
+						last_sample = volume_sample;
+					}
+
 					continue;
 				}
 				above_arr[i] = !above;
 			}
 			else {
-				if (inRange) { shade_intersection = true;  }continue;
+				if (inRange && !shade_intersection) {
+					shade_intersection = true;
+					last_sample = volume_sample;
+				}continue;
 		}
 			float sinphi = sin(phi);
 			vec3 normal = vec3(sinphi * cos(theta), sinphi * sin(theta), cos(phi));
@@ -246,13 +259,13 @@ void main() {
 
 
 			}
-			if ( !(shade_intersection && (enable_intersection > 0)))
+			//if ( !(shade_intersection && (enable_intersection > 0)))
 				opaque_self = opaque_self + (bubble_term * bubble_coefficient + ((spec_term)*spec));// 0.5f);
 				
 																									//if (ShadingTerms.y > 0) {
 				//color_self *= powf(1 - bubble_coefficient, 1 / tune);
 			//} 
-			if (inRange) {
+			if (inRange && !shade_intersection) {
 				shade_intersection = true;
 				last_sample = volume_sample;
 			}
