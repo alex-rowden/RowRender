@@ -196,15 +196,16 @@ void main() {
 			}
 			if (shade_intersection && (enable_intersection > 0)) {
 				float shade_coeff = 1.0;
-				if (IsoValRange.y - IsoValRange.x > 0)
-					shade_coeff = pow((1 - abs(volume_sample - last_sample) / (IsoValRange.y - IsoValRange.x)), 1);
+				if (IsoValRange.y - IsoValRange.x > 0) {
+					shade_coeff = pow(1 - (abs(last_sample - (IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f))) / ((IsoValRange.y - IsoValRange.x) / 2.0f), 1);
+				}
 				else
 					shade_coeff = 1.0;
 				//float shade_coeff = pow((1 - abs(volume_sample - (IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f))), 1);
-				color = shade_color * shade_coeff;
+				color = shade_color * shade_coeff + color * (1 - shade_coeff);
 
 				//opaque_self = base_opac * (1 - abs(volume_sample - IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f));
-				opaque_self = opaque_self + shade_opac * shade_coeff;
+				opaque_self = base_opac + shade_opac * abs(shade_coeff);
 			}
 			//volume_sample > IsoValRange.y;
 			if ((above && (volume_sample < (IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f))) || (!above && volume_sample > (IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f))) {
@@ -259,7 +260,7 @@ void main() {
 
 
 			}
-			//if ( !(shade_intersection && (enable_intersection > 0)))
+			if ( !(shade_intersection && (enable_intersection > 0)))
 				opaque_self = opaque_self + (bubble_term * bubble_coefficient + ((spec_term)*spec));// 0.5f);
 				
 																									//if (ShadingTerms.y > 0) {
