@@ -646,7 +646,7 @@ int main() {
 	//glm::vec3 
 	//lights.addPointLight(50.0f * glm::vec3(1, 1, 2), .1, 0.01, 0, color, color, glm::vec3(1, 1, 1));
 	//lights.addPointLight(50.0f * glm::vec3(1, .1, .5), 1, 0.0, 0, purple, purple, glm::vec3(1, 1, 1));
-	lights.addPointLight(50.0f * glm::vec3(0, 1, 0), 1, 0.0, 0, gold, gold, glm::vec3(1, 1, 1));
+	lights.addDirLight(glm::vec3(0, -1, 0), gold);
 	//lights.addPointLight(glm::vec3(0, 50, 0), 1, 0.0, 0, gold, gold, glm::vec3(1, 1, 1));
 	sp.SetUniform1f("ambient_coeff", .2);
 	sp.SetUniform1f("spec_coeff", .1);
@@ -723,6 +723,9 @@ int main() {
 	float shade_opac = .9;
 	float box_z_min = 0.001;
 	float fcp = 0.1;
+	float effectiveStepSize = volumeStepSize;
+	bool variableStepOn = false ;
+	float minStepSize = .0025;
 	glm::vec3 color1 = glm::vec3(255, 255, 178) / 225.0f;
 	glm::vec3 color2 = glm::vec3(254, 204, 92) / 225.0f;
 	glm::vec3 color3 = glm::vec3(253, 141, 60) / 255.0f;
@@ -808,11 +811,15 @@ int main() {
 	//volume_shader.SetUniform1i("numTex", wifi.numSlices);
 	volume_shader.SetUniform1i("numTex", MIN(wifi.numSlices, 5));
 	float volume_z = 3.5;
+	int framesSinceMoved = 0;
 
 	while (!glfwWindowShouldClose(w.getWindow())) //main render loop
 	{
-		glfwPollEvents();
 
+		glfwPollEvents();
+		bool cameraMoved = camera.getMoved();
+		camera.setMoved(false);
+		
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
@@ -836,6 +843,7 @@ int main() {
 		ImGui::SliderFloat("Cube Z", &volume_z, 1.0f, 50.0f);
 		ImGui::SliderFloat("Cube Z min", &box_z_min, -10.0f, 1.0f);
 		ImGui::Checkbox("Shade intersection", &color_aug);
+		ImGui::Checkbox("Variable Step Size", &variableStepOn);
 		ImGui::SliderFloat("Specular Term", &spec_term, 0.0f, 10.0f);
 		ImGui::SliderFloat("FOV", &fov, 0.0f, 90.0f);
 		ImGui::Checkbox("Enable Channel 1", &enable_color[0]);
@@ -861,8 +869,19 @@ int main() {
 		
 		ImGui::End();
 		
+		if (cameraMoved) {
+			effectiveStepSize = volumeStepSize;
+			framesSinceMoved = 0;
+		}
+		else if (variableStepOn && framesSinceMoved > 4 && effectiveStepSize > minStepSize) {
+			effectiveStepSize = effectiveStepSize / 2.0f;
+			if (effectiveStepSize < minStepSize)
+				effectiveStepSize = minStepSize;
+			framesSinceMoved = 0;
+		}
+
 		volume_shader.SetUniform2f("IsoValRange", glm::vec2(center - width/2.0f, center + width/2.0f));
-		volume_shader.SetUniform1f("StepSize", volumeStepSize);
+		volume_shader.SetUniform1f("StepSize", effectiveStepSize);
 		volume_shader.SetUniform1f("increment", increment);
 		volume_shader.SetUniform1f("base_opac", base_opac);
 		volume_shader.SetUniform3f("color1", color1);
@@ -1137,6 +1156,7 @@ int main() {
 		//glClearColor(.196078, .6, .8, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glFinish();
+		framesSinceMoved++;
 	}
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();

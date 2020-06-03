@@ -54,6 +54,14 @@ void ShaderProgram::SetLights(Lights lights) {
 		SetUniform3f((light_preamble + "diffuse").c_str(), light.diffuse);
 		SetUniform3f((light_preamble + "specular").c_str(), light.specular);
 
+	}for (int i = 0; i < lights.getDirLights().size(); i++) {
+		Lights::DirLight light = lights.getDirLights().at(i);
+		
+		std::string light_preamble = "dirLights[" + std::to_string(i) + "].";
+		SetUniform3f((light_preamble + "direction").c_str(), light.direction);
+
+		SetUniform3f((light_preamble + "color").c_str(), light.color);
+
 	}
 }
 

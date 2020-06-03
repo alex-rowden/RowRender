@@ -100,11 +100,11 @@ void main() {
 
 
 	vec3 view_dir = normalize(end - start);
-	float curr_dist = .08 * (abs(texture(noise, vec2(view_dir)).r));
+	float curr_dist = .08 * (abs(texture(noise, vec2(view_dir)).r) + EPSILON);
 	float distance = sqrt(dot(end - start, end - start));
 	float raw_depth = texture(depth_tex, TexCoord).x * 2.0f - 1;
 	float depth = 2.0 * zNear * zFar / (zFar + zNear - raw_depth * (zFar - zNear));
-	distance = min(distance, depth);
+	distance = min(distance - StepSize, depth);
 	float upperBoundStep = 5 * StepSize;
 	//FragColor = vec4(vec3(distance / 75.0f), 1.0);
 	//FragColor = vec4(viewPos / 50.0f, 1);

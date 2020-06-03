@@ -12,6 +12,7 @@ Camera::Camera(glm::vec3 _position, glm::vec3 target, float _fov, float _aspect,
 }
 
 void Camera::setDirection(glm::vec3 dir) {
+	moved = true;
 	direction = glm::normalize(dir);
 }
 
@@ -32,14 +33,17 @@ glm::vec3 Camera::getPosition() {
 }
 
 void Camera::moveForward(float amount) {
+	moved = true;
 	position += direction * -amount;
 }
 
 void Camera::moveUp(float amount) {
+	moved = true;
 	position += up * -amount;
 }
 
 void Camera::moveRight(float amount) {
+	moved = true;
 	right = glm::normalize(glm::cross(direction, up));
 	position += right * amount;
 }

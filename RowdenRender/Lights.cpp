@@ -12,3 +12,12 @@ void Lights::addPointLight(glm::vec3 pos, float constant, float linear, float qu
 	};
 	point_lights.emplace_back(pl);
 }
+
+void Lights::addDirLight(glm::vec3 dir, glm::vec3 color)
+{
+	DirLight dl = {
+		dir,
+		color
+	};
+	dir_lights.emplace_back(dl);
+}
