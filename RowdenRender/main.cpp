@@ -646,7 +646,7 @@ int main() {
 	//glm::vec3 
 	//lights.addPointLight(50.0f * glm::vec3(1, 1, 2), .1, 0.01, 0, color, color, glm::vec3(1, 1, 1));
 	//lights.addPointLight(50.0f * glm::vec3(1, .1, .5), 1, 0.0, 0, purple, purple, glm::vec3(1, 1, 1));
-	lights.addDirLight(glm::vec3(0, -1, 0), gold);
+	lights.addDirLight(glm::vec3(0, 1, 0), gold);
 	//lights.addPointLight(glm::vec3(0, 50, 0), 1, 0.0, 0, gold, gold, glm::vec3(1, 1, 1));
 	sp.SetUniform1f("ambient_coeff", .2);
 	sp.SetUniform1f("spec_coeff", .1);
