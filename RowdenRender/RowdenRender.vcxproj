@@ -75,6 +75,7 @@
     <None Include="parallelogram.cu" />
     <None Include="screen_fshader.glsl" />
     <None Include="screen_vshader.glsl" />
+    <None Include="signed_distance_fragment.glsl" />
     <None Include="sky_fshader.glsl" />
     <None Include="sky_vshader.glsl" />
     <None Include="tutorial.cu" />

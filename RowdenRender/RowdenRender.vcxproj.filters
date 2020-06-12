@@ -203,5 +203,8 @@
     <None Include="front_back_vshader.glsl">
       <Filter>Source Files\Shaders</Filter>
     </None>
+    <None Include="signed_distance_fragment.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

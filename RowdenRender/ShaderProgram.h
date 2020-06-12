@@ -12,8 +12,10 @@ public:
 		SKY_FRAG, SKY_VERT,
 		INSTANCE_FRAG, INSTANCE_VERT,
 		VOLUME_FRAG, VOLUME_VERT,
-		FRONT_BACK_FRAG, FRONT_BACK_VERT, };
+		FRONT_BACK_FRAG, FRONT_BACK_VERT, 
+		SIGNED_DISTANCE_FRAG};
 	void SetupShader(Shaders shader);
+	ShaderProgram() {};
 	ShaderProgram(std::vector<Shaders> shaders);
 
 	void Use();
@@ -38,6 +40,7 @@ public:
 	void SetUniform2fv(const char* uniform_name, glm::mat2 mat, GLint transpose = GL_FALSE);
 
 	void SetLights(Lights lights);
+	void SetGaussians(Gaussian* gauss, int n);
 	GLint getShader() { return shaderProgram; }
 private:
 	unsigned int vertexShader, fragmentShader, shaderProgram;

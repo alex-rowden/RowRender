@@ -24,3 +24,6 @@
       std::cerr << "ERROR: Function " << #func << std::endl; \
   } while (0)
 
+struct Gaussian {
+    float x_coord, y_coord, sigma, amplitude;
+};

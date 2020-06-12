@@ -23,6 +23,7 @@ ShaderProgram::ShaderProgram(std::vector<Shaders> shaders) {
 		case Shaders::INSTANCE_FRAG:
 		case Shaders::VOLUME_FRAG:
 		case Shaders::FRONT_BACK_FRAG:
+		case Shaders::SIGNED_DISTANCE_FRAG:
 			glAttachShader(shaderProgram, fragmentShader);
 			break;
 		}
@@ -62,6 +63,17 @@ void ShaderProgram::SetLights(Lights lights) {
 
 		SetUniform3f((light_preamble + "color").c_str(), light.color);
 
+	}
+}
+
+void ShaderProgram::SetGaussians(Gaussian* gauss, int n) {
+	
+	for (int i = 0; i < n; i++) {
+		std::string gauss_preamble = "gaussians[" + std::to_string(i) + "].";
+		SetUniform1f((gauss_preamble + "x_coord").c_str(), gauss[i].x_coord);
+		SetUniform1f((gauss_preamble + "y_coord").c_str(), gauss[i].y_coord);
+		SetUniform1f((gauss_preamble + "sigma").c_str(), gauss[i].sigma);
+		SetUniform1f((gauss_preamble + "amplitude").c_str(), gauss[i].amplitude);
 	}
 }
 
@@ -207,6 +219,9 @@ void ShaderProgram::importShaderFile(Shaders shader, std::string *ShaderString) 
 	case Shaders::FRONT_BACK_VERT:
 		filename = "front_back_vshader.glsl";
 		break;
+	case Shaders::SIGNED_DISTANCE_FRAG:
+		filename = "signed_distance_fragment.glsl";
+		break;
 	default:
 		throw "Not a valid shader";
 	}
@@ -297,6 +312,10 @@ void ShaderProgram::shader_error_check(Shaders shader) {
 		shader_name = "FRONT_BACK_FRAGMENT_SHADER";
 		shader_adr = &fragmentShader;
 		break;
+	case Shaders::SIGNED_DISTANCE_FRAG:
+		shader_name = "SIGNED_DISTANCE_FRAGMENT_SHADER";
+		shader_adr = &fragmentShader;
+		break;
 	default:
 		throw("Missing definition for shader in shader_error_check");
 	}
@@ -336,6 +355,7 @@ void ShaderProgram::SetupShader(Shaders shader) {
 	case Shaders::INSTANCE_FRAG:
 	case Shaders::VOLUME_FRAG:
 	case Shaders::FRONT_BACK_FRAG:
+	case Shaders::SIGNED_DISTANCE_FRAG:
 		fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 		glShaderSource(fragmentShader, 1, &shader_source, NULL);
 		glCompileShader(fragmentShader);
