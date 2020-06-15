@@ -471,13 +471,13 @@ int main() {
 	//
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 	std::vector<std::string> skybox_files;
-	
-	skybox_files.emplace_back("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/Content/Textures/Skyboxes/miramar_lf.png");
-	skybox_files.emplace_back("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/Content/Textures/Skyboxes/miramar_rt.png");
-	skybox_files.emplace_back("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/Content/Textures/Skyboxes/miramar_bk.png");
-	skybox_files.emplace_back("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/Content/Textures/Skyboxes/miramar_ft.png");
-	skybox_files.emplace_back("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/Content/Textures/Skyboxes/miramar_up.png");
-	skybox_files.emplace_back("C:/Users/alrowden/source/repos/RowdenRender/RowdenRender/Content/Textures/Skyboxes/miramar_dn.png");
+
+	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/miramar_lf.png");
+	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/miramar_rt.png");
+	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/miramar_bk.png");
+	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/miramar_ft.png");
+	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/miramar_up.png");
+	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/miramar_dn.png");
 
 
 	Texture2D texture = Texture2D("Content\\Textures\\CampusMap.png");
