@@ -1112,8 +1112,7 @@ int main() {
 			start = clock();
 		}
 		instance_shader.Use();
-		instance_shader.SetUniform4fv("projection", camera.getProjection());
-		instance_shader.SetUniform4fv("view", camera.getView());
+		
 		instance_shader.SetUniform4fv("transform", glm::scale(glm::translate(glm::mat4(1), glm::vec3(72.099, 63.9, 0) + w.translate - glm::vec3(50, 50, 0)), glm::vec3(.00095, .00159, .0009) + w.scale));
 		//render(Tree, &instance_shader);
 		if (BENCHMARK) {
@@ -1162,8 +1161,10 @@ int main() {
 			sp.SetUniform4fv("camera", ViewMat);
 			campus_map_sp.SetUniform4fv("projection", ProjectionMat);
 			campus_map_sp.SetUniform4fv("camera", ViewMat);
-			tree_shader.SetUniform4fv("projection", ProjectionMat);
-			tree_shader.SetUniform4fv("camera", ViewMat);
+			instance_shader.SetUniform4fv("projection", ProjectionMat);
+			instance_shader.SetUniform4fv("camera", ViewMat);
+			//instance_shader.SetUniform4fv("transform", glm::scale(glm::translate(glm::mat4(1), glm::vec3(72.099, 63.9, 0) + w.translate - glm::vec3(50, 50, 0)), glm::vec3(.00095, .00159, .0009) + w.scale));
+
 			glDepthMask(GL_FALSE);
 			skybox_shader.Use();
 			render(skybox, &skybox_shader);
@@ -1180,8 +1181,8 @@ int main() {
 			campus_map_sp.SetUniform4fv("model", campusTransform);
 			campus_map_sp.Use();
 			render(campusMap, &campus_map_sp);
-			tree_shader.Use();
-			render(Tree, &tree_shader);
+			instance_shader.Use();
+			render(Tree, &instance_shader);
 			
 
 			glBindTexture(GL_TEXTURE_2D, temp_tex);
