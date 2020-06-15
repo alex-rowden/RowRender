@@ -1114,14 +1114,18 @@ int main() {
 		instance_shader.Use();
 		
 		instance_shader.SetUniform4fv("transform", glm::scale(glm::translate(glm::mat4(1), glm::vec3(72.099, 63.9, 0) + w.translate - glm::vec3(50, 50, 0)), glm::vec3(.00095, .00159, .0009) + w.scale));
+		
 		//render(Tree, &instance_shader);
 		if (BENCHMARK) {
 			std::cout << "Render Trees " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
 		}
 
-		front_back_shader.SetUniform4fv("model", glm::translate(glm::scale(glm::mat4(1), glm::vec3(50, 50, volume_z)), glm::vec3(1, 1, box_z_min + .5)));
-		
+		glm::mat4 scale = glm::scale(glm::mat4(1), glm::vec3(100, 100, volume_z));
+		glm::mat4 translate = glm::translate(glm::mat4(1), glm::vec3(0, 0, (box_z_min + .5) * volume_z));
+		front_back_shader.SetUniform4fv("model", translate* scale);
+		//front_back_shader.SetUniform4fv("camera", camera.getView());
+		//front_back_shader.SetUniform4fv("projection", camera.getProjection(fcp));
 		front_back_shader.SetUniform3f("box_min", box_min);
 		front_back_shader.SetUniform3f("volume_scale", volume_scale);
 		
