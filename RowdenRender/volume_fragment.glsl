@@ -9,8 +9,8 @@ in vec2 TexCoord;
 
 
 //uniform sampler2D texture_diffuse1;
-uniform sampler2D volume0;
-uniform sampler2D volume1;
+uniform highp sampler2D volume0;
+uniform highp sampler2D volume1;
 uniform sampler2D volume2;
 uniform sampler2D volume3;
 uniform sampler2D volume4;
@@ -21,9 +21,9 @@ uniform sampler2D normal2;
 uniform sampler2D normal3;
 uniform sampler2D normal4;
 uniform sampler2D normal5;
-uniform sampler2D fhp;
-uniform sampler2D bhp;
-uniform sampler2D depth_tex;
+uniform highp sampler2D fhp;
+uniform highp sampler2D bhp;
+uniform highp sampler2D depth_tex;
 uniform sampler2D noise;
 
 uniform vec3 viewPos;
@@ -74,12 +74,12 @@ void main() {
 	//vec3 view_dir = vec3(0);
 	vec3 start = vec3(0);
 	vec3 end = vec3(0);
-	if (back.x < EPSILON || back.y < EPSILON || back.z < EPSILON) {
+	if (abs(back.x) < EPSILON || abs(back.y) < EPSILON || abs(back.z) < EPSILON) {
 		FragColor = vec4(0, 0, 1, 0);
 		return;
 	}
 
-	if (front.x < EPSILON || front.y < EPSILON || front.z < EPSILON) {
+	if (abs(front.x) < EPSILON || abs(front.y) < EPSILON || abs(front.z) < EPSILON) {
 		start = viewPos;
 		end = back;
 		//FragColor = vec4(vec3(1,0,0), 1.0);
@@ -99,8 +99,8 @@ void main() {
 	bool debug = false;
 
 
-	vec3 view_dir = normalize(back - start);
-	float i = .08 * (abs(texture(noise, vec2(view_dir)).r) + .2);
+	vec3 view_dir = normalize(end - start);
+	float curr_dist = .08 * (abs(texture(noise, vec2(view_dir)).r) + EPSILON);
 	float distance = sqrt(dot(end - start, end - start));
 	float raw_depth = texture(depth_tex, TexCoord).x * 2.0f - 1;
 	float depth = 2.0 * zNear * zFar / (zFar + zNear - raw_depth * (zFar - zNear));
@@ -113,9 +113,9 @@ void main() {
 	bool above_arr[6] = { false, false, false, false, false, false };
 	bool above = false;
 	bool firstStep = true;
-	for (i; i < distance; i += nextDistance) {
+	for (curr_dist; curr_dist < distance; curr_dist += nextDistance) {
 		nextDistance = upperBoundStep;
-		vec3 texPoint =  start + view_dir * i;
+		vec3 texPoint =  start + view_dir * curr_dist;
 		//if (i > depth) {
 		//	FragColor = vec4(color_composited, opaque_composited);
 			//FragColor = vec4(vec3(depth / 75.0f), 1.0);
@@ -133,7 +133,7 @@ void main() {
 		bool inRange = false;
 		bool shade_intersection = false;
 		float last_sample = 0;
-		for (int i = 0; i < numTex; i++) {
+		for (int i = 0; i < 5; i++) {
 			if ((enabledVolumes & (1 << i)) < 1 && !firstStep)
 				continue;
 
@@ -144,7 +144,7 @@ void main() {
 				volume_sample = texture(volume0, vec2(vol_u, vol_v)).r - vol_w * increment;
 				normal_sample = texture(normal0, vec2(vol_u, vol_v)).rgb;
 				if (firstStep) {
-					above_arr[i] = volume_sample > IsoValRange.y;
+					above_arr[i] = volume_sample > IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f;
 
 				}
 				//color = make_float4(0, 0, 1, 1.0f);
@@ -154,28 +154,28 @@ void main() {
 				volume_sample = texture(volume1, vec2(vol_u, vol_v)).r - vol_w * increment;
 				normal_sample = texture(normal1, vec2(vol_u, vol_v)).rgb;
 				if (firstStep) {
-					above_arr[i] = volume_sample > IsoValRange.y;
+					above_arr[i] = volume_sample > IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f;
 				}				break;
 			case 2:
 				color = vec3(color3);
 				volume_sample = texture(volume2, vec2(vol_u, vol_v)).r - vol_w * increment;
 				normal_sample = texture(normal2, vec2(vol_u, vol_v)).rgb;
 				if (firstStep) {
-					above_arr[i] = volume_sample > IsoValRange.y;
+					above_arr[i] = volume_sample > IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f;
 				}				break;
 			case 3:
 				color = vec3(color4);
 				volume_sample = texture(volume3, vec2(vol_u, vol_v)).r - vol_w * increment;
 				normal_sample = texture(normal3, vec2(vol_u, vol_v)).rgb;
 				if (firstStep) {
-					above_arr[i] = volume_sample > IsoValRange.y;
+					above_arr[i] = volume_sample > IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f;
 				}				break;
 			case 4:
 				color = vec3(color5);
 				volume_sample = texture(volume4, vec2(vol_u, vol_v)).r - vol_w * increment;
 				normal_sample = texture(normal4, vec2(vol_u, vol_v)).rgb;
 				if (firstStep) {
-					above_arr[i] = volume_sample > IsoValRange.y;
+					above_arr[i] = volume_sample > IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f;
 				}				break;
 			default:
 				color = vec3(1.0, 1.0f, 1.0f);
@@ -187,71 +187,88 @@ void main() {
 			float opaque_self = 0;
 			float phi = normal_sample.x * M_PIf;
 			float theta = normal_sample.y * M_PIf * 2 - M_PIf;
-			nextDistance = min(nextDistance, StepSize * (1 + step_mod * min(abs(volume_sample - IsoValRange.x), abs(volume_sample - IsoValRange.y))));
+			nextDistance = min(nextDistance, StepSize * (1 + step_mod * (IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f)));
 			nextDistance = nextDistance + StepSize * tune * texture(noise, vec2(normal_sample)).r;
 			above = above_arr[i];
-			if (volume_sample < IsoValRange.y && volume_sample > IsoValRange.x) {
+			if ((volume_sample < IsoValRange.y && volume_sample > IsoValRange.x) && !inRange) {
 				inRange = true;
-				last_sample = volume_sample;
+				//last_sample = volume_sample;
 			}
-			if (above && (volume_sample > IsoValRange.y)) {
-				continue;
-			}
-			else if (!above && volume_sample < IsoValRange.y) {
-				continue;
-			}
-			
-			else {
-				
-				above_arr[i] = !above;//volume_sample > IsoValRange.y;
-				if (shade_intersection && (enable_intersection > 0)) {
-					color = shade_color;
-					opaque_self = shade_opac;
+			if (shade_intersection && (enable_intersection > 0)) {
+				float shade_coeff = 1.0;
+				if (IsoValRange.y - IsoValRange.x > 0) {
+					shade_coeff = pow(1 - (abs(last_sample - (IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f))) / ((IsoValRange.y - IsoValRange.x) / 2.0f), 1);
 				}
-				else{
+				else
+					shade_coeff = 1.0;
+				//float shade_coeff = pow((1 - abs(volume_sample - (IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f))), 1);
+				color = shade_color * shade_coeff + color * (1 - shade_coeff);
+
+				//opaque_self = base_opac * (1 - abs(volume_sample - IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f));
+				opaque_self = base_opac + shade_opac * abs(shade_coeff);
+			}
+			//volume_sample > IsoValRange.y;
+			if ((above && (volume_sample < (IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f))) || (!above && volume_sample > (IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f))) {
+				if(!(shade_intersection && (enable_intersection > 0)))
 					opaque_self = base_opac;
-				}
-				float sinphi = sin(phi);
-				vec3 normal = vec3(sinphi * cos(theta), sinphi * sin(theta), cos(phi));
-
-				vec2 normalP = vec2(phi, theta);
-				vec2 sincosnorm = vec2(sin(theta), cos(theta));
-				float diffuse = diffuseStrength * max(0, sdot(sincosLightTheta, sincosnorm, lightDirP.y, phi));
-				float spec = specularStrength * pow(max(sdot(sincosHalfwayTheta, sincosnorm, HalfwayVecP.y, phi), 0), shininess);
-				//spec = specularStrength * pow(dot(halfway))
-				color_self = ambientStrength * color + diffuse * color + spec * vec3(1, 1, 1);
-
-				float bubble_coefficient = 0;
-				if(bubble_term != 0){
-					bubble_coefficient = 1 - (abs(dot(view_dir, normal)));
-					//float bubble_coefficient = 1 - (fabs(sdot(CameraDirP, normalP)));
-
-
-					if (opaque_self > 1e-5) {
-						if (bubble_coefficient > bubble_min) {
-							bubble_coefficient = bubble_min;
-						}
-						else if (bubble_coefficient < bubble_max) {
-							bubble_coefficient = bubble_max;
-						}
-
-						float norm = (((bubble_coefficient - bubble_max) / (bubble_min - bubble_max)));
-						bubble_coefficient = (norm * (max_opac - min_opac)) + min_opac;
+				
+				if ((above && (volume_sample > (IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f))) || (!above && volume_sample < (IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f))) {
+					if (inRange && !shade_intersection) {
+						shade_intersection = true;
+						last_sample = volume_sample;
 					}
-				
+
+					continue;
+				}
+				above_arr[i] = !above;
+			}
+			else {
+				if (inRange && !shade_intersection) {
+					shade_intersection = true;
+					last_sample = volume_sample;
+				}continue;
+		}
+			float sinphi = sin(phi);
+			vec3 normal = vec3(sinphi * cos(theta), sinphi * sin(theta), cos(phi));
+
+			vec2 normalP = vec2(phi, theta);
+			vec2 sincosnorm = vec2(sin(theta), cos(theta));
+			float diffuse = diffuseStrength * max(0, sdot(sincosLightTheta, sincosnorm, lightDirP.y, phi));
+			float spec = specularStrength * pow(max(sdot(sincosHalfwayTheta, sincosnorm, HalfwayVecP.y, phi), 0), shininess);
+			//spec = specularStrength * pow(dot(halfway))
+			color_self = ambientStrength * color + diffuse * color + spec * vec3(1, 1, 1);
+
+			float bubble_coefficient = 0;
+			if(bubble_term != 0){
+				bubble_coefficient = 1 - (abs(dot(view_dir, normal)));
+				//float bubble_coefficient = 1 - (fabs(sdot(CameraDirP, normalP)));
 
 
+				if (opaque_self > 1e-5) {
+					if (bubble_coefficient > bubble_min) {
+						bubble_coefficient = bubble_min;
+					}
+					else if (bubble_coefficient < bubble_max) {
+						bubble_coefficient = bubble_max;
+					}
 
+					float norm = (((bubble_coefficient - bubble_max) / (bubble_min - bubble_max)));
+					bubble_coefficient = (norm * (max_opac - min_opac)) + min_opac;
 				}
 				
+
+
+
+			}
+			if ( !(shade_intersection && (enable_intersection > 0)))
 				opaque_self = opaque_self + (bubble_term * bubble_coefficient + ((spec_term)*spec));// 0.5f);
 				
-																										//if (ShadingTerms.y > 0) {
-					//color_self *= powf(1 - bubble_coefficient, 1 / tune);
-				//} 
-			} 
-			if (inRange) {
+																									//if (ShadingTerms.y > 0) {
+				//color_self *= powf(1 - bubble_coefficient, 1 / tune);
+			//} 
+			if (inRange && !shade_intersection) {
 				shade_intersection = true;
+				last_sample = volume_sample;
 			}
 			
 			color_composited += ((1.f - opaque_composited) * color_self * opaque_self);

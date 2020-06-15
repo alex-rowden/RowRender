@@ -18,7 +18,10 @@
 #include <direct.h>
 #include <functional>
 #include <glm/gtc/matrix_access.hpp>
+#include "GaussianLoader.h"
 
+#define MAX(a,b) a<b? b:a
+#define MIN(a,b) a<b? a:b
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
@@ -33,6 +36,9 @@ int counter = 10;
 float increment = 0.05;
 float scale = 1.0;
 bool update = true;
+
+bool signed_distance = true;
+
 //int size = 800;
 bool animated = true;
 const char* animation_file = "test_1.txt";
@@ -410,28 +416,29 @@ int main() {
 	std::string wrk_dir = std::string("C:\\Users\\ARR87\\Documents\\GitHub\\RowRender\\RowdenRender");
 	clock_t start = clock();
 	std::vector<short> normal_x, normal_y;
-	std::vector<unsigned char> use_intensities, max_volume;
+	std::vector<float> use_intensities, max_volume;
 	WifiData wifi;
-	
-	std::string filename = "umd_freqs";
+
+	std::string filename = "gaussian_freqs";
 	//std::string filename = "2Ghz_channels_float";
 	//std::string filename = "sphere_freqs";
 	wifi.loadBinary((filename + ".raw").c_str(), use_intensities, normal_x, normal_y);
+
 	//create_max_volume(use_intensities, wifi, max_volume);
 	max_volume = use_intensities;
-	
+
 	if (BENCHMARK) {
 		std::cout << "Loading Data: " << (start - clock()) / CLOCKS_PER_SEC << " seconds" << std::endl;
 		start = clock();
 	}
-	
+
 	std::mt19937::result_type seed = time(0);
 	auto generator = std::bind(std::uniform_real_distribution<float>(-1, 1),
 		std::mt19937(seed));  // mt19937 is a standard mersenne_twister_engin
 	glfwInit();
 	glfwSetErrorCallback(error_callback);
 	Window w = Window("Better Window", resolution.x, resolution.y);
-	
+
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) //load GLAD
 	{
 		std::cout << "Failed to initialize GLAD" << std::endl;
@@ -440,7 +447,7 @@ int main() {
 	setupDearIMGUI(w.window);
 	// During init, enable debug output
 	glEnable(GL_DEBUG_OUTPUT);
-	
+
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	//glEnable(GL_CULL_FACE);
@@ -464,8 +471,12 @@ int main() {
 	ShaderProgram campus_map_sp = ShaderProgram({ShaderProgram::Shaders::NO_LIGHT_FRAG, ShaderProgram::Shaders::NO_LIGHT_VERT});
 	//ShaderProgram screen_shader = ShaderProgram({ ShaderProgram::Shaders::SCREEN_FRAG, ShaderProgram::Shaders::SCREEN_VERT });
 	ShaderProgram skybox_shader = ShaderProgram({ ShaderProgram::Shaders::SKY_FRAG, ShaderProgram::Shaders::SKY_VERT });
-	ShaderProgram tree_shader = ShaderProgram({ ShaderProgram::Shaders::INSTANCE_FRAG, ShaderProgram::Shaders::INSTANCE_VERT });
-	ShaderProgram volume_shader = ShaderProgram({ ShaderProgram::Shaders::VOLUME_FRAG, ShaderProgram::Shaders::VOLUME_VERT });
+	ShaderProgram instance_shader = ShaderProgram({ ShaderProgram::Shaders::INSTANCE_FRAG, ShaderProgram::Shaders::INSTANCE_VERT });
+	ShaderProgram volume_shader;
+	if (!signed_distance)
+		volume_shader = ShaderProgram({ ShaderProgram::Shaders::VOLUME_FRAG, ShaderProgram::Shaders::VOLUME_VERT });
+	else
+		volume_shader = ShaderProgram({ ShaderProgram::Shaders::SIGNED_DISTANCE_FRAG, ShaderProgram::Shaders::VOLUME_VERT });
 	ShaderProgram front_back_shader = ShaderProgram({ ShaderProgram::Shaders::FRONT_BACK_FRAG, ShaderProgram::Shaders::FRONT_BACK_VERT });
 	//mesh.SetData();
 	//
@@ -487,7 +498,10 @@ int main() {
 	//texture.setTexParameterWrap(GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT);
 	Model model;
 	LoadCampusModel(&model);
-	model.getMeshes()[0]->SetUniformColor(glm::vec4(1, 1, 1, 1));
+	Texture2D white = Texture2D(Texture2D::COLORS::WHITE);
+	model.getMeshes()[0]->setTexture(white, 0);
+	model.getMeshes()[0]->setTexture(white, 1);
+	//model.getMeshes()[0]->SetUniformColor(glm::vec4(1, 1, 1, 1));
 	Model skybox = Model("Content\\Models\\cube\\cube.obj");
 	skybox.setModel();
 	skybox.getMeshes().at(0)->setTexture(skybox_tex, 0);
@@ -526,19 +540,19 @@ int main() {
 		RayTraced.getMeshes().at(0)->addTexture(volume_data);
 		RayTraced.getMeshes().at(0)->addTexture(normal_data);
 	}
-	
+
 	Texture2D depth_texture = Texture2D();
-	depth_texture.setTexMinMagFilter(GL_NEAREST, GL_NEAREST);
+	depth_texture.setTexMinMagFilter(GL_LINEAR, GL_LINEAR);
 	depth_texture.giveName("depth_tex");
 	GLuint temp_tex;
 	temp_tex = depth_texture.getID();
 	RayTraced.getMeshes().at(0)->addTexture(depth_texture);
-	
+
 	glm::mat4 transformation = glm::scale(glm::mat4(1), scale * glm::vec3(-1, 1, -1));// glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
-	glm::vec3 volume_scale = glm::vec3(50.f, 50.f, 50.f);
-	glm::vec3 box_min = glm::vec3(25, 25, 0);
+	glm::vec3 volume_scale = glm::vec3(100.f, 100.f, 50.f);
+	glm::vec3 box_min = glm::vec3(-50, -50, 0);
 	volume_shader.SetUniform3f("volume_size", volume_scale);
-	
+
 	volume_shader.SetUniform1f("zNear", .1f);
 	volume_shader.SetUniform1f("zFar", 1000.f);
 	float ambientStrength = .5f;
@@ -564,7 +578,7 @@ int main() {
 		int objID;
 	};
 
-	std::vector<TreeEntry *> trees;
+	std::vector<TreeEntry*> trees;
 	//load in tree positions
 	std::ifstream tree_file = std::ifstream("Content/Data/plants.csv");
 	if (!tree_file.is_open()) {
@@ -623,7 +637,7 @@ int main() {
 		if (treeTransforms.size() < 0)
 			break;
 		glm::mat4 transform = //glm::translate(glm::mat4(1), glm::vec3(20, 20, 1));
-		glm::translate(glm::mat4(1), glm::vec3(treeEntry->lon * 3000000, treeEntry->lat * 3000000, 1.0f));
+			glm::translate(glm::mat4(1), glm::vec3(treeEntry->lon * 3000000, treeEntry->lat * 3000000, 1.0f));
 		treeTransforms.emplace_back(transform);
 	}
 
@@ -656,24 +670,25 @@ int main() {
 #if(false)
 ;
 
-		std::fstream out = std::fstream("wifi_data.raw", std::ios::binary | std::ios::out);
+	std::fstream out = std::fstream("wifi_data.raw", std::ios::binary | std::ios::out);
 
-		for (int i = 0; i < use_intensities.size(); i++) {
-			UINT8 test = (UINT8)(use_intensities.at(i) * 255);
-			out << test;
-		}
-		out.close();
+	for (int i = 0; i < use_intensities.size(); i++) {
+		UINT8 test = (UINT8)(use_intensities.at(i) * 255);
+		out << test;
+	}
+	out.close();
 #endif	
 
 
-	
+
 	glm::mat4 volume_transform = glm::rotate(glm::mat4(1), glm::radians(90.0f), glm::vec3(0, 1, 0));
 	//RTresult ret = rtBufferCreate(context->get(), RT_BUFFER_INPUT, &ray_buffer);
 
 	Shape myShape;
 
 	//setup camera
-	Camera camera = Camera(glm::vec3(49.2877, 18.2977, 3.57346), glm::vec3(50, 49.999, 0), 60.0f, w.width / (float)w.height);
+	Camera camera = Camera(glm::vec3(0, 50, 0), glm::vec3(0, 0, 0), 60.0f, w.width / (float)w.height);
+	//Camera camera = Camera(glm::vec3(49.2877, 18.2977, 3.57346), glm::vec3(50, 49.999, 0), 60.0f, w.width / (float)w.height);
 	//Camera camera = Camera(glm::vec3(36.9, 13.1627, 1.514), glm::vec3(40.3, 46.682, 3.57), 60.0f, w.width/(float)w.height);
 	//Camera camera = Camera(glm::vec3(34,37.5, .5), glm::vec3(35, 37.5, 0.5), 90.0f, w.width / w.height);
 	w.SetCamera(&camera);
@@ -694,7 +709,7 @@ int main() {
 	glm::mat4 projection;
 	//w.scale = glm::vec3(1, .03, 1);
 	w.scale = glm::vec3(0, 0, 0);
-	w.translate = glm::vec3(0,0,0);
+	w.translate = glm::vec3(0, 0, 0);
 	//w.translate = glm::vec3(0, -.1f, 0);
 
 	w.setSpeed(.5 * 10);
@@ -702,15 +717,16 @@ int main() {
 	Lights lights = Lights();
 	float toNorm = 1 / 255.0;
 	glm::vec3 color = glm::vec3(252, 202, 158) / 255.0f;
-	glm::vec3 purple = glm::vec3(177, 156, 217) / 255.0f;
-	glm::vec3 gold = glm::vec3(217, 208, 156) / 255.0f;
+	glm::vec3 purple = glm::vec3(106, 93, 141) / 255.0f;
+	glm::vec3 gold = glm::vec3(241, 198, 101) / 255.0f;
 	//glm::vec3 
 	//lights.addPointLight(50.0f * glm::vec3(1, 1, 2), .1, 0.01, 0, color, color, glm::vec3(1, 1, 1));
-	lights.addPointLight(50.0f * glm::vec3(1, .1, .5), .9, 0.0, 0, purple, purple, glm::vec3(1, 1, 1));
-	lights.addPointLight(50.0f * glm::vec3(.1, 1, .5), .75, 0.0, 0, gold, gold, glm::vec3(1, 1, 1));
-	sp.SetUniform1f("ambient_coeff", .2);
-	sp.SetUniform1f("spec_coeff", .3);
-	sp.SetUniform1f("diffuse_coeff", .5);
+	//lights.addPointLight(50.0f * glm::vec3(1, .1, .5), 1, 0.0, 0, purple, purple, glm::vec3(1, 1, 1));
+	lights.addDirLight(glm::vec3(0, 1, 0), gold);
+	//lights.addPointLight(glm::vec3(0, 50, 0), 1, 0.0, 0, gold, gold, glm::vec3(1, 1, 1));
+	sp.SetUniform1f("ambient_coeff", .5);
+	sp.SetUniform1f("spec_coeff", .1);
+	sp.SetUniform1f("diffuse_coeff", .4);
 	sp.SetUniform1i("shininess", 32);
 
 	glm::mat4 campusTransform;
@@ -748,7 +764,7 @@ int main() {
 		}
 		animated = false;
 	}
-	
+
 
 	int fps = 0;
 	uint64_t fps_counter = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
@@ -759,28 +775,31 @@ int main() {
 		start = clock();
 	}
 	//Rendering Parameters
-	float center = .017;//.56; //.2075
+	float center = .959;//.56; //.2075
 	float width = .001;//.015
 	float base_opac = 0.379;
 	float bubble_top = 1.0f;
-	float bubble_bottom = .836;
+	float bubble_bottom = 0;
 	float bubble_max_opac = .032f;
 	float bubble_min_opac = .0001f;
 	float spec_term = .05;
 	float sil_term = .95;
 	bool color_aug = false;
-	float tune = 1.0f;
+	float tune = .45f;
 	float fov = 60;
 	int tex_num = 0;
 	float max_iso_val = 0;
 	bool iso_change = false;
-	float increment = 10.0f;
+	float increment = 1.136f;
 	float old_increment = 0;
-	float volumeStepSize = .05;//.11 / 3.0;
+	float volumeStepSize = .1;//.11 / 3.0;
 	float step_mod = 0;
-	float shade_opac = 1;
+	float shade_opac = .9;
 	float box_z_min = 0.001;
 	float fcp = 0.1;
+	float effectiveStepSize = volumeStepSize;
+	bool variableStepOn = false;
+	float minStepSize = .0025;
 	glm::vec3 color1 = glm::vec3(255, 255, 178) / 225.0f;
 	glm::vec3 color2 = glm::vec3(254, 204, 92) / 225.0f;
 	glm::vec3 color3 = glm::vec3(253, 141, 60) / 255.0f;
@@ -790,7 +809,7 @@ int main() {
 	glm::vec3 intersection_color = glm::vec3(0);
 	bool enable_color[6] = { true, false, false, false, false, false };
 	//bool lighting_enabled = false;
-	
+
 	//glGenTextures(1, &temp_tex);
 	glBindTexture(GL_TEXTURE_2D, temp_tex);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, RenderSize.x, RenderSize.y, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
@@ -835,7 +854,7 @@ int main() {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
 	// Set "renderedTexture" as our colour attachement #0
-	
+
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, back_hit_point_tex, 0);
 
 	// Set the list of draw buffers.
@@ -858,34 +877,44 @@ int main() {
 	CreateFrameBuffer(RenderSize.x, RenderSize.y, leftEyeDesc);
 	CreateFrameBuffer(RenderSize.x, RenderSize.y, rightEyeDesc);
 
-	std::vector<glm::vec4> pink = std::vector<glm::vec4>();
-	std::vector<glm::vec4> yellow = std::vector<glm::vec4>();
-
-	pink.resize(RenderSize.x* RenderSize.y);
-	yellow.resize(RenderSize.x* RenderSize.y);
-
-	for (int i = 0; i < RenderSize.x * RenderSize.y; i++) {
-		pink.at(i) = glm::vec4(1, 0, 1, 1);
-		yellow.at(i) = glm::vec4(1, 1, 0, 1);
-	}
-	GLuint pink_tex = Texture2D(&pink, (int)RenderSize.y, (int)RenderSize.x).getID();
-	GLuint yellow_tex = Texture2D(&yellow, (int)RenderSize.y, (int)RenderSize.x).getID();
 	//front_hit.SetTextureID(front_hit_point_tex);
 	front_hit.giveName("fhp");
 	RayTraced.getMeshes().at(0)->addTexture(front_hit);
-	
-	
+
+
 	//back_hit.SetTextureID(back_hit_point_tex);
 	back_hit.giveName("bhp");
 	RayTraced.getMeshes().at(0)->addTexture(back_hit);
 
-	volume_shader.SetUniform1i("numTex", wifi.numSlices);
-	float volume_z = 8.0f;
+	//volume_shader.SetUniform1i("numTex", wifi.numSlices);
+	volume_shader.SetUniform1i("numTex", MIN(wifi.numSlices, 5));
+	float volume_z = 3.5;
+	int framesSinceMoved = 0;
 
+	//const int num_gaussians = 2;
+	//Gaussian gaussians[num_gaussians];
+	//gaussians[0] = { 0, 0, 1, 1 };
+	//gaussians[1] = { 10, 0, 1, 1.5f };
+
+	std::vector<Gaussian> gaussians = std::vector < Gaussian>();
+	GaussianLoader::loadGaussians("first_channel.gaus", gaussians);
+	
+	int num_gaussians = gaussians.size();
+
+	//for (int i = 2; i < num_gaussians; i++) {
+	//	gaussians[i] = {((rand()/(float)RAND_MAX) - .5f) * 50.0f, ((rand() / (float)RAND_MAX) - .5f) * 50.0f , 1, ((rand()/(float)RAND_MAX)/2.0f + .5f) * 2.0f};
+	//}
+	if (signed_distance) {
+		volume_shader.SetUniform1i("num_gaussians", num_gaussians);
+		volume_shader.SetGaussians(gaussians);
+	}
 	while (!glfwWindowShouldClose(w.getWindow())) //main render loop
 	{
-		glfwPollEvents();
 
+		glfwPollEvents();
+		bool cameraMoved = camera.getMoved();
+		camera.setMoved(false);
+		
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
@@ -909,6 +938,7 @@ int main() {
 		ImGui::SliderFloat("Cube Z", &volume_z, 1.0f, 50.0f);
 		ImGui::SliderFloat("Cube Z min", &box_z_min, -10.0f, 1.0f);
 		ImGui::Checkbox("Shade intersection", &color_aug);
+		ImGui::Checkbox("Variable Step Size", &variableStepOn);
 		ImGui::SliderFloat("Specular Term", &spec_term, 0.0f, 10.0f);
 		ImGui::SliderFloat("FOV", &fov, 0.0f, 90.0f);
 		ImGui::Checkbox("Enable Channel 1", &enable_color[0]);
@@ -934,8 +964,19 @@ int main() {
 		
 		ImGui::End();
 		
+		if (cameraMoved) {
+			effectiveStepSize = volumeStepSize;
+			framesSinceMoved = 0;
+		}
+		else if (variableStepOn && framesSinceMoved > 4 && effectiveStepSize > minStepSize) {
+			effectiveStepSize = effectiveStepSize / 2.0f;
+			if (effectiveStepSize < minStepSize)
+				effectiveStepSize = minStepSize;
+			framesSinceMoved = 0;
+		}
+
 		volume_shader.SetUniform2f("IsoValRange", glm::vec2(center - width/2.0f, center + width/2.0f));
-		volume_shader.SetUniform1f("StepSize", volumeStepSize);
+		volume_shader.SetUniform1f("StepSize", effectiveStepSize);
 		volume_shader.SetUniform1f("increment", increment);
 		volume_shader.SetUniform1f("base_opac", base_opac);
 		volume_shader.SetUniform3f("color1", color1);
@@ -963,7 +1004,7 @@ int main() {
 		
 		box_min.z = box_z_min;
 		volume_shader.SetUniform3f("box_min", box_min);
-		volume_shader.SetUniform3f("box_max", box_min + glm::vec3(50, 50.f, volume_z));
+		volume_shader.SetUniform3f("box_max", box_min + glm::vec3(100, 100.f, volume_z));
 		
 		if (center + width / 2.0f != max_iso_val) {
 			iso_change = true;
@@ -1033,11 +1074,11 @@ int main() {
 			start = clock();
 		}
 
-		glm::mat4 transformation = glm::translate(glm::mat4(1), glm::vec3(75, 40.7, .6));
+		glm::mat4 transformation = glm::translate(glm::mat4(1), glm::vec3(75, 40.7, .6) - glm::vec3(50, 50, 0));
 		transformation = glm::scale(transformation,   glm::vec3(0.00996, 0.012782, 0.0155));// glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
 		//transformation = glm::rotate(transformation, glm::radians(180.0f), glm::vec3(0, 1, 0));
 
-		campusTransform = glm::translate(glm::mat4(1), glm::vec3(0, 0, 0));
+		campusTransform = glm::translate(glm::mat4(1), glm::vec3(0, 0, 0) - glm::vec3(50, 50, 0));
 		campusTransform = glm::scale(campusTransform, scale * glm::vec3(100, 100, 100));
 
 
@@ -1052,12 +1093,12 @@ int main() {
 			start = clock();
 		}
 		sp.SetUniform4fv("model", transformation);
-		sp.SetUniform3fv("normalMatrix", glm::mat3(glm::transpose(glm::inverse(transformation))));
+		sp.SetUniform3fv("normalMatrix", glm::mat3(glm::transpose(glm::inverse( transformation))));
 		sp.SetUniform4fv("camera", camera.getView());
 		sp.SetUniform4fv("projection", camera.getProjection());
 		sp.SetLights(lights);
 		sp.SetUniform3f("view", camera.getPosition());
-		render(model, &sp);
+		//render(model, &sp);
 		if (BENCHMARK) {
 			std::cout << "Render Campus Model " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
@@ -1070,11 +1111,11 @@ int main() {
 			std::cout << "Render Campus Map " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
 		}
-		
-		//tree_shader.SetUniform4fv("projection", camera.getProjection());
-		//tree_shader.SetUniform4fv("view", camera.getView());
-		tree_shader.SetUniform4fv("transform", glm::scale(glm::translate(glm::mat4(1), glm::vec3(72.099, 63.9, 0) + w.translate), glm::vec3(.00095, .00159, .0009) + w.scale));
-		
+		instance_shader.Use();
+		instance_shader.SetUniform4fv("projection", camera.getProjection());
+		instance_shader.SetUniform4fv("view", camera.getView());
+		instance_shader.SetUniform4fv("transform", glm::scale(glm::translate(glm::mat4(1), glm::vec3(72.099, 63.9, 0) + w.translate - glm::vec3(50, 50, 0)), glm::vec3(.00095, .00159, .0009) + w.scale));
+		//render(Tree, &instance_shader);
 		if (BENCHMARK) {
 			std::cout << "Render Trees " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
@@ -1275,6 +1316,7 @@ int main() {
 		//glClearColor(.196078, .6, .8, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glFinish();
+		framesSinceMoved++;
 	}
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
