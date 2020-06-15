@@ -17,6 +17,7 @@
 #include <direct.h>
 #include <functional>
 #include <glm/gtc/matrix_access.hpp>
+#include "GaussianLoader.h"
 
 #define MAX(a,b) a<b? b:a
 #define MIN(a,b) a<b? a:b
@@ -820,16 +821,22 @@ int main() {
 	float volume_z = 3.5;
 	int framesSinceMoved = 0;
 
-	const int num_gaussians = 2;
-	Gaussian gaussians[num_gaussians];
-	gaussians[0] = { 0, 0, 1, 1 };
-	gaussians[1] = { 10, 0, 1, 1.5f };
-	for (int i = 2; i < num_gaussians; i++) {
-		gaussians[i] = {((rand()/(float)RAND_MAX) - .5f) * 50.0f, ((rand() / (float)RAND_MAX) - .5f) * 50.0f , 1, ((rand()/(float)RAND_MAX)/2.0f + .5f) * 2.0f};
-	}
+	//const int num_gaussians = 2;
+	//Gaussian gaussians[num_gaussians];
+	//gaussians[0] = { 0, 0, 1, 1 };
+	//gaussians[1] = { 10, 0, 1, 1.5f };
+
+	std::vector<Gaussian> gaussians = std::vector < Gaussian>();
+	GaussianLoader::loadGaussians("first_channel.gaus", gaussians);
+	
+	int num_gaussians = gaussians.size();
+
+	//for (int i = 2; i < num_gaussians; i++) {
+	//	gaussians[i] = {((rand()/(float)RAND_MAX) - .5f) * 50.0f, ((rand() / (float)RAND_MAX) - .5f) * 50.0f , 1, ((rand()/(float)RAND_MAX)/2.0f + .5f) * 2.0f};
+	//}
 	if (signed_distance) {
 		volume_shader.SetUniform1i("num_gaussians", num_gaussians);
-		volume_shader.SetGaussians(gaussians, num_gaussians);
+		volume_shader.SetGaussians(gaussians);
 	}
 	while (!glfwWindowShouldClose(w.getWindow())) //main render loop
 	{

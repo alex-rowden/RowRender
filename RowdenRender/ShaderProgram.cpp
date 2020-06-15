@@ -66,14 +66,15 @@ void ShaderProgram::SetLights(Lights lights) {
 	}
 }
 
-void ShaderProgram::SetGaussians(Gaussian* gauss, int n) {
+void ShaderProgram::SetGaussians(std::vector<Gaussian> gaus) {
 	
-	for (int i = 0; i < n; i++) {
+	for (int i = 0; i < gaus.size(); i++) {
+
 		std::string gauss_preamble = "gaussians[" + std::to_string(i) + "].";
-		SetUniform1f((gauss_preamble + "x_coord").c_str(), gauss[i].x_coord);
-		SetUniform1f((gauss_preamble + "y_coord").c_str(), gauss[i].y_coord);
-		SetUniform1f((gauss_preamble + "sigma").c_str(), gauss[i].sigma);
-		SetUniform1f((gauss_preamble + "amplitude").c_str(), gauss[i].amplitude);
+		SetUniform1f((gauss_preamble + "x_coord").c_str(), gaus[i].x_coord * 50);
+		SetUniform1f((gauss_preamble + "y_coord").c_str(), gaus[i].y_coord * 50);
+		SetUniform1f((gauss_preamble + "sigma").c_str(), gaus[i].sigma * 10 );
+		SetUniform1f((gauss_preamble + "amplitude").c_str(), gaus[i].amplitude);
 	}
 }
 

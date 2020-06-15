@@ -40,7 +40,7 @@ public:
 	void SetUniform2fv(const char* uniform_name, glm::mat2 mat, GLint transpose = GL_FALSE);
 
 	void SetLights(Lights lights);
-	void SetGaussians(Gaussian* gauss, int n);
+	void SetGaussians(std::vector<Gaussian> gauss);
 	GLint getShader() { return shaderProgram; }
 private:
 	unsigned int vertexShader, fragmentShader, shaderProgram;

@@ -17,6 +17,7 @@
 #include <glm/gtx/string_cast.hpp>
 
 
+
 #define RT_CHECK_ERROR_NO_CONTEXT( func ) \
   do { \
     RTresult code = func; \
@@ -25,5 +26,5 @@
   } while (0)
 
 struct Gaussian {
-    float x_coord, y_coord, sigma, amplitude;
+    float x_coord, y_coord, amplitude, sigma;
 };

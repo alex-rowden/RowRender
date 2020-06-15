@@ -2,7 +2,7 @@ lon_range = min(Longitude):.00001:max(Longitude);
 lat_range = min(Latitude):.00001:max(Latitude);
 sig_data = zeros(length(lon_range), length(lat_range));
 sig_datas = containers.Map('all', sig_data);
-for index=1:size(unique_bssids, 1)  
+for index=1:size(bssid_tables, 2)  
     vals = bssid_tables(index).gaussian;
     if vals.sigma == -1
         vals.sigma = avg_sigma / count;
