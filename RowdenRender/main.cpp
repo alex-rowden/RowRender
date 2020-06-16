@@ -37,7 +37,7 @@ float increment = 0.05;
 float scale = 1.0;
 bool update = true;
 
-bool signed_distance = true;
+bool signed_distance = false;
 
 //int size = 800;
 bool animated = true;
@@ -55,14 +55,14 @@ std::vector<glm::vec2> isoRangeVolume = std::vector <glm::vec2>();
 
 struct FramebufferDesc
 {
-	GLuint m_nDepthBufferId;
+	Texture2D depth_tex = Texture2D();
+	GLuint m_nDepthTexId;
 	GLuint m_nRenderTextureId;
 	GLuint m_nRenderFramebufferId;
 	GLuint m_nResolveTextureId;
 	GLuint m_nResolveFramebufferId;
 };
-FramebufferDesc leftEyeDesc;
-FramebufferDesc rightEyeDesc;
+
 
 
 
@@ -371,15 +371,23 @@ bool overlap(glm::vec2 a, glm::vec2 b) {
 
 
 
-bool CreateFrameBuffer(int nWidth, int nHeight, FramebufferDesc& framebufferDesc)
+bool CreateFrameBuffer(int nWidth, int nHeight, FramebufferDesc& framebufferDesc, std::string suffix)
 {
 	glGenFramebuffers(1, &framebufferDesc.m_nRenderFramebufferId);
 	glBindFramebuffer(GL_FRAMEBUFFER, framebufferDesc.m_nRenderFramebufferId);
 
-	glGenRenderbuffers(1, &framebufferDesc.m_nDepthBufferId);
-	glBindRenderbuffer(GL_RENDERBUFFER, framebufferDesc.m_nDepthBufferId);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, nWidth, nHeight);
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, framebufferDesc.m_nDepthBufferId);
+	framebufferDesc.depth_tex = Texture2D();
+	framebufferDesc.depth_tex.giveName("depth_tex" + suffix);
+	framebufferDesc.m_nDepthTexId = framebufferDesc.depth_tex.getID();
+	glBindTexture(GL_TEXTURE_2D, framebufferDesc.m_nDepthTexId);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, nWidth, nHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, framebufferDesc.m_nDepthTexId, 0);
+	glBindTexture(GL_TEXTURE_2D, 0);
 
 	glGenTextures(1, &framebufferDesc.m_nRenderTextureId);
 	glBindTexture(GL_TEXTURE_2D, framebufferDesc.m_nRenderTextureId);
@@ -541,12 +549,12 @@ int main() {
 		RayTraced.getMeshes().at(0)->addTexture(normal_data);
 	}
 
-	Texture2D depth_texture = Texture2D();
-	depth_texture.setTexMinMagFilter(GL_LINEAR, GL_LINEAR);
-	depth_texture.giveName("depth_tex");
-	GLuint temp_tex;
-	temp_tex = depth_texture.getID();
-	RayTraced.getMeshes().at(0)->addTexture(depth_texture);
+	//Texture2D depth_texture = Texture2D();
+	//depth_texture.setTexMinMagFilter(GL_LINEAR, GL_LINEAR);
+	//depth_texture.giveName("depth_tex");
+	//GLuint temp_tex;
+	//temp_tex = depth_texture.getID();
+	//RayTraced.getMeshes().at(0)->addTexture(depth_texture);
 
 	glm::mat4 transformation = glm::scale(glm::mat4(1), scale * glm::vec3(-1, 1, -1));// glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
 	glm::vec3 volume_scale = glm::vec3(100.f, 100.f, 50.f);
@@ -810,14 +818,7 @@ int main() {
 	bool enable_color[6] = { true, false, false, false, false, false };
 	//bool lighting_enabled = false;
 
-	//glGenTextures(1, &temp_tex);
-	glBindTexture(GL_TEXTURE_2D, temp_tex);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, RenderSize.x, RenderSize.y, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glBindTexture(GL_TEXTURE_2D, 0);
+	
 	//RayTraced.getMeshes().at(0)->addTexture(depth_texture);
 	Texture2D front_hit = Texture2D();
 	Texture2D back_hit = Texture2D();
@@ -874,8 +875,13 @@ int main() {
 		return 0;
 	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	CreateFrameBuffer(RenderSize.x, RenderSize.y, leftEyeDesc);
-	CreateFrameBuffer(RenderSize.x, RenderSize.y, rightEyeDesc);
+	FramebufferDesc leftEyeDesc = { Texture2D() };
+	FramebufferDesc rightEyeDesc = {Texture2D()};
+	
+	CreateFrameBuffer(RenderSize.x, RenderSize.y, leftEyeDesc, "_left");
+	CreateFrameBuffer(RenderSize.x, RenderSize.y, rightEyeDesc, "_right");
+	RayTraced.getMeshes().at(0)->addTexture(leftEyeDesc.depth_tex);
+	RayTraced.getMeshes().at(0)->addTexture(rightEyeDesc.depth_tex);
 
 	//front_hit.SetTextureID(front_hit_point_tex);
 	front_hit.giveName("fhp");
@@ -900,6 +906,8 @@ int main() {
 	GaussianLoader::loadGaussians("first_channel.gaus", gaussians);
 	
 	int num_gaussians = gaussians.size();
+
+	RayTraced.getMeshes().at(0)->addTexture(leftEyeDesc.depth_tex);
 
 	//for (int i = 2; i < num_gaussians; i++) {
 	//	gaussians[i] = {((rand()/(float)RAND_MAX) - .5f) * 50.0f, ((rand() / (float)RAND_MAX) - .5f) * 50.0f , 1, ((rand()/(float)RAND_MAX)/2.0f + .5f) * 2.0f};
@@ -1006,6 +1014,7 @@ int main() {
 		volume_shader.SetUniform3f("box_min", box_min);
 		volume_shader.SetUniform3f("box_max", box_min + glm::vec3(100, 100.f, volume_z));
 		
+
 		if (center + width / 2.0f != max_iso_val) {
 			iso_change = true;
 		}
@@ -1189,16 +1198,19 @@ int main() {
 			render(Tree, &instance_shader);
 			
 
-			glBindTexture(GL_TEXTURE_2D, temp_tex);
-			glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, RenderSize.x, RenderSize.y);
+			//glBindTexture(GL_TEXTURE_2D, temp_tex);
+			//glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, RenderSize.x, RenderSize.y);
 			//glCopyImageSubData(temp_tex, GL_TEXTURE_2D, 0, 0, 0, 0,
 			//					depth_mask_id, GL_TEXTURE_2D, 0, 0, 0, 0, 
 			//					resolution.x, resolution.y, 1);
-			glBindTexture(GL_TEXTURE_2D, 0);
+			//glBindTexture(GL_TEXTURE_2D, 0);
+			
+			
 
 			glBindFramebuffer(GL_FRAMEBUFFER, fb);
-
-			glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+			
+			glClearColor(0, 0, 0, 0);
+			glClear(GL_DEPTH_BUFFER_BIT);
 
 			front_back_shader.SetUniform4fv("camera", ViewMat);
 			front_back_shader.SetUniform4fv("projection", ProjectionMat);
@@ -1212,10 +1224,12 @@ int main() {
 			glCullFace(GL_FRONT);
 			front_back_shader.SetUniform1i("front", 0);
 			render(volume_cube, &front_back_shader);
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			
 			glDisable(GL_CULL_FACE);
 			glBindFramebuffer(GL_FRAMEBUFFER, curr_fb.m_nRenderFramebufferId);
+			
 			volume_shader.Use();
+			volume_shader.SetUniform1i("eye", i);
 			render(RayTraced, &volume_shader);
 			
 			vr.composite(curr_eye, curr_fb.m_nRenderTextureId);
@@ -1316,7 +1330,7 @@ int main() {
 			start = clock();
 		}
 		//glClearColor(1,1,1, 1);
-		glClearColor(135/255.0f, 206/255.0f, 235/255.0f, 1.0f);
+		//glClearColor(135/255.0f, 206/255.0f, 235/255.0f, 1.0f);
 		//glClearColor(.22, .69, .87, 1);
 		//glClearColor(.196078, .6, .8, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

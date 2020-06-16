@@ -4,6 +4,7 @@
 #include <stb_image.h>
 
 Texture2D::Texture2D() {
+	
 	glGenTextures(1, &texture);
 }
 

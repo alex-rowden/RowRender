@@ -23,7 +23,8 @@ uniform sampler2D normal4;
 uniform sampler2D normal5;
 uniform highp sampler2D fhp;
 uniform highp sampler2D bhp;
-uniform highp sampler2D depth_tex;
+uniform highp sampler2D depth_tex_left;
+uniform highp sampler2D depth_tex_right;
 uniform sampler2D noise;
 
 uniform vec3 viewPos;
@@ -48,6 +49,7 @@ uniform float zNear;
 uniform float zFar;
 uniform float spec_term, bubble_term, bubble_min, bubble_max, max_opac, min_opac, step_mod, tune;
 uniform float fcp;
+uniform int eye;
 
 uniform int enabledVolumes;
 
@@ -102,13 +104,17 @@ void main() {
 	vec3 view_dir = normalize(end - start);
 	float curr_dist = .08 * (abs(texture(noise, vec2(view_dir)).r) + EPSILON);
 	float distance = sqrt(dot(end - start, end - start));
-	float raw_depth = texture(depth_tex, TexCoord).x * 2.0f - 1;
+	float raw_depth = 0;
+	if(eye == 0)
+		raw_depth = texture(depth_tex_left, TexCoord).x * 2.0f - 1;
+	else
+		raw_depth = texture(depth_tex_right, TexCoord).x * 2.0f - 1;
 	float depth = 2.0 * zNear * zFar / (zFar + zNear - raw_depth * (zFar - zNear));
 	distance = min(distance - StepSize, depth);
 	float upperBoundStep = 5 * StepSize;
-	//FragColor = vec4(vec3(distance / 75.0f), 1.0);
-	//FragColor = vec4(viewPos / 50.0f, 1);
-	//return;
+	FragColor = vec4(vec3(distance), 1.0);
+	//FragColor = vec4(view_dir, 1);
+	return;
 	float nextDistance = upperBoundStep;
 	bool above_arr[6] = { false, false, false, false, false, false };
 	bool above = false;
