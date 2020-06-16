@@ -33,7 +33,7 @@ float increment = 0.05;
 float scale = 1.0;
 bool update = true;
 
-bool signed_distance = true;
+bool signed_distance = false;
 
 //int size = 800;
 bool animated = true;
@@ -1013,7 +1013,7 @@ int main() {
 		skybox_shader.SetUniform4fv("view", glm::mat4(glm::mat3(camera.getView())));
 
 		glDepthMask(GL_FALSE);
-		//render(skybox, &skybox_shader);
+		render(skybox, &skybox_shader);
 		glDepthMask(GL_TRUE);
 		if (BENCHMARK) {
 			std::cout << "Render Skybox " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
@@ -1025,7 +1025,7 @@ int main() {
 		sp.SetUniform4fv("projection", camera.getProjection());
 		sp.SetLights(lights);
 		sp.SetUniform3f("view", camera.getPosition());
-		//render(model, &sp);
+		render(model, &sp);
 		if (BENCHMARK) {
 			std::cout << "Render Campus Model " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
