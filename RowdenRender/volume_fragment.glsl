@@ -112,9 +112,9 @@ void main() {
 	float depth = 2.0 * zNear * zFar / (zFar + zNear - raw_depth * (zFar - zNear));
 	distance = min(distance - StepSize, depth);
 	float upperBoundStep = 5 * StepSize;
-	FragColor = vec4(vec3(distance), 1.0);
+	//FragColor = vec4(vec3(distance), 1.0);
 	//FragColor = vec4(view_dir, 1);
-	return;
+	//return;
 	float nextDistance = upperBoundStep;
 	bool above_arr[6] = { false, false, false, false, false, false };
 	bool above = false;

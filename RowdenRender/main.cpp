@@ -1230,8 +1230,9 @@ int main() {
 			
 			volume_shader.Use();
 			volume_shader.SetUniform1i("eye", i);
+			glDepthMask(FALSE);
 			render(RayTraced, &volume_shader);
-			
+			glDepthMask(TRUE);
 			vr.composite(curr_eye, curr_fb.m_nRenderTextureId);
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
