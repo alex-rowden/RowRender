@@ -13,7 +13,7 @@ struct Gaussian {
 	float amplitude;
 };
 
-#define MAX_GAUSSIANS 2
+#define MAX_GAUSSIANS 10
 
 uniform Gaussian gaussians[MAX_GAUSSIANS];
 

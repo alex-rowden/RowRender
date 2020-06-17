@@ -9,7 +9,7 @@ function write_gaussians(filename, table, Latitude, Longitude)
        fwrite(out_file, (table(counter).gaussian.mu_x - mean(scale_factor_lon)) / range_lon, 'float');
        fwrite(out_file, (table(counter).gaussian.mu_y - mean(scale_factor_lat)) / range_lat, 'float'); 
        fwrite(out_file, table(counter).gaussian.amplitude, 'float'); 
-       fwrite(out_file, (table(counter).gaussian.sigma) / sqrt(mean([range_lat, range_lon])), 'float'); 
+       fwrite(out_file, (table(counter).gaussian.sigma) / (mean([range_lat, range_lon])), 'float'); 
     end
     
 end

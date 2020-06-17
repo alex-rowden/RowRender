@@ -646,7 +646,7 @@ int main() {
 
 	w.setSpeed(.5 * 10);
 
-	Lights lights = Lights();
+	Lights lights = Lights(); 
 	float toNorm = 1 / 255.0;
 	glm::vec3 color = glm::vec3(252, 202, 158) / 255.0f;
 	glm::vec3 purple = glm::vec3(106, 93, 141) / 255.0f;
@@ -654,7 +654,8 @@ int main() {
 	//glm::vec3 
 	//lights.addPointLight(50.0f * glm::vec3(1, 1, 2), .1, 0.01, 0, color, color, glm::vec3(1, 1, 1));
 	//lights.addPointLight(50.0f * glm::vec3(1, .1, .5), 1, 0.0, 0, purple, purple, glm::vec3(1, 1, 1));
-	lights.addDirLight(glm::vec3(0, 1, 0), gold);
+	lights.addDirLight(glm::vec3(0, -1, .2), gold);
+	//lights.addDirLight(glm::vec3(1, 0, 0), purple);
 	//lights.addPointLight(glm::vec3(0, 50, 0), 1, 0.0, 0, gold, gold, glm::vec3(1, 1, 1));
 	sp.SetUniform1f("ambient_coeff", .5);
 	sp.SetUniform1f("spec_coeff", .1);
@@ -827,9 +828,9 @@ int main() {
 	//gaussians[1] = { 10, 0, 1, 1.5f };
 
 	std::vector<Gaussian> gaussians = std::vector < Gaussian>();
-	GaussianLoader::loadGaussians("first_channel.gaus", gaussians);
+	GaussianLoader::loadGaussians("first_channel_corrected_sig.gaus", gaussians);
 	
-	int num_gaussians = gaussians.size();
+	int num_gaussians = MIN(gaussians.size(), 10);
 
 	//for (int i = 2; i < num_gaussians; i++) {
 	//	gaussians[i] = {((rand()/(float)RAND_MAX) - .5f) * 50.0f, ((rand() / (float)RAND_MAX) - .5f) * 50.0f , 1, ((rand()/(float)RAND_MAX)/2.0f + .5f) * 2.0f};
