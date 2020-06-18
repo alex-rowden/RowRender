@@ -33,7 +33,7 @@ float increment = 0.05;
 float scale = 1.0;
 bool update = true;
 
-bool signed_distance = false;
+bool signed_distance = true;
 
 //int size = 800;
 bool animated = true;
