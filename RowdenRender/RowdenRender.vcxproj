@@ -149,6 +149,7 @@
     <LibraryPath>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.1\lib\x64;C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\lib64;C:\Windows\System32;C:\Users\ARR87\Documents\glfw-3.3.2.bin.WIN64\lib-vc2019;C:\Users\ARR87\Documents\assimp-5.0.0\build\code\Release;C:\Users\ARR87\Documents\Simple OpenGL Image Library\lib;C:\Users\ARR87\Documents\GitHub\openvr\lib\win64;$(LibraryPath)</LibraryPath>
     <SourcePath>C:\Users\ARR87\Documents\glm-0.9.9.7\glm\;C:\Users\ARR87\Documents\GLAD\src;C:\Users\ARR87\Documents\GitHub\imgui;C:\Users\ARR87\Documents\GitHub\imgui\examples;C:\Users\ARR87\Documents\Simple OpenGL Image Library\src;C:\Users\ARR87\Documents\GitHub\openvr\src;$(SourcePath)</SourcePath>
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
+    <TargetName>$(ProjectName)_vr</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>$(USERPROFILE)\Documents\CLibs\include;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.1\include;C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\SDK;C:\ProgramData\NVIDIA Corporation\OptiX SDK 6.0.0\include;$(IncludePath)</IncludePath>

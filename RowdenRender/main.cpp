@@ -730,7 +730,7 @@ int main() {
 	//glm::vec3 
 	//lights.addPointLight(50.0f * glm::vec3(1, 1, 2), .1, 0.01, 0, color, color, glm::vec3(1, 1, 1));
 	//lights.addPointLight(50.0f * glm::vec3(1, .1, .5), 1, 0.0, 0, purple, purple, glm::vec3(1, 1, 1));
-	lights.addDirLight(glm::vec3(0, 1, 0), gold);
+	lights.addDirLight(glm::vec3(0, -1, .2), gold);
 	//lights.addPointLight(glm::vec3(0, 50, 0), 1, 0.0, 0, gold, gold, glm::vec3(1, 1, 1));
 	sp.SetUniform1f("ambient_coeff", .5);
 	sp.SetUniform1f("spec_coeff", .1);
@@ -1162,7 +1162,7 @@ int main() {
 
 			glm::mat4 ProjectionMat = vr.getProjectionMatrix(curr_eye);
 			glm::mat4 unRotView = vr.getViewMatrix(curr_eye);
-			glm::mat4 ViewMat = glm::rotate(unRotView, glm::radians(-90.0f), glm::vec3(1, 0, 0));
+			glm::mat4 ViewMat = glm::translate(glm::rotate(unRotView, glm::radians(-90.0f), glm::vec3(1, 0, 0)), glm::vec3(0, 1, -1));
 
 			glBindFramebuffer(GL_FRAMEBUFFER, curr_fb.m_nRenderFramebufferId);
 			glViewport(0, 0, RenderSize.x, RenderSize.y);
