@@ -199,7 +199,7 @@ void main() {
 		for (int i = 0; i < num_gaussians; i++) {
 			Gaussian gauss = gaussians[i];
 			vec2 signed_distances = signed_distance_gauss(gauss, texPoint, view_dir, ( IsoValRange.x));
-			float signed_distance = (view_dir.x * view_dir.x + view_dir.y * view_dir.y) * min(abs(signed_distances.x), abs(signed_distances.y));
+			float signed_distance = min(abs(signed_distances.x), abs(signed_distances.y));
 
 			//if(above)
 				//signed_distance = (view_dir.x * view_dir.x + view_dir.y * view_dir.y) * max(signed_distances.x, signed_distances.y);
@@ -212,7 +212,7 @@ void main() {
 				above = true;
 			    //signed_distance = max(signed_distances.x, signed_distances.y);
 			}
-			nextDistance =  max(min(nextDistance, abs(.5 * (view_dir.z + 1) * signed_distance)), minStep);
+			nextDistance =  max(min(nextDistance, signed_distance), minStep);
 			color_composited += ((1.f - opaque_composited) * color_self * opaque_self);
 			opaque_composited += (1.f - opaque_composited) * opaque_self;
 

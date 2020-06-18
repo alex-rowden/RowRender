@@ -742,7 +742,7 @@ int main() {
 	glm::vec3 color5 = glm::vec3(180, 0, 38) / 255.0f;
 	glm::vec3 color6 = glm::vec3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
 	glm::vec3 intersection_color = glm::vec3(0);
-	bool enable_color[6] = { true, false, false, false, false, false };
+	bool enable_color[6] = { true, false, false, false, true, false };
 	//bool lighting_enabled = false;
 
 	//glGenTextures(1, &temp_tex);
@@ -819,7 +819,7 @@ int main() {
 
 	//volume_shader.SetUniform1i("numTex", wifi.numSlices);
 	volume_shader.SetUniform1i("numTex", MIN(wifi.numSlices, 5));
-	float volume_z = 3.5;
+	float volume_z = 15;
 	int framesSinceMoved = 0;
 
 	//const int num_gaussians = 2;
