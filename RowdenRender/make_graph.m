@@ -4,6 +4,9 @@ sig_data = zeros(length(lon_range), length(lat_range));
 sig_datas = containers.Map('all', sig_data);
 for index=1:size(bssid_tables, 2)  
     vals = bssid_tables(index).gaussian;
+    if( isempty(vals))
+        continue
+    end
     if vals.sigma == -1
         vals.sigma = avg_sigma / count;
     end

@@ -186,133 +186,6 @@ glm::vec3 vertexInterp(float isolevel, glm::vec3 p0, glm::vec3 p1, float f0, flo
 	float t = (isolevel - f0) / (f1 - f0);
 	return glm::lerp(p0, p1, t);
 }
-/*
-GLenum glFormatFromBufferFormat(bufferPixelFormat pixel_format, RTformat buffer_format)
-{
-	if (buffer_format == RT_FORMAT_UNSIGNED_BYTE4)
-	{
-		switch (pixel_format)
-		{
-		case BUFFER_PIXEL_FORMAT_DEFAULT:
-			return GL_BGRA;
-		case BUFFER_PIXEL_FORMAT_RGB:
-			return GL_RGBA;
-		case BUFFER_PIXEL_FORMAT_BGR:
-			return GL_BGRA;
-		default:
-			throw std::exception("Unknown buffer pixel format");
-		}
-	}
-	else if (buffer_format == RT_FORMAT_FLOAT4)
-	{
-		switch (pixel_format)
-		{
-		case BUFFER_PIXEL_FORMAT_DEFAULT:
-			return GL_RGBA;
-		case BUFFER_PIXEL_FORMAT_RGB:
-			return GL_RGBA;
-		case BUFFER_PIXEL_FORMAT_BGR:
-			return GL_BGRA;
-		default:
-			throw std::exception("Unknown buffer pixel format");
-		}
-	}
-	else if (buffer_format == RT_FORMAT_FLOAT3)
-		switch (pixel_format)
-		{
-		case BUFFER_PIXEL_FORMAT_DEFAULT:
-			return GL_RGB;
-		case BUFFER_PIXEL_FORMAT_RGB:
-			return GL_RGB;
-		case BUFFER_PIXEL_FORMAT_BGR:
-			return GL_BGR;
-		default:
-			throw std::exception("Unknown buffer pixel format");
-		}
-	else if (buffer_format == RT_FORMAT_FLOAT)
-		return GL_LUMINANCE;
-	else
-		throw std::exception("Unknown buffer format");
-}
-
-
-void printMemUsage() {
-	size_t free_byte;
-
-	size_t total_byte;
-	
-	optix::cudaError_t cuda_status = optix::cudaMemGetInfo(&free_byte, &total_byte);
-
-	if (optix::cudaSuccess != cuda_status) {
-
-		printf("Error: cudaMemGetInfo fails, %s \n", optix::cudaGetErrorString(cuda_status));
-
-		exit(1);
-
-	}
-
-
-
-	double free_db = (double)free_byte;
-
-	double total_db = (double)total_byte;
-
-	double used_db = total_db - free_db;
-
-	printf("GPU memory usage: used = %f, free = %f MB, total = %f MB\n",
-
-		used_db / 1024.0 / 1024.0, free_db / 1024.0 / 1024.0, total_db / 1024.0 / 1024.0);
-}
-
-void cudaPrint() {
-	unsigned int numberOfDevices = 0;
-	RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetDeviceCount(&numberOfDevices));
-	std::cout << "Number of Devices = " << numberOfDevices << std::endl << std::endl;
-
-	for (unsigned int i = 0; i < numberOfDevices; ++i)
-	{
-		char name[256];
-		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_NAME, sizeof(name), name));
-		std::cout << "Device " << i << ": " << name << std::endl;
-
-		int computeCapability[2] = { 0, 0 };
-		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY, sizeof(computeCapability), &computeCapability));
-		std::cout << "  Compute Support: " << computeCapability[0] << "." << computeCapability[1] << std::endl;
-
-		RTsize totalMemory = 0;
-		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_TOTAL_MEMORY, sizeof(totalMemory), &totalMemory));
-		std::cout << "  Total Memory: " << (unsigned long long) totalMemory << std::endl;
-
-		int clockRate = 0;
-		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_CLOCK_RATE, sizeof(clockRate), &clockRate));
-		std::cout << "  Clock Rate: " << clockRate << " Hz" << std::endl;
-
-		int maxThreadsPerBlock = 0;
-		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK, sizeof(maxThreadsPerBlock), &maxThreadsPerBlock));
-		std::cout << "  Max. Threads per Block: " << maxThreadsPerBlock << std::endl;
-
-		int smCount = 0;
-		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT, sizeof(smCount), &smCount));
-		std::cout << "  Streaming Multiprocessor Count: " << smCount << std::endl;
-
-		int executionTimeoutEnabled = 0;
-		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_EXECUTION_TIMEOUT_ENABLED, sizeof(executionTimeoutEnabled), &executionTimeoutEnabled));
-		std::cout << "  Execution Timeout Enabled: " << executionTimeoutEnabled << std::endl;
-
-		int maxHardwareTextureCount = 0;
-		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_MAX_HARDWARE_TEXTURE_COUNT, sizeof(maxHardwareTextureCount), &maxHardwareTextureCount));
-		std::cout << "  Max. Hardware Texture Count: " << maxHardwareTextureCount << std::endl;
-
-		int tccDriver = 0;
-		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_TCC_DRIVER, sizeof(tccDriver), &tccDriver));
-		std::cout << "  TCC Driver enabled: " << tccDriver << std::endl;
-
-		int cudaDeviceOrdinal = 0;
-		RT_CHECK_ERROR_NO_CONTEXT(rtDeviceGetAttribute(i, RT_DEVICE_ATTRIBUTE_CUDA_DEVICE_ORDINAL, sizeof(cudaDeviceOrdinal), &cudaDeviceOrdinal));
-		std::cout << "  CUDA Device Ordinal: " << cudaDeviceOrdinal << std::endl << std::endl;
-	}
-}
-*/
 void setupDearIMGUI(GLFWwindow *window) {
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -322,9 +195,6 @@ void setupDearIMGUI(GLFWwindow *window) {
 
 	// Setup Dear ImGui style
 	ImGui::StyleColorsDark();
-	//ImGui::StyleColorsClassic();
-
-	// Setup Platform/Renderer bindings
 	ImGui_ImplGlfw_InitForOpenGL(window, true);
 	ImGui_ImplOpenGL3_Init("#version 330");
 	return;
@@ -360,12 +230,9 @@ int main() {
 	std::vector<float> use_intensities, max_volume;
 	WifiData wifi;
 
-	std::string filename = "gaussian_freqs";
-	//std::string filename = "2Ghz_channels_float";
-	//std::string filename = "sphere_freqs";
+	std::string filename = "top_six";
 	wifi.loadBinary((filename + ".raw").c_str(), use_intensities, normal_x, normal_y);
 
-	//create_max_volume(use_intensities, wifi, max_volume);
 	max_volume = use_intensities;
 
 	if (BENCHMARK) {
@@ -403,7 +270,6 @@ int main() {
 	}
 	ShaderProgram sp = ShaderProgram({ ShaderProgram::Shaders::FRAGMENT, ShaderProgram::Shaders::VERTEX });
 	ShaderProgram campus_map_sp = ShaderProgram({ ShaderProgram::Shaders::NO_LIGHT_FRAG, ShaderProgram::Shaders::NO_LIGHT_VERT });
-	//ShaderProgram screen_shader = ShaderProgram({ ShaderProgram::Shaders::SCREEN_FRAG, ShaderProgram::Shaders::SCREEN_VERT });
 	ShaderProgram skybox_shader = ShaderProgram({ ShaderProgram::Shaders::SKY_FRAG, ShaderProgram::Shaders::SKY_VERT });
 	ShaderProgram instance_shader = ShaderProgram({ ShaderProgram::Shaders::INSTANCE_FRAG, ShaderProgram::Shaders::INSTANCE_VERT });
 	ShaderProgram volume_shader;
@@ -417,25 +283,23 @@ int main() {
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 	std::vector<std::string> skybox_files;
 
-	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/miramar_lf.png");
-	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/miramar_rt.png");
-	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/miramar_bk.png");
-	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/miramar_ft.png");
-	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/miramar_up.png");
-	skybox_files.emplace_back("C:/Users/ARR87/Documents/GitHub/RowRender/RowdenRender/Content/Textures/Skyboxes/miramar_dn.png");
+	skybox_files.emplace_back("./Content/Textures/Skyboxes/miramar_lf.png");
+	skybox_files.emplace_back("./Content/Textures/Skyboxes/miramar_rt.png");
+	skybox_files.emplace_back("./Content/Textures/Skyboxes/miramar_bk.png");
+	skybox_files.emplace_back("./Content/Textures/Skyboxes/miramar_ft.png");
+	skybox_files.emplace_back("./Content/Textures/Skyboxes/miramar_up.png");
+	skybox_files.emplace_back("./Content/Textures/Skyboxes/miramar_dn.png");
 
 
 	Texture2D texture = Texture2D("Content\\Textures\\CampusMap.png");
 	Texture2D noise = Texture2D("Content\\Textures\\random_noise.jpeg");
 	Texture2D skybox_tex = Texture2D(skybox_files);
 	skybox_tex.name = "skybox";
-	//texture.setTexParameterWrap(GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT);
 	Model model;
 	LoadCampusModel(&model);
 	Texture2D white = Texture2D(Texture2D::COLORS::WHITE);
 	model.getMeshes()[0]->setTexture(white, 0);
 	model.getMeshes()[0]->setTexture(white, 1);
-	//model.getMeshes()[0]->SetUniformColor(glm::vec4(1, 1, 1, 1));
 	Model skybox = Model("Content\\Models\\cube\\cube.obj");
 	skybox.setModel();
 	skybox.getMeshes().at(0)->setTexture(skybox_tex, 0);
@@ -498,13 +362,6 @@ int main() {
 	volume_shader.SetUniform1f("specularStrength", specularStrength);
 	volume_shader.SetUniform1f("diffuseStrength", diffuseStrength);
 
-
-
-	//volume_shader.SetUniform3f("lightDir", lightDir);
-	//glm::vec2 lightDirP = glm::vec2(acos(lightDir.z), atan2(lightDir.y, lightDir.x));
-	//volume_shader.SetUniform2f("lightDirP", lightDirP);
-	//glm::vec2 sincosLightTheta = glm::vec2(sin(lightDirP.x), cos(lightDirP.x));
-	//volume_shader.SetUniform2f("sincosLightTheta", sincosLightTheta);
 	volume_shader.SetUniform3f("LightDir", lightDir);
 
 	struct TreeEntry {
@@ -542,11 +399,9 @@ int main() {
 
 		std::string diameter_str;
 		getline(tree_file, diameter_str, ',');
-		//curr_tree->diameter = atof(diameter_str.c_str());
 
 		std::string height_str;
 		getline(tree_file, height_str, ',');
-		//curr_tree->height = atof(height_str.c_str());
 
 		getline(tree_file, skip, ','); //CRADAVG
 		getline(tree_file, skip, ','); //TRUNKHEIGHT
@@ -560,7 +415,6 @@ int main() {
 		curr_tree->lon += 76.936594579149414130370132625103f;
 		curr_tree->lat -= 38.990750300955419049842021195218f;
 		trees.emplace_back(curr_tree);
-		//std::cout << trees.size() << std::endl;
 	}
 
 	std::vector<glm::mat4> treeTransforms;
@@ -580,13 +434,6 @@ int main() {
 		std::cout << "Model Loading " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 		start = clock();
 	}
-	/*
-	WifiData wifi;
-
-	std::vector<short> normal_x, normal_y, normal_z;
-	std::vector<unsigned char> use_intensities;
-	wifi.loadBinary("sphere_scaled512.raw", use_intensities, normal_x, normal_y, normal_z);
-	*/
 
 	time_t timer = time(NULL);
 	struct tm local_time;
@@ -615,8 +462,6 @@ int main() {
 
 
 	glm::mat4 volume_transform = glm::rotate(glm::mat4(1), glm::radians(90.0f), glm::vec3(0, 1, 0));
-	//RTresult ret = rtBufferCreate(context->get(), RT_BUFFER_INPUT, &ray_buffer);
-
 	Shape myShape;
 
 	//setup camera
@@ -626,24 +471,13 @@ int main() {
 	//Camera camera = Camera(glm::vec3(34,37.5, .5), glm::vec3(35, 37.5, 0.5), 90.0f, w.width / w.height);
 	w.SetCamera(&camera);
 	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-	//sutil::displayBufferPPM("out.ppm", context["output_buffer"]->getBuffer());
 
-	//Mesh volume = Mesh(&myShape);
-
-	//Model vol = Model();
-	//vol.addMesh(&volume);
-	//vol.setModel();
-	//Texture2D wifi_intensities = Texture2D(&pixels, wifi.numLonCells, wifi.numLatCells);
-	//campusMap.getMeshes().at(0)->setTexture(wifi_intensities, 0);
 	Texture2D hdr_texture = Texture2D();
 	hdr_texture.setDims(w.height, w.width, 4);
-	//Camera camera = Camera(glm::vec3(0, 10, 10), glm::vec3(0, 0, 0), 45.0f, 800/600.0f);
 
 	glm::mat4 projection;
-	//w.scale = glm::vec3(1, .03, 1);
 	w.scale = glm::vec3(0, 0, 0);
 	w.translate = glm::vec3(0, 0, 0);
-	//w.translate = glm::vec3(0, -.1f, 0);
 
 	w.setSpeed(.5 * 10);
 
@@ -662,8 +496,6 @@ int main() {
 	sp.SetUniform1f("spec_coeff", .1);
 	sp.SetUniform1f("diffuse_coeff", .4);
 	sp.SetUniform1i("shininess", 32);
-	//projection = glm::perspective(glm::radians(45.0f), 800/600.0f, 0.1f, 1000.0f);
-	//glm::mat4 light_transform = glm::translate(glm::mat4(1.0f), glm::vec3(3, 3, 3));
 
 	glm::mat4 campusTransform;
 	std::vector<glm::vec3> positions;
@@ -833,9 +665,6 @@ int main() {
 	
 	int num_gaussians = MIN(gaussians.size(), 10);
 
-	//for (int i = 2; i < num_gaussians; i++) {
-	//	gaussians[i] = {((rand()/(float)RAND_MAX) - .5f) * 50.0f, ((rand() / (float)RAND_MAX) - .5f) * 50.0f , 1, ((rand()/(float)RAND_MAX)/2.0f + .5f) * 2.0f};
-	//}
 	if (signed_distance) {
 		volume_shader.SetUniform1i("num_gaussians", num_gaussians);
 		volume_shader.SetGaussians(gaussians);
@@ -890,9 +719,6 @@ int main() {
 			ImGui::ColorEdit3("Channel 11", &color5.x);
 		ImGui::ColorEdit3("Intersection Color", &intersection_color.x);
 		ImGui::SliderFloat("Intersection opacity", &shade_opac, 0.0f, 1.0f);
-		//ImGui::Checkbox("Enable Lighting", &enable_color[5]);
-		//ImGui::ColorEdit3("Volume Base Color", &color1.x);
-		//ImGui::SliderInt("TextureNum", &tex_num, 0, wifi.numSlices);
 		
 		ImGui::End();
 		
@@ -941,14 +767,6 @@ int main() {
 		if (center + width / 2.0f != max_iso_val) {
 			iso_change = true;
 		}
-		/*
-		if (iso_change || increment != old_increment) {
-			old_increment = increment;
-			updateIsoRangeVolume(use_intensities, glm::uvec3(wifi.numLonCells, wifi.numLatCells, wifi.numSlices), enable_color, increment);
-			max_iso_val = center + width / 2.0f;
-			iso_change = false;
-		}
-		*/
 		
 		int enabledColors = 0;
 		for (int i = 0; i < 6; i++) {
@@ -1049,56 +867,21 @@ int main() {
 			std::cout << "Render Trees " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
 		}
-		//GLfloat* depths = new GLfloat[w.width * w.height];
-
-		//glReadPixels(0, 0, w.width, w.height, GL_DEPTH_COMPONENT, GL_FLOAT, depths);
-
-		//glBindTexture(GL_TEXTURE_2D, depth_mask_id);
-		//glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, w.width, w.height, 0, GL_RED, GL_FLOAT, (void*)depths);
-		//glBindTexture(GL_TEXTURE_2D, 0);
 
 		std::string filename;
-		/*
-		if (false) {
-			BYTE* depth_pix = new BYTE[w.width * w.height];
-
-			for (int i = 0; i < w.width * w.height; i++) {
-				depth_pix[i] = (unsigned char)(depths[i] * 255.0f);
-			}
 		
-			filename = std::string(foldername + "/");
-			filename.append(std::to_string(num_frames));
-			filename.append(".bmp");
-
-			stbi_flip_vertically_on_write(true);
-			int save_result = stbi_write_bmp
-			(
-				filename.c_str(),
-				resolution.x, resolution.y,
-				1, depth_pix
-			);
-			if (save_result == 0) {
-				std::cout << "shit" << std::endl;
-			}
-		}
-		*/
 		
 		
 		glBindTexture(GL_TEXTURE_2D, temp_tex);
 		glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, w.width, w.height);
-		//glCopyImageSubData(temp_tex, GL_TEXTURE_2D, 0, 0, 0, 0,
-		//					depth_mask_id, GL_TEXTURE_2D, 0, 0, 0, 0, 
-		//					resolution.x, resolution.y, 1);
+
 		glBindTexture(GL_TEXTURE_2D, 0);
 		if (BENCHMARK) {
 			std::cout << "Update Depth Buffer: " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
 		}
-
-		//context["lightPos"]->setFloat(make_float3(camera.getPosition()));
 		
 		if (max_iso_val != center + width / 2.0f) {
-			//updateBoundingBox(center + width / 2.0f, max_volume);
 			max_iso_val = center + width / 2.0f;
 		}
 		
@@ -1128,18 +911,10 @@ int main() {
 		volume_shader.Use();
 		volume_shader.SetUniform3f("viewPos", camera.getPosition());
 		glm::vec3 HalfwayVec = glm::normalize(camera.getDirection() + lightDir);
-		//glm::vec2 HalfwayVecP = glm::vec2(acos(HalfwayVec.z), atan2(HalfwayVec.y, HalfwayVec.x));
-		//volume_shader.SetUniform2f("HalfwayVecP", HalfwayVecP);
-		//glm::vec2 sincosHalfwayTheta = glm::vec2(sin(HalfwayVecP.x), cos(HalfwayVecP.x));
-		//volume_shader.SetUniform2f("sincosHalfwayTheta", sincosHalfwayTheta);
 		volume_shader.SetUniform3f("HalfwayVec", HalfwayVec);
 
-		//glBindFramebuffer(GL_FRAMEBUFFER, preprocess);
 		render(RayTraced, &volume_shader);
-		//glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		
-		//glEnable(GL_CULL_FACE);
-		//glCullFace(GL_BACK);
 		if (BENCHMARK) {
 			std::cout << "Render Volume to Screen " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
@@ -1172,16 +947,12 @@ int main() {
 			std::cout << "Render GUI " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
 		}
-		//render(vol, &sp);
 		w.ProcessFrame(&camera);
 		if (BENCHMARK) {
 			std::cout << "Full frame " << (double)((clock() - per_frame)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
 		}
-		//glClearColor(1,1,1, 1);
 		glClearColor(135/255.0f, 206/255.0f, 235/255.0f, 1.0f);
-		//glClearColor(.22, .69, .87, 1);
-		//glClearColor(.196078, .6, .8, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glFinish();
 		framesSinceMoved++;
