@@ -35,7 +35,6 @@
     <ClCompile Include="ShaderProgram.cpp" />
     <ClCompile Include="Shape.cpp" />
     <ClCompile Include="Texture2D.cpp" />
-    <ClCompile Include="VR_Wrapper.cpp" />
     <ClCompile Include="WifiData.cpp" />
     <ClCompile Include="Window.cpp" />
   </ItemGroup>
@@ -62,7 +61,6 @@
     <ClInclude Include="Texture2D.h" />
     <ClInclude Include="tutorial.h" />
     <ClInclude Include="volume_render.h" />
-    <ClInclude Include="VR_Wrapper.h" />
     <ClInclude Include="WifiData.h" />
     <ClInclude Include="Window.h" />
   </ItemGroup>

@@ -50,11 +50,12 @@ uniform float spec_term, bubble_term, bubble_min, bubble_max, max_opac, min_opac
 uniform float fcp;
 
 uniform int enabledVolumes;
-
-uniform vec2 sincosLightTheta;
-uniform vec2 lightDirP;
-uniform vec2 sincosHalfwayTheta;
-uniform vec2 HalfwayVecP;
+uniform vec3 LightDir;
+uniform vec3 HalfwayVec;
+//uniform vec2 sincosLightTheta;
+//uniform vec2 lightDirP;
+//uniform vec2 sincosHalfwayTheta;
+//uniform vec2 HalfwayVecP;
 uniform float ambientStrength, diffuseStrength, specularStrength, shininess;
 
 #define EPSILON 1e-4
@@ -233,8 +234,10 @@ void main() {
 
 			vec2 normalP = vec2(phi, theta);
 			vec2 sincosnorm = vec2(sin(theta), cos(theta));
-			float diffuse = diffuseStrength * max(0, sdot(sincosLightTheta, sincosnorm, lightDirP.y, phi));
-			float spec = specularStrength * pow(max(sdot(sincosHalfwayTheta, sincosnorm, HalfwayVecP.y, phi), 0), shininess);
+			float diffuse = diffuseStrength * max(0, dot(LightDir, normal));
+			//float diffuse = diffuseStrength * max(0, sdot(sincosLightTheta, sincosnorm, lightDirP.y, phi));
+			float spec = specularStrength * pow(max(dot(HalfwayVec, normal), 0), shininess);
+			//float spec = specularStrength * pow(max(sdot(sincosHalfwayTheta, sincosnorm, HalfwayVecP.y, phi), 0), shininess);
 			//spec = specularStrength * pow(dot(halfway))
 			color_self = ambientStrength * color + diffuse * color + spec * vec3(1, 1, 1);
 

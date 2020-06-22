@@ -33,7 +33,7 @@ float increment = 0.05;
 float scale = 1.0;
 bool update = true;
 
-bool signed_distance = true;
+bool signed_distance = false;
 
 //int size = 800;
 bool animated = true;
@@ -488,10 +488,10 @@ int main() {
 
 	volume_shader.SetUniform1f("zNear", .1f);
 	volume_shader.SetUniform1f("zFar", 1000.f);
-	float ambientStrength = .5f;
+	float ambientStrength = .3f;
 	glm::vec3 lightDir = normalize(glm::vec3(0, 0.5, 0.5));
 	float specularStrength = .2;
-	float diffuseStrength = .7;
+	float diffuseStrength = .5;
 	float shininess = 64;
 	volume_shader.SetUniform1f("shininess", shininess);
 	volume_shader.SetUniform1f("ambientStrength", ambientStrength);
@@ -501,10 +501,11 @@ int main() {
 
 
 	//volume_shader.SetUniform3f("lightDir", lightDir);
-	glm::vec2 lightDirP = glm::vec2(acos(lightDir.z), atan2(lightDir.y, lightDir.x));
-	volume_shader.SetUniform2f("lightDirP", lightDirP);
-	glm::vec2 sincosLightTheta = glm::vec2(sin(lightDirP.x), cos(lightDirP.x));
-	volume_shader.SetUniform2f("sincosLightTheta", sincosLightTheta);
+	//glm::vec2 lightDirP = glm::vec2(acos(lightDir.z), atan2(lightDir.y, lightDir.x));
+	//volume_shader.SetUniform2f("lightDirP", lightDirP);
+	//glm::vec2 sincosLightTheta = glm::vec2(sin(lightDirP.x), cos(lightDirP.x));
+	//volume_shader.SetUniform2f("sincosLightTheta", sincosLightTheta);
+	volume_shader.SetUniform3f("LightDir", lightDir);
 
 	struct TreeEntry {
 		double lat, lon;
@@ -1127,10 +1128,11 @@ int main() {
 		volume_shader.Use();
 		volume_shader.SetUniform3f("viewPos", camera.getPosition());
 		glm::vec3 HalfwayVec = glm::normalize(camera.getDirection() + lightDir);
-		glm::vec2 HalfwayVecP = glm::vec2(acos(HalfwayVec.z), atan2(HalfwayVec.y, HalfwayVec.x));
-		volume_shader.SetUniform2f("HalfwayVecP", HalfwayVecP);
-		glm::vec2 sincosHalfwayTheta = glm::vec2(sin(HalfwayVecP.x), cos(HalfwayVecP.x));
-		volume_shader.SetUniform2f("sincosHalfwayTheta", sincosHalfwayTheta);
+		//glm::vec2 HalfwayVecP = glm::vec2(acos(HalfwayVec.z), atan2(HalfwayVec.y, HalfwayVec.x));
+		//volume_shader.SetUniform2f("HalfwayVecP", HalfwayVecP);
+		//glm::vec2 sincosHalfwayTheta = glm::vec2(sin(HalfwayVecP.x), cos(HalfwayVecP.x));
+		//volume_shader.SetUniform2f("sincosHalfwayTheta", sincosHalfwayTheta);
+		volume_shader.SetUniform3f("HalfwayVec", HalfwayVec);
 
 		//glBindFramebuffer(GL_FRAMEBUFFER, preprocess);
 		render(RayTraced, &volume_shader);
