@@ -91,7 +91,7 @@ void main() {
 		//FragColor = vec4(vec3(0, 1, 0), 1.0);
 	}
 	//FragColor = vec4((back - box_min)/50.00, 1.0);
-	//return;
+	// return;
 	
 	//view_dir = normalize(FragPos - viewPos);
 	vec3 color_composited = vec3(0, 0, 0);
@@ -122,11 +122,12 @@ void main() {
 			//FragColor = vec4(vec3(depth / 75.0f), 1.0);
 		//	return;
 		//}
-		float vol_u = (texPoint - box_min).x / (volume_size.x);
-		float vol_v = (texPoint - box_min).y / (volume_size.y);
-		float vol_w = (texPoint - box_min).z / (volume_size.z);
+		float vol_u = (texPoint).x / (volume_size.x) + .5;
+		float vol_v = (texPoint).y / (volume_size.y) + .5;
+		float vol_w = (texPoint).z / (volume_size.z);
 		
-		
+		//FragColor = vec4(vol_u, vol_v, vol_w, 1.0);
+		//return;
 		//sampler2D volume;
 		vec3 color;
 		float volume_sample;
@@ -137,7 +138,9 @@ void main() {
 		for (int i = 0; i < 5; i++) {
 			if ((enabledVolumes & (1 << i)) < 1 && !firstStep)
 				continue;
-
+			//if (vol_w > EPSILON) {
+			//	continue;
+			//}
 
 			switch (i) {
 			case 0:
@@ -182,7 +185,8 @@ void main() {
 				color = vec3(1.0, 1.0f, 1.0f);
 			}
 
-
+			//FragColor = vec4(volume_sample - increment, 0, 0, .9);
+			//return;
 			//vec3 color_self = vec3(normal_sample);
 			vec3 color_self = vec3(0);
 			float opaque_self = 0;

@@ -32,7 +32,7 @@ ShaderProgram::ShaderProgram(std::vector<Shaders> shaders) {
 	GLint numShaders;
 	glGetProgramiv(shaderProgram, GL_ATTACHED_SHADERS, &numShaders);
 	glLinkProgram(shaderProgram);
-	program_error_check();
+	program_error_check(shaders[0]);
 	glUseProgram(shaderProgram);
 }
 
@@ -158,7 +158,7 @@ void ShaderProgram::SetUniform2fv(const char* name, glm::mat2 mat, GLint transpo
 }
 
 
-void ShaderProgram::program_error_check() {
+void ShaderProgram::program_error_check(Shaders shader) {
 	int success;
 	glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
 
@@ -166,6 +166,63 @@ void ShaderProgram::program_error_check() {
 		char infoLog[512];
 		glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
 		std::cout << "ERROR::SHADERPROGRAM::LINK_FAILED\n" << infoLog << std::endl;
+		std::string filename;
+		switch (shader) {
+		case Shaders::VERTEX:
+			filename = "vertex_shader.glsl";
+			break;
+		case Shaders::FRAGMENT:
+			filename = "fragment_shader.glsl";
+			break;
+		case Shaders::LIGHT_FRAG:
+			filename = "light_frag.glsl";
+			break;
+		case Shaders::LIGHT_VERT:
+			filename = "light_vert.glsl";
+			break;
+		case Shaders::NO_LIGHT_FRAG:
+			filename = "fragment_shader_no_light.glsl";
+			break;
+		case Shaders::NO_LIGHT_VERT:
+			filename = "vertex_shader_no_light.glsl";
+			break;
+		case Shaders::SCREEN_FRAG:
+			filename = "screen_fshader.glsl";
+			break;
+		case Shaders::SCREEN_VERT:
+			filename = "screen_vshader.glsl";
+			break;
+		case Shaders::SKY_FRAG:
+			filename = "sky_fshader.glsl";
+			break;
+		case Shaders::SKY_VERT:
+			filename = "sky_vshader.glsl";
+			break;
+		case Shaders::INSTANCE_FRAG:
+			filename = "instance_fshader.glsl";
+			break;
+		case Shaders::INSTANCE_VERT:
+			filename = "instance_vshader.glsl";
+			break;
+		case Shaders::VOLUME_FRAG:
+			filename = "volume_fragment.glsl";
+			break;
+		case Shaders::VOLUME_VERT:
+			filename = "volume_vertex.glsl";
+			break;
+		case Shaders::FRONT_BACK_FRAG:
+			filename = "front_back_fshader.glsl";
+			break;
+		case Shaders::FRONT_BACK_VERT:
+			filename = "front_back_vshader.glsl";
+			break;
+		case Shaders::SIGNED_DISTANCE_FRAG:
+			filename = "signed_distance_fragment.glsl";
+			break;
+		default:
+			throw "Not a valid shader";
+		}
+		std::cerr << filename << std::endl;
 	}
 }
 
@@ -229,10 +286,10 @@ void ShaderProgram::importShaderFile(Shaders shader, std::string *ShaderString) 
 
 	std::ifstream shader_file;
 
-	std::string path = __FILE__; //gets source code path, include file name
-	path = path.substr(0, 1 + path.find_last_of('\\')); //removes file name
+	//std::string path = __FILE__; //gets source code path, include file name
+	//path = path.substr(0, 1 + path.find_last_of('\\')); //removes file name
 
-	shader_file.open(path + filename);
+	shader_file.open(filename);
 	if (shader_file.is_open()) {
 		char line[256];
 		while (shader_file.good()) {

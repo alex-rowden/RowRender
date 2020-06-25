@@ -30,7 +30,8 @@
 #define MY_PI 3.1415926535897932384626433
 int counter = 10;
 float increment = 0.05;
-float scale = 1.0;
+float scale = 1/10.0f;
+glm::vec3 campus_dim = glm::vec3(1958, 1189, 10) * scale;
 bool update = true;
 
 bool signed_distance = false;
@@ -232,7 +233,6 @@ int main() {
 
 	std::string filename = "top_six";
 	wifi.loadBinary((filename + ".raw").c_str(), use_intensities, normal_x, normal_y);
-
 	max_volume = use_intensities;
 
 	if (BENCHMARK) {
@@ -312,7 +312,7 @@ int main() {
 	Blur.setModel();
 	Model Tree = Model("Content\\Models\\tree_scaled.FBX");
 	Tree.setModel();
-	Model volume_cube = Model("Content\\Models\\cube\\cube.obj");
+	Model volume_cube = Model("Content\\Models\\cube\\cube.obj");	
 	volume_cube.setModel();
 
 	std::vector<Texture2D> volume_sets = std::vector<Texture2D>();
@@ -346,9 +346,6 @@ int main() {
 	RayTraced.getMeshes().at(0)->addTexture(depth_texture);
 
 	glm::mat4 transformation = glm::scale(glm::mat4(1), scale * glm::vec3(-1, 1, -1));// glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
-	glm::vec3 volume_scale = glm::vec3(100.f, 100.f, 50.f);
-	glm::vec3 box_min = glm::vec3(-50, -50, 0);
-	volume_shader.SetUniform3f("volume_size", volume_scale);
 
 	volume_shader.SetUniform1f("zNear", .1f);
 	volume_shader.SetUniform1f("zFar", 1000.f);
@@ -476,7 +473,7 @@ int main() {
 	hdr_texture.setDims(w.height, w.width, 4);
 
 	glm::mat4 projection;
-	w.scale = glm::vec3(0, 0, 0);
+	//w.scale = glm::vec3(0, 0, 0);
 	w.translate = glm::vec3(0, 0, 0);
 
 	w.setSpeed(.5 * 10);
@@ -489,7 +486,7 @@ int main() {
 	//glm::vec3 
 	//lights.addPointLight(50.0f * glm::vec3(1, 1, 2), .1, 0.01, 0, color, color, glm::vec3(1, 1, 1));
 	//lights.addPointLight(50.0f * glm::vec3(1, .1, .5), 1, 0.0, 0, purple, purple, glm::vec3(1, 1, 1));
-	lights.addDirLight(glm::vec3(0, -1, .2), gold);
+	lights.addDirLight(glm::vec3(1, 0, .2), gold);
 	//lights.addDirLight(glm::vec3(1, 0, 0), purple);
 	//lights.addPointLight(glm::vec3(0, 50, 0), 1, 0.0, 0, gold, gold, glm::vec3(1, 1, 1));
 	sp.SetUniform1f("ambient_coeff", .5);
@@ -542,6 +539,9 @@ int main() {
 		std::cout << "Setup OptiX " << (double)(clock() - start) / CLOCKS_PER_SEC << " seconds" << std::endl;
 		start = clock();
 	}
+	glm::vec3 box_min = glm::vec3(-campus_dim.x / 2.0f, -campus_dim.y / 2.0f, 0);
+
+
 	//Rendering Parameters
 	float center = .959;//.56; //.2075
 	float width = .001;//.015
@@ -558,12 +558,12 @@ int main() {
 	int tex_num = 0;
 	float max_iso_val = 0;
 	bool iso_change = false;
-	float increment = 1.136f;
+	float increment = 1;
 	float old_increment = 0;
 	float volumeStepSize = .1;//.11 / 3.0;
 	float step_mod = 0;
 	float shade_opac = .9;
-	float box_z_min = 0.001;
+	float box_z_min = 0.00;
 	float fcp = 0.1;
 	float effectiveStepSize = volumeStepSize;
 	bool variableStepOn = false;
@@ -675,14 +675,16 @@ int main() {
 		glfwPollEvents();
 		bool cameraMoved = camera.getMoved();
 		camera.setMoved(false);
-		
+
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 		ImGui::Begin("Rendering Terms");
-		
+
 		ImGui::SliderFloat("IsoVal Center", &center, 0.0f, 1.0f);
-		ImGui::SliderFloat("IsoVal width", &width, 0.0f, fmin(center/2.0, 1-center/2.0));
+		ImGui::SliderFloat("IsoVal width", &width, 0.0f, fmin(center / 2.0, 1 - center / 2.0));
+		ImGui::SliderFloat3("translate", glm::value_ptr(w.translate), -1, 1);
+		ImGui::SliderFloat3("scale", glm::value_ptr(w.scale), .9, 2);
 
 		ImGui::SliderFloat("Base Opacity", &base_opac, 0.0f, 1.f);
 		ImGui::SliderFloat("Sillhoutte Term", &sil_term, 0.0f, 1.0f);
@@ -694,8 +696,8 @@ int main() {
 		ImGui::SliderFloat("Front Clip Plane", &fcp, 0.1f, 10.0f);
 		ImGui::SliderFloat("Step Size", &volumeStepSize, 0.001f, .2f);
 		ImGui::SliderFloat("Step mod", &step_mod, 0.0f, 20.0f);
-		
-		ImGui::SliderFloat("Increment", &increment, 0.0f, 10.0f);
+
+		ImGui::SliderFloat("Increment", &increment, 0.0f, 1.0f);
 		ImGui::SliderFloat("Cube Z", &volume_z, 1.0f, 50.0f);
 		ImGui::SliderFloat("Cube Z min", &box_z_min, -10.0f, 1.0f);
 		ImGui::Checkbox("Shade intersection", &color_aug);
@@ -703,7 +705,7 @@ int main() {
 		ImGui::SliderFloat("Specular Term", &spec_term, 0.0f, 10.0f);
 		ImGui::SliderFloat("FOV", &fov, 0.0f, 90.0f);
 		ImGui::Checkbox("Enable Channel 1", &enable_color[0]);
-		if(enable_color[0])
+		if (enable_color[0])
 			ImGui::ColorEdit3("Channel 1", &color1.x);
 		ImGui::Checkbox("Enable Channel 4", &enable_color[1]);
 		if (enable_color[1])
@@ -719,9 +721,9 @@ int main() {
 			ImGui::ColorEdit3("Channel 11", &color5.x);
 		ImGui::ColorEdit3("Intersection Color", &intersection_color.x);
 		ImGui::SliderFloat("Intersection opacity", &shade_opac, 0.0f, 1.0f);
-		
+
 		ImGui::End();
-		
+
 		if (cameraMoved) {
 			effectiveStepSize = volumeStepSize;
 			framesSinceMoved = 0;
@@ -733,7 +735,7 @@ int main() {
 			framesSinceMoved = 0;
 		}
 
-		volume_shader.SetUniform2f("IsoValRange", glm::vec2(center - width/2.0f, center + width/2.0f));
+		volume_shader.SetUniform2f("IsoValRange", glm::vec2(center - width / 2.0f, center + width / 2.0f));
 		volume_shader.SetUniform1f("StepSize", effectiveStepSize);
 		volume_shader.SetUniform1f("increment", increment);
 		volume_shader.SetUniform1f("base_opac", base_opac);
@@ -759,15 +761,15 @@ int main() {
 		volume_shader.SetUniform1f("bubble_term", sil_term);
 		volume_shader.SetUniform1f("step_mod", step_mod);
 		volume_shader.SetUniform1f("tune", tune);
-		
+
 		box_min.z = box_z_min;
 		volume_shader.SetUniform3f("box_min", box_min);
 		volume_shader.SetUniform3f("box_max", box_min + glm::vec3(100, 100.f, volume_z));
-		
+
 		if (center + width / 2.0f != max_iso_val) {
 			iso_change = true;
 		}
-		
+
 		int enabledColors = 0;
 		for (int i = 0; i < 6; i++) {
 			if (enable_color[i]) {
@@ -775,7 +777,7 @@ int main() {
 			}
 		}
 		volume_shader.SetUniform1i("enabledVolumes", enabledColors);
-		
+
 		camera.fov = fov;
 		clock_t per_frame = clock();
 		glEnable(GL_DEPTH_TEST);
@@ -820,13 +822,14 @@ int main() {
 			std::cout << "Calculate FPS and Update Animation: " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
 		}
-
-		glm::mat4 transformation = glm::translate(glm::mat4(1), glm::vec3(75, 40.7, .6) - glm::vec3(50, 50, 0));
-		transformation = glm::scale(transformation,   glm::vec3(0.00996, 0.012782, 0.0155));// glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
+		glm::vec3 volume_scale = glm::vec3(campus_dim.x, campus_dim.y, volume_z);//glm::vec3(100.f, 100.f, 50.f);
+		volume_shader.SetUniform3f("volume_size", volume_scale);
+		glm::mat4 transformation = glm::translate(glm::mat4(1), glm::vec3(48.613 + .57, -11.323 + .183, .337));
+		transformation = glm::scale(transformation,   campus_dim * glm::vec3(0.0000996 * 1.018, 0.00012782 * 1.006, 0.0155 * 1.259));// glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
 		//transformation = glm::rotate(transformation, glm::radians(180.0f), glm::vec3(0, 1, 0));
 
-		campusTransform = glm::translate(glm::mat4(1), glm::vec3(0, 0, 0) - glm::vec3(50, 50, 0));
-		campusTransform = glm::scale(campusTransform, scale * glm::vec3(100, 100, 100));
+		campusTransform = glm::translate(glm::mat4(1), glm::vec3(0, 0, 0) - campus_dim / 2.0f);
+		campusTransform = glm::scale(campusTransform, campus_dim);
 
 
 		skybox_shader.SetUniform4fv("projection", camera.getProjection());
@@ -891,8 +894,8 @@ int main() {
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 		
 		front_back_shader.Use();
-		glm::mat4 scale = glm::scale(glm::mat4(1), glm::vec3(100, 100, volume_z));
-		glm::mat4 translate = glm::translate(glm::mat4(1), glm::vec3(0, 0, (box_z_min + .5) * volume_z));
+		glm::mat4 scale = glm::scale(glm::mat4(1), glm::vec3(campus_dim.x, campus_dim.y, volume_z) * w.scale);
+		glm::mat4 translate = glm::translate(glm::mat4(1), glm::vec3(0, 0, volume_z / 2.0f - .5 + w.translate.z));
 		front_back_shader.SetUniform4fv("model", translate * scale);
 		front_back_shader.SetUniform4fv("camera", camera.getView());
 		front_back_shader.SetUniform4fv("projection", camera.getProjection(fcp));

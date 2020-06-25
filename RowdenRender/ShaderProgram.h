@@ -46,7 +46,7 @@ private:
 	unsigned int vertexShader, fragmentShader, shaderProgram;
 	void importShaderFile(Shaders shader, std::string *ShaderString);
 	void shader_error_check(Shaders shader);
-	void program_error_check();
+	void program_error_check(Shaders shader);
 
 };
 
