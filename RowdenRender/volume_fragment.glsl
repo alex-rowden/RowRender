@@ -48,6 +48,7 @@ uniform float zNear;
 uniform float zFar;
 uniform float spec_term, bubble_term, bubble_min, bubble_max, max_opac, min_opac, step_mod, tune;
 uniform float fcp;
+uniform vec3 forward;
 
 uniform int enabledVolumes;
 uniform vec3 LightDir;
@@ -105,7 +106,8 @@ void main() {
 	float distance = sqrt(dot(end - start, end - start));
 	float raw_depth = texture(depth_tex, TexCoord).x * 2.0f - 1;
 	float depth = 2.0 * zNear * zFar / (zFar + zNear - raw_depth * (zFar - zNear));
-	distance = min(distance - StepSize, depth);
+	float viewZDist = dot(forward, view_dir);
+	distance = min(distance, (depth/viewZDist));
 	float upperBoundStep = 5 * StepSize;
 	//FragColor = vec4(vec3(distance / 75.0f), 1.0);
 	//FragColor = vec4(viewPos / 50.0f, 1);
@@ -114,9 +116,11 @@ void main() {
 	bool above_arr[6] = { false, false, false, false, false, false };
 	bool above = false;
 	bool firstStep = true;
+	bool lastStep = false;
 	for (curr_dist; curr_dist < distance; curr_dist += nextDistance) {
+		vec3 texPoint = start + view_dir * curr_dist;
 		nextDistance = upperBoundStep;
-		vec3 texPoint =  start + view_dir * curr_dist;
+		
 		//if (i > depth) {
 		//	FragColor = vec4(color_composited, opaque_composited);
 			//FragColor = vec4(vec3(depth / 75.0f), 1.0);
@@ -125,7 +129,8 @@ void main() {
 		float vol_u = (texPoint).x / (volume_size.x) + .5;
 		float vol_v = (texPoint).y / (volume_size.y) + .5;
 		float vol_w = (texPoint).z / (volume_size.z);
-		
+		if (vol_w < -.5)
+			break;
 		//FragColor = vec4(vol_u, vol_v, vol_w, 1.0);
 		//return;
 		//sampler2D volume;
@@ -292,6 +297,12 @@ void main() {
 			firstStep = false;
 			continue;
 		}
+		if (curr_dist + nextDistance >= distance && !lastStep) {
+			curr_dist = distance - EPSILON;
+			nextDistance = 0;
+			lastStep = true;
+		}
+		
 	}
 	
 	if (debug) {

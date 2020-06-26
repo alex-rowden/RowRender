@@ -35,7 +35,7 @@ glm::vec3 campus_dim = glm::vec3(1958, 1189, 10) * scale;
 bool update = true;
 
 bool signed_distance = false;
-
+bool show_heatmap = false;
 //int size = 800;
 bool animated = true;
 const char* animation_file = "test_1.txt";
@@ -308,8 +308,6 @@ int main() {
 	campusMap.getMeshes().at(0)->setTexture(texture, 0);
 	Model RayTraced = Model("Content\\Models\\quad\\quad_centered.obj");
 	RayTraced.setModel();
-	Model Blur = Model("Content\\Models\\quad\\quad_centered.obj");
-	Blur.setModel();
 	Model Tree = Model("Content\\Models\\tree_scaled.FBX");
 	Tree.setModel();
 	Model volume_cube = Model("Content\\Models\\cube\\cube.obj");	
@@ -320,21 +318,22 @@ int main() {
 	std::vector<unsigned short> normal;
 	normal.resize(normal_x.size() * 2);
 	noise.giveName("noise");
+	Texture2D volume_data[8];
 	RayTraced.getMeshes().at(0)->addTexture(noise);
 	for (size_t i = 0; i < normal_x.size(); i++) {
 		normal.at(i * 2) = normal_x.at(i);
 		normal.at(i * 2 + 1) = normal_y.at(i);
 	}
 	for (int i = 0; i < wifi.numSlices; i++) {
-		Texture2D volume_data = Texture2D(&use_intensities[i * wifi.numLonCells * wifi.numLatCells], wifi.numLonCells, wifi.numLatCells);
+		volume_data[i] = Texture2D(&use_intensities[i * wifi.numLonCells * wifi.numLatCells], wifi.numLonCells, wifi.numLatCells);
 		Texture2D normal_data = Texture2D(&normal[2 * i * wifi.numLonCells * wifi.numLatCells], wifi.numLonCells, wifi.numLatCells);
-		volume_data.setTexMinMagFilter(GL_LINEAR, GL_LINEAR);
-		volume_data.setTexParameterWrap(GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
-		volume_data.setBorderColor(glm::vec4(0, 0, 0, 0));
+		volume_data[i].setTexMinMagFilter(GL_LINEAR, GL_LINEAR);
+		volume_data[i].setTexParameterWrap(GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
+		volume_data[i].setBorderColor(glm::vec4(0, 0, 0, 0));
 		normal_data.setTexMinMagFilter(GL_NEAREST, GL_NEAREST);
-		volume_data.giveName("volume" + std::to_string(i));
+		volume_data[i].giveName("volume" + std::to_string(i));
 		normal_data.giveName("normal" + std::to_string(i));
-		RayTraced.getMeshes().at(0)->addTexture(volume_data);
+		RayTraced.getMeshes().at(0)->addTexture(volume_data[i]);
 		RayTraced.getMeshes().at(0)->addTexture(normal_data);
 	}
 
@@ -347,8 +346,12 @@ int main() {
 
 	glm::mat4 transformation = glm::scale(glm::mat4(1), scale * glm::vec3(-1, 1, -1));// glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
 
+	float zNear = .1;
+	float zFar = 1000;
+
 	volume_shader.SetUniform1f("zNear", .1f);
 	volume_shader.SetUniform1f("zFar", 1000.f);
+
 	float ambientStrength = .3f;
 	glm::vec3 lightDir = normalize(glm::vec3(0, 0.5, 0.5));
 	float specularStrength = .2;
@@ -683,8 +686,8 @@ int main() {
 
 		ImGui::SliderFloat("IsoVal Center", &center, 0.0f, 1.0f);
 		ImGui::SliderFloat("IsoVal width", &width, 0.0f, fmin(center / 2.0, 1 - center / 2.0));
-		ImGui::SliderFloat3("translate", glm::value_ptr(w.translate), -1, 1);
-		ImGui::SliderFloat3("scale", glm::value_ptr(w.scale), .9, 2);
+		ImGui::SliderFloat3("translate", glm::value_ptr(w.translate), -5, 5);
+		ImGui::SliderFloat3("scale", glm::value_ptr(w.scale), .99, 1.5);
 
 		ImGui::SliderFloat("Base Opacity", &base_opac, 0.0f, 1.f);
 		ImGui::SliderFloat("Sillhoutte Term", &sil_term, 0.0f, 1.0f);
@@ -825,11 +828,22 @@ int main() {
 		glm::vec3 volume_scale = glm::vec3(campus_dim.x, campus_dim.y, volume_z);//glm::vec3(100.f, 100.f, 50.f);
 		volume_shader.SetUniform3f("volume_size", volume_scale);
 		glm::mat4 transformation = glm::translate(glm::mat4(1), glm::vec3(48.613 + .57, -11.323 + .183, .337));
-		transformation = glm::scale(transformation,   campus_dim * glm::vec3(0.0000996 * 1.018, 0.00012782 * 1.006, 0.0155 * 1.259));// glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
+		transformation = glm::scale(transformation, campus_dim * glm::vec3(0.0000996 * 1.018, 0.00012782 * 1.006, 0.0155 * 1.259));// glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
 		//transformation = glm::rotate(transformation, glm::radians(180.0f), glm::vec3(0, 1, 0));
 
 		campusTransform = glm::translate(glm::mat4(1), glm::vec3(0, 0, 0) - campus_dim / 2.0f);
 		campusTransform = glm::scale(campusTransform, campus_dim);
+		int volume_map = 0;
+		for (volume_map = 0; volume_map < 6; volume_map++) {
+			if (enable_color[volume_map] && show_heatmap) {
+				volume_data[volume_map].name = "texture_diffuse";
+				campusMap.getMeshes().at(0)->setTexture(volume_data[volume_map], 0);
+				campusMap.getMeshes().at(0)->setTexture(volume_data[volume_map], 1);
+				break;
+			}
+		}
+		
+
 
 
 		skybox_shader.SetUniform4fv("projection", camera.getProjection());
@@ -856,7 +870,9 @@ int main() {
 		campus_map_sp.SetUniform4fv("model", campusTransform);
 		campus_map_sp.SetUniform4fv("camera", camera.getView());
 		campus_map_sp.SetUniform4fv("projection", camera.getProjection());
+		campus_map_sp.SetUniform1f("increment", increment);
 		render(campusMap, &campus_map_sp);
+		//volume_data[volume_map].name = "volume" + std::to_string(volume_map+1);
 		if (BENCHMARK) {
 			std::cout << "Render Campus Map " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
@@ -864,8 +880,8 @@ int main() {
 		instance_shader.Use();
 		instance_shader.SetUniform4fv("projection", camera.getProjection());
 		instance_shader.SetUniform4fv("view", camera.getView());
-		instance_shader.SetUniform4fv("transform", glm::scale(glm::translate(glm::mat4(1), glm::vec3(72.099, 63.9, 0) + w.translate - glm::vec3(50, 50, 0)), glm::vec3(.00095, .00159, .0009) + w.scale));
-		//render(Tree, &instance_shader);
+		instance_shader.SetUniform4fv("transform", glm::scale(glm::translate(glm::mat4(1), glm::vec3(239.5, 135, -.5) + w.translate - glm::vec3(campus_dim.x, campus_dim.y, 0)), glm::vec3(0.001892837130*.99, 0.00184324591, .001163 * .75) * w.scale));
+		render(Tree, &instance_shader);
 		if (BENCHMARK) {
 			std::cout << "Render Trees " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
@@ -915,7 +931,7 @@ int main() {
 		volume_shader.SetUniform3f("viewPos", camera.getPosition());
 		glm::vec3 HalfwayVec = glm::normalize(camera.getDirection() + lightDir);
 		volume_shader.SetUniform3f("HalfwayVec", HalfwayVec);
-
+		volume_shader.SetUniform3f("forward", camera.getDirection());
 		render(RayTraced, &volume_shader);
 		
 		if (BENCHMARK) {
