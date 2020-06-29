@@ -22,10 +22,10 @@ function [fitresult, gof] = gaussianFit(X, Y, z, startingVec, make_plot)
 ft = fittype( 'amplitude * exp(-((X-mu_x).^2/(2 * sigma^2) + (Y - mu_y).^2/ (2 * sigma^2)));', 'independent', {'X', 'Y'}, 'dependent', 'z' );
 opts = fitoptions( 'Method', 'NonlinearLeastSquares' );
 opts.Display = 'Off';
-opts.Lower = [0  -78 38 0.0005];
+opts.Lower = [1e-9  -78 38 0];
 opts.MaxIter = 10000;
 opts.StartPoint = startingVec;
-opts.Upper = [100  -75, 39.1 .005];
+opts.Upper = [1e-2  -75, 39.1 .005];
 
 % Fit model to data.
 [fitresult, gof] = fit( [xData, yData], zData, ft, opts );

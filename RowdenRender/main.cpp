@@ -231,7 +231,7 @@ int main() {
 	std::vector<float> use_intensities, max_volume;
 	WifiData wifi;
 
-	std::string filename = "top_six";
+	std::string filename = "linear_power";
 	wifi.loadBinary((filename + ".raw").c_str(), use_intensities, normal_x, normal_y);
 	max_volume = use_intensities;
 
@@ -546,7 +546,7 @@ int main() {
 
 
 	//Rendering Parameters
-	float center = .959;//.56; //.2075
+	float center = -.4;//.56; //.2075
 	float width = .001;//.015
 	float base_opac = 0.379;
 	float bubble_top = 1.0f;
@@ -684,7 +684,7 @@ int main() {
 		ImGui::NewFrame();
 		ImGui::Begin("Rendering Terms");
 
-		ImGui::SliderFloat("IsoVal Center", &center, 0.0f, 1.0f);
+		ImGui::SliderFloat("IsoVal Center", &center, -1, 1.0f);
 		ImGui::SliderFloat("IsoVal width", &width, 0.0f, fmin(center / 2.0, 1 - center / 2.0));
 		ImGui::SliderFloat3("translate", glm::value_ptr(w.translate), -5, 5);
 		ImGui::SliderFloat3("scale", glm::value_ptr(w.scale), .99, 1.5);
