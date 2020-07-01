@@ -37,9 +37,9 @@ bool update = true;
 bool signed_distance = false;
 bool show_heatmap = false;
 //int size = 800;
-bool animated = false;
+bool animated = true;
 const char* animation_file = "choreo.txt";
-float speed = 6.0f;
+float speed = 1/150.0f;
 glm::vec2 resolution = glm::vec2(2560, 1440);
 glm::vec3 rand_dim = glm::vec3(50, 50, 50);
 
@@ -246,7 +246,7 @@ int main() {
 	glfwInit();
 	glfwSetErrorCallback(error_callback);
 	Window w = Window("Better Window", resolution.x, resolution.y);
-
+	w.setFullScreen(true);
 
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) //load GLAD
 	{
@@ -331,7 +331,7 @@ int main() {
 		volume_data[i].setTexMinMagFilter(GL_LINEAR, GL_LINEAR);
 		volume_data[i].setTexParameterWrap(GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
 		volume_data[i].setBorderColor(glm::vec4(0, 0, 0, 0));
-		normal_data.setTexMinMagFilter(GL_LINEAR, GL_LINEAR);
+		normal_data.setTexMinMagFilter(GL_NEAREST, GL_NEAREST);
 		volume_data[i].giveName("volume" + std::to_string(i));
 		normal_data.giveName("normal" + std::to_string(i));
 		RayTraced.getMeshes().at(0)->addTexture(volume_data[i]);
@@ -355,15 +355,15 @@ int main() {
 
 	float ambientStrength = .3f;
 	glm::vec3 lightDir = normalize(glm::vec3(0, 0.5, 0.5));
-	float specularStrength = .2;
-	float diffuseStrength = .5;
-	float shininess = 64;
+	float specularStrength = .3;
+	float diffuseStrength = .4;
+	float shininess = 128;
 	volume_shader.SetUniform1f("shininess", shininess);
 	volume_shader.SetUniform1f("ambientStrength", ambientStrength);
 	volume_shader.SetUniform1f("specularStrength", specularStrength);
 	volume_shader.SetUniform1f("diffuseStrength", diffuseStrength);
 
-	volume_shader.SetUniform3f("LightDir", lightDir);
+	
 
 	struct TreeEntry {
 		double lat, lon;
@@ -506,7 +506,7 @@ int main() {
 	char* next_token;
 	if (animated) {
 		positions.emplace_back(camera.getPosition());
-		look_ats.emplace_back(camera.getPosition() + camera.getDirection());
+		look_ats.emplace_back(camera.getDirection());
 		std::fstream animation = std::fstream(animation_file, std::ios::in);
 		bool odd = false;
 		while (animation.getline(char_buffer, 100)) {
@@ -527,7 +527,7 @@ int main() {
 			odd = !odd;
 		}
 		positions.emplace_back(camera.getPosition());
-		look_ats.emplace_back(camera.getPosition() + camera.getDirection());
+		look_ats.emplace_back(camera.getDirection());
 		for (int i = 0; i < positions.size() - 1; i++) {
 			distances.emplace_back(glm::distance(positions.at(i), positions.at(i + 1)));
 		}
@@ -537,7 +537,7 @@ int main() {
 
 	int fps = 0;
 	uint64_t fps_counter = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-	//uint64_t start = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+	uint64_t program_start = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 	unsigned long int num_frames = 0;
 	if (BENCHMARK) {
 		std::cout << "Setup OptiX " << (double)(clock() - start) / CLOCKS_PER_SEC << " seconds" << std::endl;
@@ -549,7 +549,7 @@ int main() {
 	//Rendering Parameters
 	float center = -.858;//.56; //.2075
 	float width = .001;//.015
-	float base_opac = 0.379;
+	float base_opac = 0.7;
 	float bubble_top = 1.0f;
 	float bubble_bottom = 0;
 	float bubble_max_opac = .032f;
@@ -557,12 +557,12 @@ int main() {
 	float spec_term = .05;
 	float sil_term = .95;
 	bool color_aug = false;
-	float tune = .45f;
+	float tune = 0;
 	float fov = 60;
 	int tex_num = 0;
 	float max_iso_val = 0;
 	bool iso_change = false;
-	float increment = .63;
+	float increment = .6;
 	float old_increment = 0;
 	float volumeStepSize = .1;//.11 / 3.0;
 	float step_mod = 0;
@@ -579,7 +579,7 @@ int main() {
 	glm::vec3 color5 = glm::vec3(180, 0, 38) / 255.0f;
 	glm::vec3 color6 = glm::vec3(253 / 255.0f, 117 / 255.0f, 0 / 255.0f);
 	glm::vec3 intersection_color = glm::vec3(0);
-	bool enable_color[6] = { true, false, false, false, true, false };
+	bool enable_color[6] = { false, false, false, true, false, false };
 	//bool lighting_enabled = false;
 
 	//glGenTextures(1, &temp_tex);
@@ -656,7 +656,7 @@ int main() {
 
 	//volume_shader.SetUniform1i("numTex", wifi.numSlices);
 	volume_shader.SetUniform1i("numTex", MIN(wifi.numSlices, 5));
-	float volume_z = 31;
+	float volume_z = 20;
 	int framesSinceMoved = 0;
 
 	//const int num_gaussians = 2;
@@ -675,6 +675,8 @@ int main() {
 	}
 	while (!glfwWindowShouldClose(w.getWindow())) //main render loop
 	{
+		uint64_t frame_start = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+
 		glClearColor(135 / 255.0f, 206 / 255.0f, 235 / 255.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glfwPollEvents();
@@ -796,7 +798,7 @@ int main() {
 		}
 
 		if (animated) {
-			float distance = speed * num_frames * 1 / 60.0f;
+			float distance = speed * (frame_start - program_start);
 			int i = 0;
 			while (distance > distances.at(i)) {
 				distance -= distances.at(i);
@@ -812,8 +814,9 @@ int main() {
 			}
 
 			float step = distance / distances.at(i);
+			std::cout << i << std::endl;
 			camera.setPosition(glm::lerp(positions.at(i), positions.at(i + 1), step));
-			camera.setDirection(glm::lerp(look_ats.at(i) - positions.at(i), look_ats.at(i + 1) - positions.at(i + 1), step));
+			camera.setDirection(glm::lerp(look_ats.at(i), look_ats.at(i + 1), step));
 		}
 
 		if (w.signal) {
@@ -934,6 +937,8 @@ int main() {
 		glDisable(GL_CULL_FACE);
 		volume_shader.Use();
 		volume_shader.SetUniform3f("viewPos", camera.getPosition());
+		lightDir = camera.getDirection();
+		volume_shader.SetUniform3f("LightDir", lightDir);
 		glm::vec3 HalfwayVec = glm::normalize(camera.getDirection() + lightDir);
 		volume_shader.SetUniform3f("HalfwayVec", HalfwayVec);
 		volume_shader.SetUniform3f("forward", camera.getDirection());

@@ -78,12 +78,12 @@ void main() {
 	//vec3 view_dir = vec3(0);
 	vec3 start = vec3(0);
 	vec3 end = vec3(0);
-	if (abs(back.x) < EPSILON || abs(back.y) < EPSILON || abs(back.z) < EPSILON) {
+	if (abs(back.x) < EPSILON && abs(back.y) < EPSILON && abs(back.z) < EPSILON) {
 		FragColor = vec4(0, 0, 1, 0);
 		return;
 	}
 	float start_dist = 0;
-	if (abs(front.x) < EPSILON || abs(front.y) < EPSILON || abs(front.z) < EPSILON) {
+	if (abs(front.x) < EPSILON && abs(front.y) < EPSILON && abs(front.z) < EPSILON) {
 		start = viewPos;
 		end = back;
 		//FragColor = vec4(vec3(1,0,0), 1.0);
@@ -250,6 +250,7 @@ void main() {
 			float spec = specularStrength * pow(max(dot(HalfwayVec, normal), 0), shininess);
 			//float spec = specularStrength * pow(max(sdot(sincosHalfwayTheta, sincosnorm, HalfwayVecP.y, phi), 0), shininess);
 			//spec = specularStrength * pow(dot(halfway))
+			//color_self = normal;
 			color_self = ambientStrength * color + diffuse * color + spec * vec3(1, 1, 1);
 
 			float bubble_coefficient = 0;

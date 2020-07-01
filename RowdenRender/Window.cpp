@@ -167,10 +167,14 @@ void Window::SetVersion(float version) {
 	SetVersion((int)version, (int)(version * 10) % 10);
 }
 
-void Window::makeFullScreen() {
+void Window::setFullScreen(bool set) {
 	const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+	if(set)
+		glfwSetWindowMonitor(window, glfwGetPrimaryMonitor(), 0, 0, mode->width, mode->height, mode->refreshRate);
+	else {
+		glfwSetWindowMonitor(window, NULL, 0, 0, mode->width, mode->height, mode->refreshRate);
 
-	glfwSetWindowMonitor(window, glfwGetPrimaryMonitor(), 0, 0, mode->width, mode->height, mode->refreshRate);
+	}
 }
 
 bool Window::makeWindow(int width, int height, std::string title) {

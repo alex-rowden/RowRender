@@ -11,7 +11,7 @@ public:
 	void SetCamera(Camera* camera);
 	void SetVersion(int version_major, int version_minor);
 	void SetVersion(float version);
-	void makeFullScreen();
+	void setFullScreen(bool);
 	bool makeWindow(int height, int width, std::string title);
 	void ProcessFrame(bool useStandard = true);
 	void ProcessFrame(void (*processInputFunc)(GLFWwindow*), bool useStandard = false);

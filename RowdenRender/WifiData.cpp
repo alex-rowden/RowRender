@@ -402,7 +402,7 @@ bool WifiData::loadBinary(const char* filename, std::vector<unsigned char>& inte
 
 		glm::ivec3 indices = getTrip(i, numLatCells, numLonCells, numSlices);
 		calculate_neighbors(neighbors, intensities, indices.x, indices.y, indices.z, 2);
-		glm::vec3 normal = glm::vec3(((neighbors.right) - neighbors.left) / (float)1, ((neighbors.up) - neighbors.down) / (float)1, .0015);
+		glm::vec3 normal = glm::vec3(((neighbors.right) - neighbors.left) / (float)1, ((neighbors.up) - neighbors.down) / (float)1, -.0015);
 		
 		if (glm::length(normal) != 0) {
 			normal = glm::normalize(normal);
