@@ -675,7 +675,8 @@ int main() {
 	}
 	while (!glfwWindowShouldClose(w.getWindow())) //main render loop
 	{
-
+		glClearColor(135 / 255.0f, 206 / 255.0f, 235 / 255.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glfwPollEvents();
 		bool cameraMoved = camera.getMoved();
 		camera.setMoved(false);
@@ -853,7 +854,7 @@ int main() {
 		skybox_shader.SetUniform4fv("view", glm::mat4(glm::mat3(camera.getView())));
 
 		glDepthMask(GL_FALSE);
-		render(skybox, &skybox_shader);
+		//render(skybox, &skybox_shader);
 		glDepthMask(GL_TRUE);
 		if (BENCHMARK) {
 			std::cout << "Render Skybox " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
@@ -977,8 +978,7 @@ int main() {
 			std::cout << "Full frame " << (double)((clock() - per_frame)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
 		}
-		glClearColor(135/255.0f, 206/255.0f, 235/255.0f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		
 		glFinish();
 		framesSinceMoved++;
 	}
