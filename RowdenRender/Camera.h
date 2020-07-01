@@ -8,6 +8,7 @@ public:
 	glm::vec3 getPosition();
 	glm::mat4 getProjection();
 	glm::mat4 getProjection(float near);
+	glm::mat4 getProjection(float near, float far);
 	void moveForward(float amount);
 	void moveUp(float amount);
 	void moveRight(float amount);

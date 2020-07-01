@@ -26,6 +26,8 @@ glm::mat4 Camera::getProjection() {
 
 glm::mat4 Camera::getProjection(float near) {
 	return glm::perspective(glm::radians(fov), aspect, near, 1000.0f);
+}glm::mat4 Camera::getProjection(float near, float far) {
+	return glm::perspective(glm::radians(fov), aspect, near, far);
 }
 
 glm::vec3 Camera::getPosition() {

@@ -50,6 +50,8 @@ uniform float spec_term, bubble_term, bubble_min, bubble_max, max_opac, min_opac
 uniform float fcp;
 uniform vec3 forward;
 
+uniform vec3 volume_bottom;
+
 uniform int enabledVolumes;
 uniform vec3 LightDir;
 uniform vec3 HalfwayVec;
@@ -80,15 +82,16 @@ void main() {
 		FragColor = vec4(0, 0, 1, 0);
 		return;
 	}
-
+	float start_dist = 0;
 	if (abs(front.x) < EPSILON || abs(front.y) < EPSILON || abs(front.z) < EPSILON) {
 		start = viewPos;
 		end = back;
 		//FragColor = vec4(vec3(1,0,0), 1.0);
 	}
 	else {
-		start = front;
+		start = viewPos;
 		end = back;
+		start_dist = sqrt(dot(viewPos - front, viewPos - front));
 		//FragColor = vec4(vec3(0, 1, 0), 1.0);
 	}
 	//FragColor = vec4((back - box_min)/50.00, 1.0);
@@ -102,7 +105,7 @@ void main() {
 
 
 	vec3 view_dir = normalize(end - start);
-	float curr_dist = .08 * (abs(texture(noise, vec2(view_dir)).r) + EPSILON);
+	float curr_dist = .08 * (abs(texture(noise, vec2(view_dir)).r) + EPSILON) + start_dist;
 	float distance = sqrt(dot(end - start, end - start));
 	float raw_depth = texture(depth_tex, TexCoord).x * 2.0f - 1;
 	float depth = 2.0 * zNear * zFar / (zFar + zNear - raw_depth * (zFar - zNear));
@@ -111,6 +114,7 @@ void main() {
 	float upperBoundStep = 5 * StepSize;
 	//FragColor = vec4(vec3(distance / 75.0f), 1.0);
 	//FragColor = vec4(viewPos / 50.0f, 1);
+	//FragColor = vec4(1, 0, 1, .3);
 	//return;
 	float nextDistance = upperBoundStep;
 	bool above_arr[6] = { false, false, false, false, false, false };
@@ -126,13 +130,11 @@ void main() {
 			//FragColor = vec4(vec3(depth / 75.0f), 1.0);
 		//	return;
 		//}
-		float vol_u = (texPoint).x / (volume_size.x) + .5;
-		float vol_v = (texPoint).y / (volume_size.y) + .5;
-		float vol_w = (texPoint).z / (volume_size.z);
-		if (vol_w < -.5)
-			break;
-		//FragColor = vec4(vol_u, vol_v, vol_w, 1.0);
-		//return;
+		float vol_u = ((texPoint).x + volume_bottom.x) / (volume_size.x) + .5;
+		float vol_v = ((texPoint).y + volume_bottom.y) / (volume_size.y) + .5;
+		float vol_w = ((texPoint).z + volume_bottom.z) / (volume_size.z);
+		
+		
 		//sampler2D volume;
 		vec3 color;
 		float volume_sample;

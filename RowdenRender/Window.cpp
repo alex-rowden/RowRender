@@ -143,7 +143,9 @@ void Window::standardInputProcessor(GLFWwindow* window) { //Go to processInputFu
 		j += 1;
 		j %= 2;
 	}if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-		std::cout << camera->getPosition().x << ", " << camera->getPosition().y << "," << camera->getPosition().z << std::endl;
+		std::cout << glm::to_string(camera->getPosition())<< std::endl;
+		std::cout << glm::to_string(camera->getDirection())<< std::endl;
+		
 		//signal = true;
 	}
 	else {
@@ -165,7 +167,23 @@ void Window::SetVersion(float version) {
 	SetVersion((int)version, (int)(version * 10) % 10);
 }
 
+void Window::makeFullScreen() {
+	const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+
+	glfwSetWindowMonitor(window, glfwGetPrimaryMonitor(), 0, 0, mode->width, mode->height, mode->refreshRate);
+}
+
 bool Window::makeWindow(int width, int height, std::string title) {
+	const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+
+	glfwWindowHint(GLFW_RED_BITS, mode->redBits);
+	glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
+	glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
+	glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
+
+	if (width == 0) { width = mode->width; }
+	if (height == 0) { height = mode->height; }
+
 	window = glfwCreateWindow(width, height, title.c_str(), NULL, NULL);
 	this->width = width;
 	this->height = height;

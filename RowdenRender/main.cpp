@@ -37,8 +37,8 @@ bool update = true;
 bool signed_distance = false;
 bool show_heatmap = false;
 //int size = 800;
-bool animated = true;
-const char* animation_file = "test_1.txt";
+bool animated = false;
+const char* animation_file = "choreo.txt";
 float speed = 6.0f;
 glm::vec2 resolution = glm::vec2(2560, 1440);
 glm::vec3 rand_dim = glm::vec3(50, 50, 50);
@@ -231,7 +231,7 @@ int main() {
 	std::vector<float> use_intensities, max_volume;
 	WifiData wifi;
 
-	std::string filename = "linear_power";
+	std::string filename = "linear_power_big";
 	wifi.loadBinary((filename + ".raw").c_str(), use_intensities, normal_x, normal_y);
 	max_volume = use_intensities;
 
@@ -246,6 +246,7 @@ int main() {
 	glfwInit();
 	glfwSetErrorCallback(error_callback);
 	Window w = Window("Better Window", resolution.x, resolution.y);
+
 
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) //load GLAD
 	{
@@ -330,7 +331,7 @@ int main() {
 		volume_data[i].setTexMinMagFilter(GL_LINEAR, GL_LINEAR);
 		volume_data[i].setTexParameterWrap(GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
 		volume_data[i].setBorderColor(glm::vec4(0, 0, 0, 0));
-		normal_data.setTexMinMagFilter(GL_NEAREST, GL_NEAREST);
+		normal_data.setTexMinMagFilter(GL_LINEAR, GL_LINEAR);
 		volume_data[i].giveName("volume" + std::to_string(i));
 		normal_data.giveName("normal" + std::to_string(i));
 		RayTraced.getMeshes().at(0)->addTexture(volume_data[i]);
@@ -347,10 +348,10 @@ int main() {
 	glm::mat4 transformation = glm::scale(glm::mat4(1), scale * glm::vec3(-1, 1, -1));// glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
 
 	float zNear = .1;
-	float zFar = 1000;
+	float zFar = 500;
 
-	volume_shader.SetUniform1f("zNear", .1f);
-	volume_shader.SetUniform1f("zFar", 1000.f);
+	volume_shader.SetUniform1f("zNear", zNear);
+	volume_shader.SetUniform1f("zFar", zFar);
 
 	float ambientStrength = .3f;
 	glm::vec3 lightDir = normalize(glm::vec3(0, 0.5, 0.5));
@@ -530,7 +531,7 @@ int main() {
 		for (int i = 0; i < positions.size() - 1; i++) {
 			distances.emplace_back(glm::distance(positions.at(i), positions.at(i + 1)));
 		}
-		animated = false;
+		animated = true;
 	}
 
 
@@ -546,7 +547,7 @@ int main() {
 
 
 	//Rendering Parameters
-	float center = -.4;//.56; //.2075
+	float center = -.858;//.56; //.2075
 	float width = .001;//.015
 	float base_opac = 0.379;
 	float bubble_top = 1.0f;
@@ -561,7 +562,7 @@ int main() {
 	int tex_num = 0;
 	float max_iso_val = 0;
 	bool iso_change = false;
-	float increment = 1;
+	float increment = .63;
 	float old_increment = 0;
 	float volumeStepSize = .1;//.11 / 3.0;
 	float step_mod = 0;
@@ -655,7 +656,7 @@ int main() {
 
 	//volume_shader.SetUniform1i("numTex", wifi.numSlices);
 	volume_shader.SetUniform1i("numTex", MIN(wifi.numSlices, 5));
-	float volume_z = 15;
+	float volume_z = 31;
 	int framesSinceMoved = 0;
 
 	//const int num_gaussians = 2;
@@ -686,8 +687,8 @@ int main() {
 
 		ImGui::SliderFloat("IsoVal Center", &center, -1, 1.0f);
 		ImGui::SliderFloat("IsoVal width", &width, 0.0f, fmin(center / 2.0, 1 - center / 2.0));
-		ImGui::SliderFloat3("translate", glm::value_ptr(w.translate), -5, 5);
-		ImGui::SliderFloat3("scale", glm::value_ptr(w.scale), .99, 1.5);
+		ImGui::SliderFloat3("translate", glm::value_ptr(w.translate), -50, 50);
+		ImGui::SliderFloat3("scale", glm::value_ptr(w.scale), .8, 1.1);
 
 		ImGui::SliderFloat("Base Opacity", &base_opac, 0.0f, 1.f);
 		ImGui::SliderFloat("Sillhoutte Term", &sil_term, 0.0f, 1.0f);
@@ -825,8 +826,8 @@ int main() {
 			std::cout << "Calculate FPS and Update Animation: " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
 		}
-		glm::vec3 volume_scale = glm::vec3(campus_dim.x, campus_dim.y, volume_z);//glm::vec3(100.f, 100.f, 50.f);
-		volume_shader.SetUniform3f("volume_size", volume_scale);
+		//glm::vec3 volume_scale = glm::vec3(campus_dim.x, campus_dim.y, volume_z);//glm::vec3(100.f, 100.f, 50.f);
+		//volume_shader.SetUniform3f("volume_size", volume_scale);
 		glm::mat4 transformation = glm::translate(glm::mat4(1), glm::vec3(48.613 + .57, -11.323 + .183, .337));
 		transformation = glm::scale(transformation, campus_dim * glm::vec3(0.0000996 * 1.018, 0.00012782 * 1.006, 0.0155 * 1.259));// glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
 		//transformation = glm::rotate(transformation, glm::radians(180.0f), glm::vec3(0, 1, 0));
@@ -834,9 +835,11 @@ int main() {
 		campusTransform = glm::translate(glm::mat4(1), glm::vec3(0, 0, 0) - campus_dim / 2.0f);
 		campusTransform = glm::scale(campusTransform, campus_dim);
 		int volume_map = 0;
+		campus_map_sp.SetUniform1i("heatmap", 0);
 		for (volume_map = 0; volume_map < 6; volume_map++) {
 			if (enable_color[volume_map] && show_heatmap) {
 				volume_data[volume_map].name = "texture_diffuse";
+				campus_map_sp.SetUniform1i("heatmap", 1);
 				campusMap.getMeshes().at(0)->setTexture(volume_data[volume_map], 0);
 				campusMap.getMeshes().at(0)->setTexture(volume_data[volume_map], 1);
 				break;
@@ -846,7 +849,7 @@ int main() {
 
 
 
-		skybox_shader.SetUniform4fv("projection", camera.getProjection());
+		skybox_shader.SetUniform4fv("projection", camera.getProjection(zNear, zFar));
 		skybox_shader.SetUniform4fv("view", glm::mat4(glm::mat3(camera.getView())));
 
 		glDepthMask(GL_FALSE);
@@ -859,7 +862,7 @@ int main() {
 		sp.SetUniform4fv("model", transformation);
 		sp.SetUniform3fv("normalMatrix", glm::mat3(glm::transpose(glm::inverse( transformation))));
 		sp.SetUniform4fv("camera", camera.getView());
-		sp.SetUniform4fv("projection", camera.getProjection());
+		sp.SetUniform4fv("projection", camera.getProjection(zNear, zFar));
 		sp.SetLights(lights);
 		sp.SetUniform3f("view", camera.getPosition());
 		render(model, &sp);
@@ -869,7 +872,7 @@ int main() {
 		}
 		campus_map_sp.SetUniform4fv("model", campusTransform);
 		campus_map_sp.SetUniform4fv("camera", camera.getView());
-		campus_map_sp.SetUniform4fv("projection", camera.getProjection());
+		campus_map_sp.SetUniform4fv("projection", camera.getProjection(zNear, zFar));
 		campus_map_sp.SetUniform1f("increment", increment);
 		render(campusMap, &campus_map_sp);
 		//volume_data[volume_map].name = "volume" + std::to_string(volume_map+1);
@@ -878,10 +881,10 @@ int main() {
 			start = clock();
 		}
 		instance_shader.Use();
-		instance_shader.SetUniform4fv("projection", camera.getProjection());
+		instance_shader.SetUniform4fv("projection", camera.getProjection(zNear, zFar));
 		instance_shader.SetUniform4fv("view", camera.getView());
-		instance_shader.SetUniform4fv("transform", glm::scale(glm::translate(glm::mat4(1), glm::vec3(239.5, 135, -.5) + w.translate - glm::vec3(campus_dim.x, campus_dim.y, 0)), glm::vec3(0.001892837130*.99, 0.00184324591, .001163 * .75) * w.scale));
-		render(Tree, &instance_shader);
+		instance_shader.SetUniform4fv("transform", glm::scale(glm::translate(glm::mat4(1), glm::vec3(239.5, 135, -.5) - glm::vec3(campus_dim.x, campus_dim.y, 0)), glm::vec3(0.001892837130*.99, 0.00184324591, .001163 * .75 * 1.25)));
+		//render(Tree, &instance_shader);
 		if (BENCHMARK) {
 			std::cout << "Render Trees " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
@@ -910,13 +913,14 @@ int main() {
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 		
 		front_back_shader.Use();
-		glm::mat4 scale = glm::scale(glm::mat4(1), glm::vec3(campus_dim.x, campus_dim.y, volume_z) * w.scale);
-		glm::mat4 translate = glm::translate(glm::mat4(1), glm::vec3(0, 0, volume_z / 2.0f - .5 + w.translate.z));
+		glm::vec3 volume_scale = glm::vec3(campus_dim.x * .5 * .856, campus_dim.y * .6 * 1.047, volume_z);
+		glm::mat4 scale = glm::scale(glm::mat4(1), volume_scale * w.scale);
+		glm::vec3 volume_bottom = glm::vec3(6.258 , -3.083 , volume_z / 2.0f - .5);
+		glm::mat4 translate = glm::translate(glm::mat4(1), w.translate + volume_bottom);
+		
 		front_back_shader.SetUniform4fv("model", translate * scale);
 		front_back_shader.SetUniform4fv("camera", camera.getView());
-		front_back_shader.SetUniform4fv("projection", camera.getProjection(fcp));
-		front_back_shader.SetUniform3f("box_min", box_min);
-		front_back_shader.SetUniform3f("volume_scale", volume_scale);
+		front_back_shader.SetUniform4fv("projection", camera.getProjection(fcp, zFar));
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_BACK);
 		front_back_shader.SetUniform1i("front", 1);
@@ -932,6 +936,8 @@ int main() {
 		glm::vec3 HalfwayVec = glm::normalize(camera.getDirection() + lightDir);
 		volume_shader.SetUniform3f("HalfwayVec", HalfwayVec);
 		volume_shader.SetUniform3f("forward", camera.getDirection());
+		volume_shader.SetUniform3f("volume_size", volume_scale);
+		volume_shader.SetUniform3f("volume_bottom", volume_bottom);
 		render(RayTraced, &volume_shader);
 		
 		if (BENCHMARK) {
@@ -942,7 +948,7 @@ int main() {
 		filename.append(std::to_string(num_frames++));
 		filename.append(".bmp");
 		void* data;
-		if (animated) {
+		if (false) {
 			// Make the BYTE array, factor of 3 because it's RBG.
 			BYTE* pixels = new BYTE[3 * w.width * w.height];
 

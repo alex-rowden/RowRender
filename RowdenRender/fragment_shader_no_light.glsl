@@ -11,6 +11,7 @@ uniform int heatmap;
 void main()
 {
 	if(heatmap > 0)
-		FragColor = vec4(texture(texture_diffuse1, TexCoord).r - increment, 0, 0, 1);
-	FragColor = texture(texture_diffuse1, TexCoord);
+		FragColor = vec4(texture(texture_diffuse1, TexCoord).r + increment, 0, 0, 1);
+	else
+		FragColor = texture(texture_diffuse1, TexCoord);
 }
