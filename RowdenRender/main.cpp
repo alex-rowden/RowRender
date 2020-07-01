@@ -331,7 +331,7 @@ int main() {
 		volume_data[i].setTexMinMagFilter(GL_LINEAR, GL_LINEAR);
 		volume_data[i].setTexParameterWrap(GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
 		volume_data[i].setBorderColor(glm::vec4(0, 0, 0, 0));
-		normal_data.setTexMinMagFilter(GL_LINEAR, GL_LINEAR);
+		normal_data.setTexMinMagFilter(GL_NEAREST, GL_NEAREST);
 		volume_data[i].giveName("volume" + std::to_string(i));
 		normal_data.giveName("normal" + std::to_string(i));
 		RayTraced.getMeshes().at(0)->addTexture(volume_data[i]);
@@ -531,7 +531,7 @@ int main() {
 		for (int i = 0; i < positions.size() - 1; i++) {
 			distances.emplace_back(glm::distance(positions.at(i), positions.at(i + 1)));
 		}
-		animated = true;
+		animated = false;
 	}
 
 
@@ -686,7 +686,7 @@ int main() {
 		ImGui::NewFrame();
 		ImGui::Begin("Rendering Terms");
 
-		ImGui::SliderFloat("IsoVal Center", &center, -1, 1.0f);
+		ImGui::SliderFloat("IsoVal Center", &center, 0.0f, 1.0f);
 		ImGui::SliderFloat("IsoVal width", &width, 0.0f, fmin(center / 2.0, 1 - center / 2.0));
 		ImGui::SliderFloat3("translate", glm::value_ptr(w.translate), -50, 50);
 		ImGui::SliderFloat3("scale", glm::value_ptr(w.scale), .8, 1.1);
