@@ -37,7 +37,7 @@ bool update = true;
 bool signed_distance = false;
 bool show_heatmap = false;
 //int size = 800;
-bool animated = true;
+bool animated = false;
 const char* animation_file = "choreo.txt";
 float speed = 1/150.0f;
 glm::vec2 resolution = glm::vec2(2560, 1440);
@@ -857,7 +857,7 @@ int main() {
 		skybox_shader.SetUniform4fv("view", glm::mat4(glm::mat3(camera.getView())));
 
 		glDepthMask(GL_FALSE);
-		//render(skybox, &skybox_shader);
+		render(skybox, &skybox_shader);
 		glDepthMask(GL_TRUE);
 		if (BENCHMARK) {
 			std::cout << "Render Skybox " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
@@ -888,7 +888,7 @@ int main() {
 		instance_shader.SetUniform4fv("projection", camera.getProjection(zNear, zFar));
 		instance_shader.SetUniform4fv("view", camera.getView());
 		instance_shader.SetUniform4fv("transform", glm::scale(glm::translate(glm::mat4(1), glm::vec3(239.5, 135, -.5) - glm::vec3(campus_dim.x, campus_dim.y, 0)), glm::vec3(0.001892837130*.99, 0.00184324591, .001163 * .75 * 1.25)));
-		//render(Tree, &instance_shader);
+		render(Tree, &instance_shader);
 		if (BENCHMARK) {
 			std::cout << "Render Trees " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
@@ -939,8 +939,10 @@ int main() {
 		volume_shader.SetUniform3f("viewPos", camera.getPosition());
 		lightDir = camera.getDirection();
 		volume_shader.SetUniform3f("LightDir", lightDir);
+		
 		glm::vec3 HalfwayVec = glm::normalize(camera.getDirection() + lightDir);
 		volume_shader.SetUniform3f("HalfwayVec", HalfwayVec);
+	
 		volume_shader.SetUniform3f("forward", camera.getDirection());
 		volume_shader.SetUniform3f("volume_size", volume_scale);
 		volume_shader.SetUniform3f("volume_bottom", volume_bottom);
