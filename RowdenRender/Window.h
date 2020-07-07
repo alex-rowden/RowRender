@@ -1,6 +1,7 @@
 #pragma once
 #include "RowRender.h"
-#include "Camera.h"
+class Camera;
+
 class Window
 {
 public:

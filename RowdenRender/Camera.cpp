@@ -24,10 +24,10 @@ glm::mat4 Camera::getProjection() {
 	return glm::perspective(glm::radians(fov), aspect, .1f, 1000.0f);
 }
 
-glm::mat4 Camera::getProjection(float near) {
-	return glm::perspective(glm::radians(fov), aspect, near, 1000.0f);
-}glm::mat4 Camera::getProjection(float near, float far) {
-	return glm::perspective(glm::radians(fov), aspect, near, far);
+glm::mat4 Camera::getProjection(float zNear) {
+	return glm::perspective(glm::radians(fov), aspect, zNear, 1000.0f);
+}glm::mat4 Camera::getProjection(float zNear, float zFar) {
+	return glm::perspective(glm::radians(fov), aspect, zNear, zFar);
 }
 
 glm::vec3 Camera::getPosition() {

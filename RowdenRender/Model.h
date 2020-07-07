@@ -1,12 +1,16 @@
 #pragma once
 #include <string>
 #include "RowRender.h"
-#include "ShaderProgram.h"
-#include "Mesh.h"
+
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include <SOIL.h>
+
+class Mesh;
+class ShaderProgram;
+class Texture2D;
+
 class Model
 {
 private:
@@ -27,4 +31,6 @@ public:
 	void setModel();
 	std::vector<Mesh*> getMeshes() { return meshes; }
 };
+
+
 

@@ -1,4 +1,10 @@
 #include "CampusWifiVisualization.h"
+#include "AVWilliamsWifiVisualization.h"
+bool campus = false;
 int main() {
-	return CampusWifiVisualization();
+	if(campus)
+		return CampusWifiVisualization();
+	else {
+		return AVWilliamsWifiVisualization();
+	}
 }

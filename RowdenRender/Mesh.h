@@ -1,7 +1,9 @@
 #pragma once
-#include "Shape.h"
-#include "Texture2D.h"
-#include "ShaderProgram.h"
+#include "RowRender.h"
+class Shape;
+class Lights;
+class Texture2D;
+class ShaderProgram;
 
 class Mesh
 {

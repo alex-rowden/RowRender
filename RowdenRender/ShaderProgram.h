@@ -1,7 +1,10 @@
 #pragma once
 #include "RowRender.h"
-#include "Lights.h"
+
 #include <fstream>
+class Lights;
+class Camera;
+
 class ShaderProgram
 {
 public:

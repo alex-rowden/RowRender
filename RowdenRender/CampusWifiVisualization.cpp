@@ -1,14 +1,7 @@
 #pragma once
 #include "RowRender.h"
 #include "WifiData.h"
-#include "Window.h"
-#include "Shape.h"
-#include "Mesh.h"
-#include "Lights.h"
-#include "ShaderProgram.h"
-#include "Texture2D.h"
-#include "Model.h"
-//#include <tinyxml2.h>
+
 #include <random>
 #include <fstream>
 #include <iostream>
@@ -17,7 +10,10 @@
 #include <direct.h>
 #include <functional>
 #include <glm/gtc/matrix_access.hpp>
+#include <windows.h>
 #include "GaussianLoader.h"
+
+
 
 #define MAX(a,b) a<b? b:a
 #define MIN(a,b) a<b? a:b
@@ -40,7 +36,7 @@ bool show_heatmap = false;
 bool animated = false;
 const char* animation_file = "choreo.txt";
 float speed = 1/150.0f;
-glm::vec2 resolution = glm::vec2(2560, 1440);
+
 glm::vec3 rand_dim = glm::vec3(50, 50, 50);
 
 GLuint volume_textureId, depth_mask_id, normal_textureId, max_volumeId;
@@ -82,73 +78,7 @@ void updateIsoRangeVolume(std::vector<unsigned char> volume, glm::uvec3 dimensio
 	}
 }
 
-//any old render function
-void render(Model mesh, ShaderProgram *sp) {
-	
-	for (Mesh* m : mesh.getMeshes()) {
-		m->Render(sp);
-	}
-}
 
-void error_callback(int error, const char* description)
-{
-	fprintf(stderr, "Error: %s\n", description);
-}
-
-#include <windows.h>
-/*
-std::string getexepath()
-{
-	char result[MAX_PATH];
-	return std::string(result, GetModuleFileName(NULL, result, MAX_PATH));
-}
-*/
-void MessageCallback(GLenum source,
-	GLenum type,
-	GLuint id,
-	GLenum severity,
-	GLsizei length,
-	const GLchar* message,
-	const void* userParam)
-{
-	// ignore non-significant error/warning codes
-	if (id == 131169 || id == 131185 || id == 131218 || id == 131204 || id == 131154) return;
-
-	std::cout << "---------------" << std::endl;
-	std::cout << "Debug message (" << id << "): " << message << std::endl;
-
-	switch (source)
-	{
-	case GL_DEBUG_SOURCE_API:             std::cout << "Source: API"; break;
-	case GL_DEBUG_SOURCE_WINDOW_SYSTEM:   std::cout << "Source: Window System"; break;
-	case GL_DEBUG_SOURCE_SHADER_COMPILER: std::cout << "Source: Shader Compiler"; break;
-	case GL_DEBUG_SOURCE_THIRD_PARTY:     std::cout << "Source: Third Party"; break;
-	case GL_DEBUG_SOURCE_APPLICATION:     std::cout << "Source: Application"; break;
-	case GL_DEBUG_SOURCE_OTHER:           std::cout << "Source: Other"; break;
-	} std::cout << std::endl;
-
-	switch (type)
-	{
-	case GL_DEBUG_TYPE_ERROR:               std::cout << "Type: Error"; break;
-	case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: std::cout << "Type: Deprecated Behaviour"; break;
-	case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:  std::cout << "Type: Undefined Behaviour"; break;
-	case GL_DEBUG_TYPE_PORTABILITY:         std::cout << "Type: Portability"; break;
-	case GL_DEBUG_TYPE_PERFORMANCE:         std::cout << "Type: Performance"; break;
-	case GL_DEBUG_TYPE_MARKER:              std::cout << "Type: Marker"; break;
-	case GL_DEBUG_TYPE_PUSH_GROUP:          std::cout << "Type: Push Group"; break;
-	case GL_DEBUG_TYPE_POP_GROUP:           std::cout << "Type: Pop Group"; break;
-	case GL_DEBUG_TYPE_OTHER:               std::cout << "Type: Other"; break;
-	} std::cout << std::endl;
-
-	switch (severity)
-	{
-	case GL_DEBUG_SEVERITY_HIGH:         std::cout << "Severity: high"; break;
-	case GL_DEBUG_SEVERITY_MEDIUM:       std::cout << "Severity: medium"; break;
-	case GL_DEBUG_SEVERITY_LOW:          std::cout << "Severity: low"; break;
-	case GL_DEBUG_SEVERITY_NOTIFICATION: std::cout << "Severity: notification"; break;
-	} std::cout << std::endl;
-	std::cout << std::endl;
-}
 
 void LoadCampusModel(Model *completeCampus) {
 	completeCampus->addModel(new Model("Content/Models/Buildings/campus.fbx"));
@@ -187,19 +117,7 @@ glm::vec3 vertexInterp(float isolevel, glm::vec3 p0, glm::vec3 p1, float f0, flo
 	float t = (isolevel - f0) / (f1 - f0);
 	return glm::lerp(p0, p1, t);
 }
-void setupDearIMGUI(GLFWwindow *window) {
-	IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
-	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 
-	// Setup Dear ImGui style
-	ImGui::StyleColorsDark();
-	ImGui_ImplGlfw_InitForOpenGL(window, true);
-	ImGui_ImplOpenGL3_Init("#version 330");
-	return;
-}
 
 unsigned char getMax(long column, std::vector<unsigned char>& intensities, int skip, int numSlices) {
 	unsigned char max = intensities.at(column);
@@ -225,7 +143,7 @@ bool overlap(glm::vec2 a, glm::vec2 b) {
 
 
 int CampusWifiVisualization() {
-
+	glm::vec2 resolution = glm::vec2(2560, 1440);
 	clock_t start = clock();
 	std::vector<short> normal_x, normal_y;
 	std::vector<float> use_intensities, max_volume;
@@ -245,7 +163,7 @@ int CampusWifiVisualization() {
 		std::mt19937(seed));  // mt19937 is a standard mersenne_twister_engin
 	glfwInit();
 	glfwSetErrorCallback(error_callback);
-	Window w = Window("Better Window", resolution.x, resolution.y);
+	Window w = Window("Campus Wifi Visualization", resolution.x, resolution.y);
 	w.setFullScreen(true);
 
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) //load GLAD
@@ -958,7 +876,7 @@ int CampusWifiVisualization() {
 		void* data;
 		if (false) {
 			// Make the BYTE array, factor of 3 because it's RBG.
-			BYTE* pixels = new BYTE[3 * w.width * w.height];
+			unsigned char* pixels = new unsigned char[3 * w.width * w.height];
 
 			glReadPixels(0, 0, w.width, w.height, GL_RGB, GL_UNSIGNED_BYTE, pixels);
 			stbi_flip_vertically_on_write(true);

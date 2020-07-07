@@ -1,5 +1,6 @@
 #pragma once
 #include "RowRender.h"
+
 class Camera
 {
 public:
