@@ -1,6 +1,6 @@
 lon_range = min(Longitude):.00001:max(Longitude);
 lat_range = min(Latitude):.00001:max(Latitude);
-sig_data = ones(length(lon_range), length(lat_range)) * -100;
+sig_data = zeros(length(lon_range), length(lat_range));
 sig_datas = containers.Map('all', sig_data);
 for index=1:size(bssid_tables, 2)  
     vals = bssid_tables(index).gaussian;
@@ -10,7 +10,7 @@ for index=1:size(bssid_tables, 2)
     if vals.sigma == -1
         vals.sigma = avg_sigma / count;
     end
-    z = 10 * log10(gaussian(lon_range, lat_range, vals.sigma, vals.mu_x, vals.mu_y, vals.amplitude));
+    z = gaussian(lon_range, lat_range, vals.sigma, vals.mu_x, vals.mu_y, vals.amplitude);
     key = int2str(bssid_tables(index).table.Frequency(1));
     if sig_datas.isKey(key)
         sig_datas(key) = max(sig_datas(key), z);
