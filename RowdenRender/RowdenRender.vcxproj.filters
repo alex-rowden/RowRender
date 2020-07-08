@@ -84,6 +84,9 @@
     <ClCompile Include="RowRender.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="AVWWifiData.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Window.h">
@@ -162,6 +165,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="AVWilliamsWifiVisualization.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AVWWifiData.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

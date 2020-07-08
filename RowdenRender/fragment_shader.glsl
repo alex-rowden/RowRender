@@ -111,5 +111,5 @@ void main()
 	}for (int i = 0; i < NR_DIR_LIGHTS; i++) {
 		color += CalcDirLight(dirLights[i], norm, FragPos, viewDir);
 	}
-	FragColor = vec4(color, 1.0);
+	FragColor = vec4(color, .8);
 }

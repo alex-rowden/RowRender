@@ -27,6 +27,7 @@
     <ClCompile Include="..\..\imgui\imgui_draw.cpp" />
     <ClCompile Include="..\..\imgui\imgui_widgets.cpp" />
     <ClCompile Include="AVWilliamsWifiVisualization.cpp" />
+    <ClCompile Include="AVWWifiData.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="GaussianLoader.cpp" />
     <ClCompile Include="Lights.cpp" />
@@ -52,6 +53,7 @@
     <ClInclude Include="..\..\imgui\imstb_textedit.h" />
     <ClInclude Include="..\..\imgui\imstb_truetype.h" />
     <ClInclude Include="AVWilliamsWifiVisualization.h" />
+    <ClInclude Include="AVWWifiData.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="CampusWifiVisualization.h" />
     <ClInclude Include="common.h" />
