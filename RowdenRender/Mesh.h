@@ -19,6 +19,7 @@ public:
 	void setTexture(Texture2D tex, int index);
 	void SetAsLight() { is_light = true; }
 	void SetInstanceTransforms(std::vector<glm::mat4>);
+	void SetInstanceTransforms(std::vector<glm::mat4>, std::vector<int>);
 	void Render(ShaderProgram *shader);
 	bool isLight() { return is_light; }
 
@@ -36,6 +37,6 @@ private:
 	std::vector<float> normals;
 	std::vector<float> texCoords;
 	std::vector<Texture2D> textures;
-	unsigned int VertexBufferObject, VertexArrayObject, IndexBufferArray, NormalBuffer, TexCoordBuffer, matrixBuffer;
+	unsigned int VertexBufferObject, VertexArrayObject, IndexBufferArray, NormalBuffer, TexCoordBuffer, matrixBuffer, colorBuffer;
 };
 

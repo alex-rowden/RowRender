@@ -161,6 +161,7 @@ int AVWilliamsWifiVisualization() {
 		//render wifi instances
 		instance_shader.Use();
 		std::vector<glm::mat4> wifi_transforms = wifi.getTransforms(wifinames, routers, wifi_scale);
+		//std::vector<int> wifi_color_indices = wifi.getColorIndices();
 		Cube.getMeshes().at(0)->SetInstanceTransforms(wifi_transforms);
 		instance_shader.SetUniform4fv("projection", camera.getProjection());
 		instance_shader.SetUniform4fv("view", camera.getView());

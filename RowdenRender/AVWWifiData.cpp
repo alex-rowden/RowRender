@@ -146,6 +146,7 @@ inline int AVWWifiData::findIndexToEntry(std::string wifiname) {
 
 std::vector<glm::mat4> AVWWifiData::getTransforms(std::vector<bool> wifinames, std::vector<bool> routers, glm::vec3 scale) {
 	std::vector<glm::mat4> out;
+	color_indices = std::vector<int>();
 	int wifinum = 0;
 	for (auto NameToMacToEntries : wifiNameToMacToEntries) {
 		if (!wifinames.at(wifinum++))
@@ -159,6 +160,7 @@ std::vector<glm::mat4> AVWWifiData::getTransforms(std::vector<bool> wifinames, s
 				float size = ((Entries.RSSI + 100) / 50.0f);
 				glm::mat4 translation = glm::translate(glm::mat4(1), glm::vec3(Entries.location.y * scale.x, Entries.location.x * scale.y, Entries.floor * scale.z));
 				out.push_back(glm::scale(translation, glm::vec3(size)));
+				color_indices.push_back(wifinum);
 			}
 		}
 	}
