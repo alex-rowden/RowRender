@@ -22,6 +22,9 @@ GLFWwindow* Window::getWindow() {
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
 	glViewport(0, 0, width, height);
+	Window* this_window = (Window*)glfwGetWindowUserPointer(window);
+	this_window->width = width;
+	this_window->height = height;
 }
 
 void standard_mouse_callback(GLFWwindow* window, double xpos, double ypos) {
@@ -160,7 +163,7 @@ void Window::SetVersion(int version_major, int version_minor) {
 }
 
 void Window::SetFramebuferSizeCallback() {
-	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback); //Set framebuffer callback
+	glfwSetWindowSizeCallback(window, framebuffer_size_callback); //Set framebuffer callback
 }
 
 void Window::SetVersion(float version) {
@@ -169,12 +172,15 @@ void Window::SetVersion(float version) {
 
 void Window::setFullScreen(bool set) {
 	const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+	width = mode->width;
+	height = mode->height;
 	if(set)
 		glfwSetWindowMonitor(window, glfwGetPrimaryMonitor(), 0, 0, mode->width, mode->height, mode->refreshRate);
 	else {
 		glfwSetWindowMonitor(window, NULL, 0, 0, mode->width, mode->height, mode->refreshRate);
 
 	}
+	
 }
 
 bool Window::makeWindow(int width, int height, std::string title) {

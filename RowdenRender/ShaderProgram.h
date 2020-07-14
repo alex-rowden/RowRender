@@ -16,7 +16,8 @@ public:
 		INSTANCE_FRAG, INSTANCE_VERT,
 		VOLUME_FRAG, VOLUME_VERT,
 		FRONT_BACK_FRAG, FRONT_BACK_VERT, 
-		SIGNED_DISTANCE_FRAG};
+		SIGNED_DISTANCE_FRAG,
+		FRONT_FRAG, BACK_FRAG};
 	void SetupShader(Shaders shader);
 	ShaderProgram() {};
 	ShaderProgram(std::vector<Shaders> shaders);

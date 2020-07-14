@@ -143,7 +143,7 @@ bool overlap(glm::vec2 a, glm::vec2 b) {
 
 
 int CampusWifiVisualization() {
-	glm::vec2 resolution = glm::vec2(2560, 1440);
+	glm::vec2 resolution = glm::vec2(0, 0);
 	clock_t start = clock();
 	std::vector<short> normal_x, normal_y;
 	std::vector<float> use_intensities, max_volume;
@@ -164,8 +164,8 @@ int CampusWifiVisualization() {
 	glfwInit();
 	glfwSetErrorCallback(error_callback);
 	Window w = Window("Campus Wifi Visualization", resolution.x, resolution.y);
-	w.setFullScreen(true);
-
+	//w.setFullScreen(true);
+	resolution = glm::vec2(w.width, w.height);
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) //load GLAD
 	{
 		std::cout << "Failed to initialize GLAD" << std::endl;
@@ -196,7 +196,8 @@ int CampusWifiVisualization() {
 		volume_shader = ShaderProgram({ ShaderProgram::Shaders::VOLUME_FRAG, ShaderProgram::Shaders::VOLUME_VERT });
 	else
 		volume_shader = ShaderProgram({ ShaderProgram::Shaders::SIGNED_DISTANCE_FRAG, ShaderProgram::Shaders::VOLUME_VERT });
-	ShaderProgram front_back_shader = ShaderProgram({ ShaderProgram::Shaders::FRONT_BACK_FRAG, ShaderProgram::Shaders::FRONT_BACK_VERT });
+	ShaderProgram back_shader = ShaderProgram({ ShaderProgram::Shaders::BACK_FRAG, ShaderProgram::Shaders::FRONT_BACK_VERT });
+	ShaderProgram front_shader = ShaderProgram({ ShaderProgram::Shaders::FRONT_FRAG, ShaderProgram::Shaders::FRONT_BACK_VERT });
 	//mesh.SetData();
 	//
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
@@ -598,6 +599,10 @@ int CampusWifiVisualization() {
 		glClearColor(135 / 255.0f, 206 / 255.0f, 235 / 255.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glfwPollEvents();
+		const GLFWvidmode *mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+		resolution = glm::vec2(mode->width, mode->height);
+		//w.setFullScreen(true);
+		
 		bool cameraMoved = camera.getMoved();
 		camera.setMoved(false);
 
@@ -787,6 +792,7 @@ int CampusWifiVisualization() {
 		sp.SetUniform4fv("projection", camera.getProjection(zNear, zFar));
 		sp.SetLights(lights);
 		sp.SetUniform3f("view", camera.getPosition());
+		sp.SetUniform1f("transparency", 1.0f);
 		render(model, &sp);
 		if (BENCHMARK) {
 			std::cout << "Render Campus Model " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
@@ -834,23 +840,29 @@ int CampusWifiVisualization() {
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 		
-		front_back_shader.Use();
+		front_shader.Use();
 		glm::vec3 volume_scale = glm::vec3(campus_dim.x * .5 * .856, campus_dim.y * .6 * 1.047, volume_z);
 		glm::mat4 scale = glm::scale(glm::mat4(1), volume_scale * w.scale);
 		glm::vec3 volume_bottom = glm::vec3(6.258 , -3.083 , volume_z / 2.0f - .5);
 		glm::mat4 translate = glm::translate(glm::mat4(1), w.translate + volume_bottom);
 		
-		front_back_shader.SetUniform4fv("model", translate * scale);
-		front_back_shader.SetUniform4fv("camera", camera.getView());
-		front_back_shader.SetUniform4fv("projection", camera.getProjection(fcp, zFar));
+		front_shader.SetUniform4fv("model", translate * scale);
+		front_shader.SetUniform4fv("camera", camera.getView());
+		front_shader.SetUniform4fv("projection", camera.getProjection(fcp, zFar));
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_BACK);
-		front_back_shader.SetUniform1i("front", 1);
-		render(volume_cube, &front_back_shader);
+		front_shader.SetUniform1i("front", 1);
+		render(volume_cube, &front_shader);
 		glClear( GL_DEPTH_BUFFER_BIT);
+		back_shader.Use();
+
+		back_shader.SetUniform4fv("model", translate * scale);
+		back_shader.SetUniform4fv("camera", camera.getView());
+		back_shader.SetUniform4fv("projection", camera.getProjection(fcp, zFar));
 		glCullFace(GL_FRONT);
-		front_back_shader.SetUniform1i("front", 0);
-		render(volume_cube, &front_back_shader);
+		back_shader.SetUniform1i("front", -1);
+		render(volume_cube, &back_shader);
+
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glDisable(GL_CULL_FACE);
 		volume_shader.Use();
@@ -865,6 +877,9 @@ int CampusWifiVisualization() {
 		volume_shader.SetUniform3f("volume_size", volume_scale);
 		volume_shader.SetUniform3f("volume_bottom", volume_bottom);
 		render(RayTraced, &volume_shader);
+		glBindFramebuffer(GL_FRAMEBUFFER, fb);
+		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		
 		if (BENCHMARK) {
 			std::cout << "Render Volume to Screen " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;

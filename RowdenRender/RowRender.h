@@ -37,6 +37,8 @@ void error_callback(int error, const char* description);
 
 void setupDearIMGUI(GLFWwindow* window);
 
+inline float rand_float() {return static_cast<float>(rand()) / static_cast <float> (RAND_MAX);}
+
 /*
 std::string getexepath()
 {

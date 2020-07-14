@@ -24,6 +24,8 @@ ShaderProgram::ShaderProgram(std::vector<Shaders> shaders) {
 		case Shaders::VOLUME_FRAG:
 		case Shaders::FRONT_BACK_FRAG:
 		case Shaders::SIGNED_DISTANCE_FRAG:
+		case Shaders::FRONT_FRAG:
+		case Shaders::BACK_FRAG:
 			glAttachShader(shaderProgram, fragmentShader);
 			break;
 		}
@@ -219,6 +221,12 @@ void ShaderProgram::program_error_check(Shaders shader) {
 		case Shaders::SIGNED_DISTANCE_FRAG:
 			filename = "signed_distance_fragment.glsl";
 			break;
+		case Shaders::FRONT_FRAG:
+			filename = "front_fshader.glsl";
+			break;
+		case Shaders::BACK_FRAG:
+			filename = "back_fshader.glsl";
+			break;
 		default:
 			throw "Not a valid shader";
 		}
@@ -279,6 +287,12 @@ void ShaderProgram::importShaderFile(Shaders shader, std::string *ShaderString) 
 		break;
 	case Shaders::SIGNED_DISTANCE_FRAG:
 		filename = "signed_distance_fragment.glsl";
+		break;
+	case Shaders::FRONT_FRAG:
+		filename = "front_fshader.glsl";
+		break;
+	case Shaders::BACK_FRAG:
+		filename = "back_fshader.glsl";
 		break;
 	default:
 		throw "Not a valid shader";
@@ -374,6 +388,14 @@ void ShaderProgram::shader_error_check(Shaders shader) {
 		shader_name = "SIGNED_DISTANCE_FRAGMENT_SHADER";
 		shader_adr = &fragmentShader;
 		break;
+	case Shaders::FRONT_FRAG:
+		shader_name = "FRONT_FRAGMENT_SHADER";
+		shader_adr = &fragmentShader;
+		break;
+	case Shaders::BACK_FRAG:
+		shader_name = "BACK_FRAGMENT_SHADER";
+		shader_adr = &fragmentShader;
+		break;
 	default:
 		throw("Missing definition for shader in shader_error_check");
 	}
@@ -414,6 +436,8 @@ void ShaderProgram::SetupShader(Shaders shader) {
 	case Shaders::VOLUME_FRAG:
 	case Shaders::FRONT_BACK_FRAG:
 	case Shaders::SIGNED_DISTANCE_FRAG:
+	case Shaders::FRONT_FRAG:
+	case Shaders::BACK_FRAG:
 		fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 		glShaderSource(fragmentShader, 1, &shader_source, NULL);
 		glCompileShader(fragmentShader);

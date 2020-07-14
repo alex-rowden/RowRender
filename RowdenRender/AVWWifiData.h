@@ -27,5 +27,7 @@ public:
 	void setAvailableMacs(std::vector<std::string> names);
 	std::vector<std::string>getAvailablesMacs() { return available_macs; }
 	void setWifiNames();
+	void fillRouters(std::string wifiname, std::vector<bool> &routers, bool onoff);
+	inline int findIndexToEntry(std::string wifiname);
 };
 

@@ -236,5 +236,11 @@
     <None Include="signed_distance_fragment.glsl">
       <Filter>Source Files\Shaders</Filter>
     </None>
+    <None Include="back_fshader.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="front_fshader.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

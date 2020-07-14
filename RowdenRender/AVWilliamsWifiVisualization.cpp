@@ -107,15 +107,26 @@ int AVWilliamsWifiVisualization() {
 	wifi.loadWifi("./Content/Data/AVW3.txt", "3");
 	wifi.loadWifi("./Content/Data/AVW4.txt", "4");
 	wifi.setWifiNames();
+	std::vector<glm::vec4> wifi_colors = std::vector<glm::vec4>(wifi.getNumWifiNames());
+	for (int i = 0; i < wifi.getNumWifiNames(); i++) {
+		wifi_colors[i] = glm::vec4(rand_float(), rand_float(), rand_float(), 1);
+	}
+	int wifi_dim = (int)sqrt(wifi.getNumWifiNames());
+	int wifi_other_dim = ceil(wifi.getNumWifiNames() / wifi_dim);
+	for (int i = wifi.getNumWifiNames(); i < wifi_dim * wifi_other_dim; i++)
+		wifi_colors[i] = glm::vec4(0);
+	Texture2D wifi_tex = Texture2D(&wifi_colors, wifi_dim, wifi_other_dim);
+	Cube.getMeshes().at(0)->setTexture(wifi_tex, 0);
 
 	//Setup ImGUI variables
 	glm::vec3 wifi_scale = glm::vec3(30, 34.792, 1);
 	glm::vec3 wifi_translate = glm::vec3(-15., -16.042, -.833);
 	static std::vector<bool> wifinames(wifi.getNumWifiNames());
+	std::fill(wifinames.begin(), wifinames.end(), true);
 	wifi.setAvailableMacs(wifi.getSelectedNames(wifinames));
 	
 	static std::vector<bool> routers(wifi.getAvailablesMacs().size());
-	std::fill(wifinames.begin(), wifinames.end(), true);
+	
 	std::fill(routers.begin(), routers.end(), true);
 
 	glEnable(GL_DEPTH_TEST);
@@ -141,19 +152,24 @@ int AVWilliamsWifiVisualization() {
 		model_shader.SetUniform4fv("projection", camera.getProjection());
 		model_shader.SetLights(lights);
 		model_shader.SetUniform3f("viewPos", camera.getPosition());
-
+		model_shader.SetUniform1f("transparency", .9);
+		
+		//glDepthMask(GL_FALSE);
 		render(AVW, &model_shader);
+		//glDepthMask(GL_TRUE);
 		glClear(GL_DEPTH_BUFFER_BIT);
 		//render wifi instances
 		instance_shader.Use();
-		Cube.getMeshes().at(0)->SetInstanceTransforms(wifi.getTransforms(wifinames, routers, wifi_scale));
+		std::vector<glm::mat4> wifi_transforms = wifi.getTransforms(wifinames, routers, wifi_scale);
+		Cube.getMeshes().at(0)->SetInstanceTransforms(wifi_transforms);
 		instance_shader.SetUniform4fv("projection", camera.getProjection());
 		instance_shader.SetUniform4fv("view", camera.getView());
 		//wifi_transform = glm::scale(glm::mat4(1), wifi_scale);
 		wifi_transform = glm::translate(glm::mat4(1), wifi_translate);
 		instance_shader.SetUniform4fv("transform", wifi_transform);
 		instance_shader.SetUniform4fv("model_transform", glyph_transform);
-		render(Cube, &instance_shader);
+		if(wifi_transforms.size() > 0)
+			render(Cube, &instance_shader);
 
 		//Render ImGUI
 
@@ -165,13 +181,19 @@ int AVWilliamsWifiVisualization() {
 		ImGui::SliderFloat3("wifi translate", glm::value_ptr(wifi_translate), 0, -20);
 		if (ImGui::TreeNode("Wifi Names")) {
 			for (int i = 0; i < wifinames.size(); i++) {
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(wifi_colors.at(i).r, wifi_colors.at(i).g, wifi_colors.at(i).b, wifi_colors.at(i).a));
 				if (ImGui::Selectable(wifi.getWifiName(i).c_str(), wifinames.at(i)))
 				{
 					if (!ImGui::GetIO().KeyCtrl) {    // Clear selection when CTRL is not held
 						std::fill(wifinames.begin(), wifinames.end(), false);
 					}
 					wifinames.at(i) = !wifinames.at(i);
+					if (!wifinames.at(i))
+						wifi.fillRouters(wifi.getWifiName(i).c_str(), routers, false);
+					else
+						wifi.fillRouters(wifi.getWifiName(i).c_str(), routers, true);
 				}
+				ImGui::PopStyleColor();
 			}
 			ImGui::TreePop();
 		}if (ImGui::TreeNode("Routers")) {
@@ -186,6 +208,7 @@ int AVWilliamsWifiVisualization() {
 			}
 			ImGui::TreePop();
 		}
+		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 		ImGui::End();
 		ImGui::Render();
 

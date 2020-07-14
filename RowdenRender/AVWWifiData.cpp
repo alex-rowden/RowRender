@@ -133,10 +133,15 @@ void AVWWifiData::setAvailableMacs(std::vector<std::string> names) {
 std::vector<std::string>AVWWifiData::getSelectedNames(std::vector<bool>names) {
 	std::vector<std::string> out;
 	for (int i = 0; i < names.size(); i++) {
-		if (names.at(i));
+		if (names.at(i))
 			out.emplace_back(getWifiName(i));
 	}
 	return out;
+}
+
+inline int AVWWifiData::findIndexToEntry(std::string wifiname) {
+	return std::distance(available_macs.begin(), std::find(available_macs.begin(), available_macs.end(), wifiname));
+
 }
 
 std::vector<glm::mat4> AVWWifiData::getTransforms(std::vector<bool> wifinames, std::vector<bool> routers, glm::vec3 scale) {
@@ -144,11 +149,11 @@ std::vector<glm::mat4> AVWWifiData::getTransforms(std::vector<bool> wifinames, s
 	int wifinum = 0;
 	for (auto NameToMacToEntries : wifiNameToMacToEntries) {
 		if (!wifinames.at(wifinum++))
-			break;
+			continue;
 		for (auto MacToEntries : NameToMacToEntries.second) {
-			int index = std::distance(available_macs.begin(), std::find(available_macs.begin(), available_macs.end(), MacToEntries.first));
+			int index = findIndexToEntry(MacToEntries.first);
 			if (!routers.at(index)) {
-				break;
+				continue;
 			}
 			for (auto Entries : MacToEntries.second) {
 				float size = ((Entries.RSSI + 100) / 50.0f);
@@ -163,4 +168,13 @@ std::vector<glm::mat4> AVWWifiData::getTransforms(std::vector<bool> wifinames, s
 void AVWWifiData::setWifiNames() {
 	for (auto element : wifiNameToMacToEntries)
 		wifinames.emplace_back(element.first);
+	return;
+}
+
+void AVWWifiData::fillRouters(std::string wifiname, std::vector<bool> &routers, bool onoff){
+	for (auto elem : wifiNameToMacToEntries[wifiname]) {
+		int index = findIndexToEntry(elem.first);
+		routers.at(index) = onoff;
+	}
+	return;
 }

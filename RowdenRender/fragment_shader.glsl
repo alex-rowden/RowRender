@@ -33,6 +33,7 @@ uniform sampler2D texture_specular9;
 uniform sampler2D texture_specular10;
 uniform float ambient_coeff, diffuse_coeff, spec_coeff;
 uniform int shininess;
+uniform float transparency;
 
 
 #define NR_POINT_LIGHTS 0 
@@ -111,5 +112,5 @@ void main()
 	}for (int i = 0; i < NR_DIR_LIGHTS; i++) {
 		color += CalcDirLight(dirLights[i], norm, FragPos, viewDir);
 	}
-	FragColor = vec4(color, .8);
+	FragColor = vec4(color, transparency);
 }

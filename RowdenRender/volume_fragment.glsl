@@ -1,6 +1,6 @@
 //FRAGMENT SHADER
 
-#version 420 core
+#version 330 core
 
 out vec4 FragColor;
 
@@ -72,6 +72,8 @@ float sdot(vec2 sincosa, vec2 sincosnorm, float a, float phi) {
 void main() {
 	vec3 front = (texture(fhp, TexCoord).xyz);
 	vec3 back = (texture(bhp, TexCoord).xyz);
+	//FragColor = vec4(front, 1);
+	//return;
 	//vec3 view_dir = vec3(0);
 	vec3 start = vec3(0);
 	vec3 end = vec3(0);
@@ -114,7 +116,7 @@ void main() {
 	//FragColor = vec4(1, 0, 1, .3);
 	//return;
 	float nextDistance = upperBoundStep;
-	bool above_arr[6] = { false, false, false, false, false, false };
+	bool above_arr[6] = bool[6]( false, false, false, false, false, false);
 	bool above = false;
 	bool firstStep = true;
 	bool lastStep = false;
