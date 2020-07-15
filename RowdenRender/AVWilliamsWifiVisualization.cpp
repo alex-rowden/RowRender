@@ -115,6 +115,7 @@ int AVWilliamsWifiVisualization() {
 	
 	Texture2D wifi_tex = Texture2D(&wifi_colors, wifi_colors.size(), 1);
 	wifi_tex.setTexMinMagFilter(GL_NEAREST, GL_NEAREST);
+	wifi_tex.setTexParameterWrap(GL_CLAMP, GL_CLAMP);
 	std::vector<glm::mat4> wifi_transforms;
 	Cube.getMeshes().at(0)->setTexture(wifi_tex, 0);
 
