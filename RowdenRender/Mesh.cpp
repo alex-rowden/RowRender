@@ -91,8 +91,12 @@ void Mesh::SetColors(std::vector<glm::vec4> _colors) {
 }
 
 void Mesh::SetInstanceTransforms(std::vector<glm::mat4> transforms) {
+	if (first_render) {
+		glGenBuffers(1, &matrixBuffer);
+		first_render = false;
+	}
 	num_instances = transforms.size();
-	glGenBuffers(1, &matrixBuffer);
+	
 	glBindBuffer(GL_ARRAY_BUFFER, matrixBuffer);
 	glBufferData(GL_ARRAY_BUFFER, transforms.size() * sizeof(glm::mat4), &transforms[0], GL_STATIC_DRAW);
 
@@ -116,9 +120,13 @@ void Mesh::SetInstanceTransforms(std::vector<glm::mat4> transforms) {
 	glBindVertexArray(0);
 }
 
-void Mesh::SetInstanceTransforms(std::vector<glm::mat4> transforms, std::vector<int> color_indices) {
+void Mesh::SetInstanceTransforms(std::vector<glm::mat4> transforms, std::vector<float> color_indices) {
+	if (first_render) {
+		glGenBuffers(1, &matrixBuffer);
+		glGenBuffers(1, &colorBuffer);
+		first_render = false;
+	}
 	num_instances = transforms.size();
-	glGenBuffers(1, &matrixBuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, matrixBuffer);
 	glBufferData(GL_ARRAY_BUFFER, transforms.size() * sizeof(glm::mat4), &transforms[0], GL_STATIC_DRAW);
 
@@ -142,13 +150,15 @@ void Mesh::SetInstanceTransforms(std::vector<glm::mat4> transforms, std::vector<
 	glVertexAttribDivisor(5, 1);
 	glVertexAttribDivisor(6, 1);
 
-	glGenBuffers(1, &colorBuffer);
+
 	glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
-	glBufferData(GL_ARRAY_BUFFER, color_indices.size() * sizeof(int), &color_indices[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, color_indices.size() * sizeof(float), &color_indices[0], GL_STATIC_DRAW);
 
 	glEnableVertexAttribArray(7);
-	glVertexAttribPointer(7, 1, GL_INT, GL_FALSE, sizeof(int), (void*)0);
+	glVertexAttribPointer(7, 1, GL_FLOAT, GL_FALSE, 0,(void*)0);
 	glVertexAttribDivisor(7, 1);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	glBindVertexArray(0);
 }

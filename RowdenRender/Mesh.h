@@ -19,7 +19,7 @@ public:
 	void setTexture(Texture2D tex, int index);
 	void SetAsLight() { is_light = true; }
 	void SetInstanceTransforms(std::vector<glm::mat4>);
-	void SetInstanceTransforms(std::vector<glm::mat4>, std::vector<int>);
+	void SetInstanceTransforms(std::vector<glm::mat4>, std::vector<float>);
 	void Render(ShaderProgram *shader);
 	bool isLight() { return is_light; }
 
@@ -29,6 +29,7 @@ public:
 	std::vector<Texture2D> getTextures() { return textures; };
 	std::vector<unsigned int> getIndices() { return indices; }
 private:
+	bool first_render = true;
 	bool is_light = false;
 	int num_instances = 0;
 	std::vector<float> verticies;

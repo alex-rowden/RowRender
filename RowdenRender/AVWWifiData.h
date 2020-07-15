@@ -15,7 +15,7 @@ private:
 	std::map<std::string, std::map<std::string, std::vector<WifiDataEntry>>> wifiNameToMacToEntries;
 	std::vector<std::string> available_macs;
 	std::vector<std::string> wifinames;
-	std::vector<int> color_indices;
+	std::vector<float> color_indices;
 	int numRouters = 0;
 public:
 
@@ -30,7 +30,7 @@ public:
 	void setWifiNames();
 	void fillRouters(std::string wifiname, std::vector<bool> &routers, bool onoff);
 	inline int findIndexToEntry(std::string wifiname);
-	std::vector<int> getColorIndices() { return color_indices; }
+	std::vector<float> getColorIndices() { return color_indices; }
 
 };
 

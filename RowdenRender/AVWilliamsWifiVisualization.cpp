@@ -111,11 +111,11 @@ int AVWilliamsWifiVisualization() {
 	for (int i = 0; i < wifi.getNumWifiNames(); i++) {
 		wifi_colors[i] = glm::vec4(rand_float(), rand_float(), rand_float(), 1);
 	}
-	int wifi_dim = (int)sqrt(wifi.getNumWifiNames());
-	int wifi_other_dim = ceil(wifi.getNumWifiNames() / wifi_dim);
-	for (int i = wifi.getNumWifiNames(); i < wifi_dim * wifi_other_dim; i++)
-		wifi_colors[i] = glm::vec4(0);
-	Texture2D wifi_tex = Texture2D(&wifi_colors, wifi_dim, wifi_other_dim);
+	//int wifi_dim = (int)sqrt(wifi.getNumWifiNames());
+	
+	Texture2D wifi_tex = Texture2D(&wifi_colors, wifi_colors.size(), 1);
+	wifi_tex.setTexMinMagFilter(GL_NEAREST, GL_NEAREST);
+	std::vector<glm::mat4> wifi_transforms;
 	Cube.getMeshes().at(0)->setTexture(wifi_tex, 0);
 
 	//Setup ImGUI variables
@@ -126,6 +126,7 @@ int AVWilliamsWifiVisualization() {
 	wifi.setAvailableMacs(wifi.getSelectedNames(wifinames));
 	
 	static std::vector<bool> routers(wifi.getAvailablesMacs().size());
+	float transparency = .5;
 	
 	std::fill(routers.begin(), routers.end(), true);
 
@@ -152,7 +153,7 @@ int AVWilliamsWifiVisualization() {
 		model_shader.SetUniform4fv("projection", camera.getProjection());
 		model_shader.SetLights(lights);
 		model_shader.SetUniform3f("viewPos", camera.getPosition());
-		model_shader.SetUniform1f("transparency", .9);
+		model_shader.SetUniform1f("transparency", transparency);
 		
 		//glDepthMask(GL_FALSE);
 		render(AVW, &model_shader);
@@ -160,9 +161,10 @@ int AVWilliamsWifiVisualization() {
 		glClear(GL_DEPTH_BUFFER_BIT);
 		//render wifi instances
 		instance_shader.Use();
-		std::vector<glm::mat4> wifi_transforms = wifi.getTransforms(wifinames, routers, wifi_scale);
-		//std::vector<int> wifi_color_indices = wifi.getColorIndices();
-		Cube.getMeshes().at(0)->SetInstanceTransforms(wifi_transforms);
+		wifi_transforms.clear();
+		wifi_transforms = wifi.getTransforms(wifinames, routers, wifi_scale);
+		std::vector<float> wifi_color_indices = wifi.getColorIndices();
+		Cube.getMeshes().at(0)->SetInstanceTransforms(wifi_transforms, wifi_color_indices);
 		instance_shader.SetUniform4fv("projection", camera.getProjection());
 		instance_shader.SetUniform4fv("view", camera.getView());
 		//wifi_transform = glm::scale(glm::mat4(1), wifi_scale);
@@ -178,6 +180,7 @@ int AVWilliamsWifiVisualization() {
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 		ImGui::Begin("Rendering Terms");
+		ImGui::SliderFloat("transparency", &transparency, 0, 1);
 		ImGui::SliderFloat3("wifi scale", glm::value_ptr(wifi_scale), 20, 40);
 		ImGui::SliderFloat3("wifi translate", glm::value_ptr(wifi_translate), 0, -20);
 		if (ImGui::TreeNode("Wifi Names")) {
