@@ -49,7 +49,8 @@ int AVWilliamsWifiVisualization() {
 	//Load shaders
 	ShaderProgram model_shader = ShaderProgram({ ShaderProgram::Shaders::FRAGMENT, ShaderProgram::Shaders::VERTEX });
 	ShaderProgram skybox_shader = ShaderProgram({ ShaderProgram::Shaders::SKY_FRAG, ShaderProgram::Shaders::SKY_VERT });
-	ShaderProgram instance_shader = ShaderProgram({ ShaderProgram::Shaders::INSTANCE_FRAG, ShaderProgram::Shaders::INSTANCE_VERT });
+	ShaderProgram instance_shader = ShaderProgram({ ShaderProgram::Shaders::INSTANCE_FRAG_COLOR, ShaderProgram::Shaders::INSTANCE_VERT_COLOR });
+	ShaderProgram ground_shader = ShaderProgram({ ShaderProgram::Shaders::NO_LIGHT_FRAG, ShaderProgram::Shaders::NO_LIGHT_VERT });
 
 	//Setup Skybox
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
@@ -86,6 +87,14 @@ int AVWilliamsWifiVisualization() {
 	glm::mat4 glyph_transform(1);
 	glyph_transform = glm::scale(glyph_transform, glm::vec3(.1, .1, .1));
 
+	//Setup ground rendering
+	Model quad("./Content/Models/quad/quad_centered.obj");
+	quad.setModel();
+	glm::mat4 ground_transform(1);
+	ground_transform = glm::scale(ground_transform, glm::vec3(15, 19, 2));
+	ground_transform = glm::translate(ground_transform, glm::vec3(0, 0, -.101));
+	//quad.getMeshes().at(0)->setTexture(Texture2D(glm::vec4(50, 38, 24, 255) * (1 / 255.0f)), 0);
+
 	//Setup Camera
 	Camera camera = Camera(glm::vec3(-15, 0, 8), glm::vec3(0, 0, 0), 60.0f, w.width / (float)w.height);
 	w.SetCamera(&camera);
@@ -95,10 +104,17 @@ int AVWilliamsWifiVisualization() {
 	Lights lights = Lights();
 	lights.addDirLight(glm::vec3(-1, .2, .2), glm::vec3(1, 1, 1));
 
+	//send light params to model shader
 	model_shader.SetUniform1f("ambient_coeff", .3);
 	model_shader.SetUniform1f("spec_coeff", .3);
 	model_shader.SetUniform1f("diffuse_coeff", .4);
 	model_shader.SetUniform1i("shininess", 32);
+
+	//send light params to instance shader
+	instance_shader.SetUniform1f("ambient_coeff", .3);
+	instance_shader.SetUniform1f("spec_coeff", .3);
+	instance_shader.SetUniform1f("diffuse_coeff", .4);
+	instance_shader.SetUniform1i("shininess", 32);
 
 	//load avw wifi data
 	AVWWifiData wifi;
@@ -146,6 +162,13 @@ int AVWilliamsWifiVisualization() {
 		render(skybox, &skybox_shader);
 		glDepthMask(GL_TRUE);
 
+		//render ground plane
+		ground_shader.SetUniform4fv("projection", camera.getProjection());
+		ground_shader.SetUniform4fv("camera", camera.getView());
+		ground_shader.SetUniform4fv("model", ground_transform);
+		ground_shader.SetUniform1i("heatmap", 0);
+		render(quad, &ground_shader);
+
 		//render building model
 		model_shader.Use();
 		model_shader.SetUniform4fv("model", avw_transform);
@@ -160,6 +183,7 @@ int AVWilliamsWifiVisualization() {
 		render(AVW, &model_shader);
 		//glDepthMask(GL_TRUE);
 		glClear(GL_DEPTH_BUFFER_BIT);
+
 		//render wifi instances
 		instance_shader.Use();
 		wifi_transforms.clear();
@@ -172,6 +196,9 @@ int AVWilliamsWifiVisualization() {
 		wifi_transform = glm::translate(glm::mat4(1), wifi_translate);
 		instance_shader.SetUniform4fv("transform", wifi_transform);
 		instance_shader.SetUniform4fv("model_transform", glyph_transform);
+		instance_shader.SetUniform3fv("normalMat", glm::mat3(1));
+		instance_shader.SetLights(lights);
+		instance_shader.SetUniform3f("viewPos", camera.getPosition());
 		if(wifi_transforms.size() > 0)
 			render(Cube, &instance_shader);
 
@@ -197,12 +224,13 @@ int AVWilliamsWifiVisualization() {
 						wifi.fillRouters(wifi.getWifiName(i).c_str(), routers, false);
 					else
 						wifi.fillRouters(wifi.getWifiName(i).c_str(), routers, true);
+					wifi.setAvailableMacs(wifi.getSelectedNames(wifinames));
 				}
 				ImGui::PopStyleColor();
 			}
 			ImGui::TreePop();
 		}if (ImGui::TreeNode("Routers")) {
-			wifi.setAvailableMacs(wifi.getSelectedNames(wifinames));
+			
 			for (int i = 0; i < wifi.getAvailablesMacs().size(); i++) {
 				if (ImGui::Selectable(wifi.getAvailablesMacs().at(i).c_str(), routers.at(i)))
 				{

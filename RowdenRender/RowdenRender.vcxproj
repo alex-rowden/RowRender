@@ -81,7 +81,9 @@
     <None Include="front_back_vshader.glsl" />
     <None Include="front_fshader.glsl" />
     <None Include="instance_fshader.glsl" />
+    <None Include="instance_fshader_color.glsl" />
     <None Include="instance_vshader.glsl" />
+    <None Include="instance_vshader_color.glsl" />
     <None Include="light_frag.glsl" />
     <None Include="light_vert.glsl" />
     <None Include="parallelogram.cu" />

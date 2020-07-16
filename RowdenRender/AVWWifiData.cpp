@@ -157,7 +157,7 @@ std::vector<glm::mat4> AVWWifiData::getTransforms(std::vector<bool> wifinames, s
 				continue;
 			}
 			for (auto Entries : MacToEntries.second) {
-				float size = ((Entries.RSSI + 100) / 50.0f);
+				float size = ((Entries.RSSI + 100) / 30.0f);
 				glm::mat4 translation = glm::translate(glm::mat4(1), glm::vec3(Entries.location.y * scale.x, Entries.location.x * scale.y, Entries.floor * scale.z));
 				out.push_back(glm::scale(translation, glm::vec3(size)));
 				color_indices.push_back((float)wifinum/wifiNameToMacToEntries.size());
