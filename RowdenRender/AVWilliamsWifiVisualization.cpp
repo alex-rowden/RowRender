@@ -93,7 +93,7 @@ int AVWilliamsWifiVisualization() {
 	glm::mat4 ground_transform(1);
 	ground_transform = glm::scale(ground_transform, glm::vec3(15, 19, 2));
 	ground_transform = glm::translate(ground_transform, glm::vec3(0, 0, -.101));
-	//quad.getMeshes().at(0)->setTexture(Texture2D(glm::vec4(50, 38, 24, 255) * (1 / 255.0f)), 0);
+	quad.getMeshes().at(0)->setTexture(Texture2D(glm::vec4(50, 50, 50, 255) * (1 / 255.0f)), 0);
 
 	//Setup Camera
 	Camera camera = Camera(glm::vec3(-15, 0, 8), glm::vec3(0, 0, 0), 60.0f, w.width / (float)w.height);
