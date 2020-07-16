@@ -11,6 +11,8 @@ void tokenizer(std::string str, const char* delim, std::vector<std::string>& out
 }
 
 void AVWWifiData::loadWifi(std::string filename, std::string floor) {
+	int max_rssi = -1000;
+	int min_rssi = 1000;
 	std::ifstream inputFile;
 	inputFile.open(filename);
 	if (inputFile.is_open())
@@ -89,6 +91,10 @@ void AVWWifiData::loadWifi(std::string filename, std::string floor) {
 				entry.authAlg = atoi(authAlgorithmStr.c_str());
 				entry.cipherAlg = atoi(cipherAlgorithmStr.c_str());
 				entry.floor = atoi(floor.c_str());
+				if (max_rssi < entry.RSSI)
+					max_rssi = entry.RSSI;
+				if (min_rssi > entry.RSSI)
+					min_rssi = entry.RSSI;
 
 				if (floorToWifiNameToEntries.at(floor).find(networkName) ==
 					floorToWifiNameToEntries.at(floor).end())

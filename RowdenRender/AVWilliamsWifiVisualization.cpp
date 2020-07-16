@@ -80,7 +80,7 @@ int AVWilliamsWifiVisualization() {
 	avw_transform = glm::scale(avw_transform, avw_scale);
 
 	//setup instance rendering
-	Model Cube("./Content/Models/cube/cube.obj");
+	Model Cube("./Content/Models/sphere.obj");
 	Cube.setModel();
 	glm::mat4 wifi_transform(1);
 	wifi_transform = glm::scale(wifi_transform, glm::vec3(1,1,1));
@@ -106,15 +106,15 @@ int AVWilliamsWifiVisualization() {
 
 	//send light params to model shader
 	model_shader.SetUniform1f("ambient_coeff", .3);
-	model_shader.SetUniform1f("spec_coeff", .3);
-	model_shader.SetUniform1f("diffuse_coeff", .4);
+	model_shader.SetUniform1f("spec_coeff", .4);
+	model_shader.SetUniform1f("diffuse_coeff", .3);
 	model_shader.SetUniform1i("shininess", 32);
 
 	//send light params to instance shader
 	instance_shader.SetUniform1f("ambient_coeff", .3);
-	instance_shader.SetUniform1f("spec_coeff", .3);
-	instance_shader.SetUniform1f("diffuse_coeff", .4);
-	instance_shader.SetUniform1i("shininess", 32);
+	instance_shader.SetUniform1f("spec_coeff", .4);
+	instance_shader.SetUniform1f("diffuse_coeff", .3);
+	instance_shader.SetUniform1i("shininess", 16);
 
 	//load avw wifi data
 	AVWWifiData wifi;
