@@ -81,7 +81,7 @@ void updateIsoRangeVolume(std::vector<unsigned char> volume, glm::uvec3 dimensio
 
 
 void LoadCampusModel(Model *completeCampus) {
-	completeCampus->addModel(new Model("Content/Models/Buildings/campus.fbx"));
+	completeCampus->addModel(new Model("Content/Models/campus.fbx"));
 	completeCampus->setModel();
 }
 
