@@ -248,5 +248,11 @@
     <None Include="instance_fshader_color.glsl">
       <Filter>Source Files\Shaders</Filter>
     </None>
+    <None Include="3d_volume_fragment.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="3d_volume_vertex.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

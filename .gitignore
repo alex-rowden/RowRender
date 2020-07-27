@@ -349,3 +349,6 @@ healthchecksdb
 /RowdenRender/normals_1_100
 /RowdenRender/sphere_smooth_512.uvf
 /RowdenRender/sphere_scaled512.uvf
+/RowdenRender/umd_router.tex
+/RowdenRender/umd_routers.tex
+/RowdenRender/umd_one_router.tex

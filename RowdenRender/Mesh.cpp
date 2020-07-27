@@ -216,14 +216,14 @@ void Mesh::setTexture(Texture2D texture, int index) {
 	textures[index] = texture;
 }
 
-void Mesh::Render(ShaderProgram *shader) {
+void Mesh::Render(ShaderProgram *shader, int offset) {
 
 	unsigned int diffuseNr = 1;
 	unsigned int specularNr = 1;
 	if (textures.size() == 0) {
 		textures.emplace_back(Texture2D(Texture2D::COLORS::WHITE));
 	}
-	int counter = 0;
+	int counter = offset;
 	for (unsigned int i = 0; i < textures.size(); i++)
 	{
 		 // activate proper texture unit before binding

@@ -1,6 +1,11 @@
 #include "RowRender.h"
 
 //any old render function
+void render(Model mesh, ShaderProgram* sp, int i) {
+	for (Mesh* m : mesh.getMeshes()) {
+		m->Render(sp, i);
+	}
+}
 void render(Model mesh, ShaderProgram* sp) {
 	for (Mesh* m : mesh.getMeshes()) {
 		m->Render(sp);

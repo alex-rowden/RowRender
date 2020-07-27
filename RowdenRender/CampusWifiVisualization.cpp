@@ -39,12 +39,72 @@ float speed = 1/150.0f;
 
 glm::vec3 rand_dim = glm::vec3(50, 50, 50);
 
-GLuint volume_textureId, depth_mask_id, normal_textureId, max_volumeId;
+GLuint volume_textureId, depth_mask_id, normal_textureId, max_volumeId, front_hit_point_tex, back_hit_point_tex;
+GLuint temp_tex;
+GLuint fb;
 
 glm::vec3 iso_grid_size = glm::vec3(16, 16, 4);
 std::vector<glm::vec2> isoRangeVolume = std::vector <glm::vec2>();
 
+void setFramebuffers(glm::vec2 resolution) {
+	glBindTexture(GL_TEXTURE_2D, temp_tex);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, resolution.x, resolution.y, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	//RayTraced.getMeshes().at(0)->addTexture(depth_texture);
 
+	glGenFramebuffers(1, &fb);
+	glBindFramebuffer(GL_FRAMEBUFFER, fb);
+
+	
+	// "Bind" the newly created texture : all future texture functions will modify this texture
+	glBindTexture(GL_TEXTURE_2D, front_hit_point_tex);
+
+	// Give an empty image to OpenGL ( the last "0" )
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, resolution.x, resolution.y, 0, GL_RGB, GL_FLOAT, 0);
+
+	// Poor filtering. Needed !
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, front_hit_point_tex, 0);
+
+
+	glBindTexture(GL_TEXTURE_2D, back_hit_point_tex);
+
+	// Give an empty image to OpenGL ( the last "0" )
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, resolution.x, resolution.y, 0, GL_RGB, GL_FLOAT, 0);
+
+	// Poor filtering. Needed !
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+	// Set "renderedTexture" as our colour attachement #0
+
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, back_hit_point_tex, 0);
+
+	// Set the list of draw buffers.
+	GLenum DrawBuffers[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+	glDrawBuffers(2, DrawBuffers); // "2" is the size of DrawBuffers
+
+	GLuint depthrenderbuffer;
+	glGenRenderbuffers(1, &depthrenderbuffer);
+	glBindRenderbuffer(GL_RENDERBUFFER, depthrenderbuffer);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, resolution.x, resolution.y);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, depthrenderbuffer);
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+		std::cout << "framebuffer broke" << std::endl;
+		return;
+	}
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
 
 void updateIsoRangeVolume(std::vector<unsigned char> volume, glm::uvec3 dimensions, bool *enabled_vols, float increment) {
 	glm::uvec3 index = glm::uvec3(0);
@@ -260,7 +320,7 @@ int CampusWifiVisualization() {
 	Texture2D depth_texture = Texture2D();
 	depth_texture.setTexMinMagFilter(GL_LINEAR, GL_LINEAR);
 	depth_texture.giveName("depth_tex");
-	GLuint temp_tex;
+	
 	temp_tex = depth_texture.getID();
 	RayTraced.getMeshes().at(0)->addTexture(depth_texture);
 
@@ -502,67 +562,10 @@ int CampusWifiVisualization() {
 	//bool lighting_enabled = false;
 
 	//glGenTextures(1, &temp_tex);
-	glBindTexture(GL_TEXTURE_2D, temp_tex);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, resolution.x, resolution.y, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	//RayTraced.getMeshes().at(0)->addTexture(depth_texture);
-	Texture2D front_hit = Texture2D();
-	Texture2D back_hit = Texture2D();
-	GLuint fb = 0;
-	glGenFramebuffers(1, &fb);
-	glBindFramebuffer(GL_FRAMEBUFFER, fb);
-
-	GLuint front_hit_point_tex, back_hit_point_tex;
+	Texture2D front_hit, back_hit;
 	front_hit_point_tex = front_hit.getID();
-	back_hit_point_tex = back_hit.getID();
-	// "Bind" the newly created texture : all future texture functions will modify this texture
-	glBindTexture(GL_TEXTURE_2D, front_hit_point_tex);
-
-	// Give an empty image to OpenGL ( the last "0" )
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, resolution.x, resolution.y, 0, GL_RGB, GL_FLOAT, 0);
-
-	// Poor filtering. Needed !
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, front_hit_point_tex, 0);
-
-
-	glBindTexture(GL_TEXTURE_2D, back_hit_point_tex);
-
-	// Give an empty image to OpenGL ( the last "0" )
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, resolution.x, resolution.y, 0, GL_RGB, GL_FLOAT, 0);
-
-	// Poor filtering. Needed !
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-	// Set "renderedTexture" as our colour attachement #0
-
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, back_hit_point_tex, 0);
-
-	// Set the list of draw buffers.
-	GLenum DrawBuffers[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
-	glDrawBuffers(2, DrawBuffers); // "2" is the size of DrawBuffers
-
-	GLuint depthrenderbuffer;
-	glGenRenderbuffers(1, &depthrenderbuffer);
-	glBindRenderbuffer(GL_RENDERBUFFER, depthrenderbuffer);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, resolution.x, resolution.y);
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, depthrenderbuffer);
-
-	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-		std::cout << "framebuffer broke" << std::endl;
-		return 0;
-	}
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	back_hit_point_tex  = back_hit.getID();
+	setFramebuffers(resolution);
 
 	//front_hit.SetTextureID(front_hit_point_tex);
 	front_hit.giveName("fhp");
@@ -578,20 +581,6 @@ int CampusWifiVisualization() {
 	float volume_z = 20;
 	int framesSinceMoved = 0;
 
-	//const int num_gaussians = 2;
-	//Gaussian gaussians[num_gaussians];
-	//gaussians[0] = { 0, 0, 1, 1 };
-	//gaussians[1] = { 10, 0, 1, 1.5f };
-
-	std::vector<Gaussian> gaussians = std::vector < Gaussian>();
-	GaussianLoader::loadGaussians("first_channel_corrected_sig.gaus", gaussians);
-	
-	int num_gaussians = MIN(gaussians.size(), 10);
-
-	if (signed_distance) {
-		volume_shader.SetUniform1i("num_gaussians", num_gaussians);
-		volume_shader.SetGaussians(gaussians);
-	}
 	while (!glfwWindowShouldClose(w.getWindow())) //main render loop
 	{
 		uint64_t frame_start = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
@@ -599,8 +588,11 @@ int CampusWifiVisualization() {
 		glClearColor(135 / 255.0f, 206 / 255.0f, 235 / 255.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glfwPollEvents();
-		const GLFWvidmode *mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-		resolution = glm::vec2(mode->width, mode->height);
+		if (w.getResized()) {
+			resolution = glm::vec2(w.width, w.height);
+			setFramebuffers(resolution);
+			w.setResized(false);
+		}
 		//w.setFullScreen(true);
 		
 		bool cameraMoved = camera.getMoved();

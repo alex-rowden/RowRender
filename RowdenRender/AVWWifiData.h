@@ -8,6 +8,15 @@ struct WifiDataEntry {
 	int floor, RSSI, freq, linkQuality, security, authAlg, cipherAlg;
 };
 
+struct VolumeData {
+	std::vector<glm::vec3> data;
+	glm::uvec3 dimensions;
+	unsigned int& height = dimensions[0];
+	unsigned int& width = dimensions[1];
+	unsigned int& depth = dimensions[2];
+	int getSize() { return dimensions.x * dimensions.y * dimensions.z; }
+};
+
 class AVWWifiData
 {
 private:
@@ -31,6 +40,6 @@ public:
 	void fillRouters(std::string wifiname, std::vector<bool> &routers, bool onoff);
 	inline int findIndexToEntry(std::string wifiname);
 	std::vector<float> getColorIndices() { return color_indices; }
-
+	bool loadVolume(std::string, VolumeData&data);
 };
 

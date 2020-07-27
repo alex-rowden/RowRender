@@ -10,6 +10,19 @@ void tokenizer(std::string str, const char* delim, std::vector<std::string>& out
 	}
 }
 
+bool AVWWifiData::loadVolume(std::string filename, VolumeData&data) {
+	std::ifstream file = std::ifstream(filename, std::ios::in | std::ios::binary);
+	if (!file)
+		return false;
+	unsigned int dims[3];
+	file.read(reinterpret_cast<char*>(dims), 3 * 4 * sizeof(char)); //I know that uint is 4 bytes in matlab and I'm not sure about it here so this is how I am doing it
+	data.dimensions = glm::uvec3(dims[0], dims[1], dims[2]);
+	unsigned long total_size = data.getSize();
+	data.data.resize(total_size);
+	file.read(reinterpret_cast<char*>(data.data.data()), data.data.size() * sizeof(float));
+	return true;
+}
+
 void AVWWifiData::loadWifi(std::string filename, std::string floor) {
 	int max_rssi = -1000;
 	int min_rssi = 1000;

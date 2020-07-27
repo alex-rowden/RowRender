@@ -20,6 +20,9 @@ public:
 	void SetFramebuferSizeCallback();
 	void standardInputProcessor(GLFWwindow* window);
 	void setSpeed(float speed) { this->speed = speed; };
+	void setResized(bool resize) { resized = resize; }
+	bool getResized() { return resized; }
+
 	GLFWwindow* getWindow();
 	float lastX = 400, lastY = 300;
 	Camera* camera;
@@ -34,7 +37,7 @@ public:
 	float horizontalAngle = 3.14f;
 	float verticalAngle = 0.0f;
 private:
-	
+	bool resized = false;
 
 };
 

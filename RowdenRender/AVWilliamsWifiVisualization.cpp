@@ -11,10 +11,72 @@
 
 #include <glm/gtc/matrix_access.hpp>
 
+GLuint frame_buff, fhp_tex, bhp_tex;
 
+void createFramebuffers(glm::vec2 resolution) {
+	/*
+	glBindTexture(GL_TEXTURE_2D, temp_tex);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, resolution.x, resolution.y, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	//RayTraced.getMeshes().at(0)->addTexture(depth_texture);
+	*/
+	glGenFramebuffers(1, &frame_buff);
+	glBindFramebuffer(GL_FRAMEBUFFER, frame_buff);
+
+
+	// "Bind" the newly created texture : all future texture functions will modify this texture
+	glBindTexture(GL_TEXTURE_2D, fhp_tex);
+
+	// Give an empty image to OpenGL ( the last "0" )
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, resolution.x, resolution.y, 0, GL_RGB, GL_FLOAT, 0);
+
+	// Poor filtering. Needed !
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fhp_tex, 0);
+
+
+	glBindTexture(GL_TEXTURE_2D, bhp_tex);
+
+	// Give an empty image to OpenGL ( the last "0" )
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, resolution.x, resolution.y, 0, GL_RGB, GL_FLOAT, 0);
+
+	// Poor filtering. Needed !
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+	// Set "renderedTexture" as our colour attachement #0
+
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, bhp_tex, 0);
+
+	// Set the list of draw buffers.
+	GLenum DrawBuffers[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+	glDrawBuffers(2, DrawBuffers); // "2" is the size of DrawBuffers
+
+	GLuint depthrenderbuffer;
+	glGenRenderbuffers(1, &depthrenderbuffer);
+	glBindRenderbuffer(GL_RENDERBUFFER, depthrenderbuffer);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, resolution.x, resolution.y);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, depthrenderbuffer);
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+		std::cout << "framebuffer broke" << std::endl;
+		return;
+	}
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
 
 
 int AVWilliamsWifiVisualization() {
+
 	glm::vec2 resolution = glm::vec2(2560, 1440);
 	//initialize glfw
 	glfwInit();
@@ -51,6 +113,10 @@ int AVWilliamsWifiVisualization() {
 	ShaderProgram skybox_shader = ShaderProgram({ ShaderProgram::Shaders::SKY_FRAG, ShaderProgram::Shaders::SKY_VERT });
 	ShaderProgram instance_shader = ShaderProgram({ ShaderProgram::Shaders::INSTANCE_FRAG_COLOR, ShaderProgram::Shaders::INSTANCE_VERT_COLOR });
 	ShaderProgram ground_shader = ShaderProgram({ ShaderProgram::Shaders::NO_LIGHT_FRAG, ShaderProgram::Shaders::NO_LIGHT_VERT });
+	ShaderProgram volume_shader = ShaderProgram({ShaderProgram::Shaders::VOLUME_FRAG_3D, ShaderProgram::Shaders::VOLUME_VERT_3D});
+	ShaderProgram back_shader = ShaderProgram({ ShaderProgram::Shaders::BACK_FRAG, ShaderProgram::Shaders::FRONT_BACK_VERT });
+	ShaderProgram front_shader = ShaderProgram({ ShaderProgram::Shaders::FRONT_FRAG, ShaderProgram::Shaders::FRONT_BACK_VERT });
+
 
 	//Setup Skybox
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
@@ -95,6 +161,19 @@ int AVWilliamsWifiVisualization() {
 	ground_transform = glm::translate(ground_transform, glm::vec3(0, 0, -.101));
 	quad.getMeshes().at(0)->setTexture(Texture2D(glm::vec4(50, 50, 50, 255) * (1 / 255.0f)), 0);
 
+	//Setup volume rendering
+	Model screen_quad("./Content/Models/quad/quad_centered.obj");
+	screen_quad.setModel();
+	float stepSize = .001;
+	
+	Model BoundingCube = Model("./Content/Models/cube/cube.obj");
+	BoundingCube.setModel();
+	glm::vec3 bounding_cube_translate = glm::vec3(0, 0, 0);
+	glm::vec3 bounding_cube_scale(15, 20, 15);
+	glm::mat4 bounding_cube_transform(1);
+	bounding_cube_transform = glm::scale(bounding_cube_transform, bounding_cube_scale);
+	bounding_cube_transform = glm::translate(bounding_cube_transform, bounding_cube_translate);
+
 	//Setup Camera
 	Camera camera = Camera(glm::vec3(-15, 0, 8), glm::vec3(0, 0, 0), 60.0f, w.width / (float)w.height);
 	w.SetCamera(&camera);
@@ -118,6 +197,19 @@ int AVWilliamsWifiVisualization() {
 
 	//load avw wifi data
 	AVWWifiData wifi;
+
+	VolumeData volume;
+	if (!wifi.loadVolume("umd_routers.tex", volume)) {
+		std::cerr << "Error loading volume" << std::endl;
+	}
+	GLuint volume_tex;
+	glGenTextures(1, &volume_tex);
+	glBindTexture(GL_TEXTURE_3D, volume_tex);
+	glTexImage3D(GL_TEXTURE_3D, 0, GL_R16, volume.height, volume.width, volume.depth, 0, GL_RED, GL_FLOAT, volume.data.data());
+	glGenerateMipmap(GL_TEXTURE_3D);
+	glBindTexture(GL_TEXTURE_3D, 0);
+
+
 	wifi.loadWifi("./Content/Data/AVW1.txt", "1");
 	wifi.loadWifi("./Content/Data/AVW2.txt", "2");
 	wifi.loadWifi("./Content/Data/AVW3.txt", "3");
@@ -134,6 +226,23 @@ int AVWilliamsWifiVisualization() {
 	wifi_tex.setTexParameterWrap(GL_CLAMP, GL_CLAMP);
 	std::vector<glm::mat4> wifi_transforms;
 	Cube.getMeshes().at(0)->setTexture(wifi_tex, 0);
+
+
+
+	//Setup front back textures and framebuffer
+	Texture2D front_hit, back_hit;
+	fhp_tex = front_hit.getID();
+	bhp_tex = back_hit.getID();
+	createFramebuffers(resolution);
+
+	front_hit.giveName("fhp");
+	screen_quad.getMeshes().at(0)->addTexture(front_hit);
+
+
+	//back_hit.SetTextureID(back_hit_point_tex);
+	back_hit.giveName("bhp");
+	screen_quad.getMeshes().at(0)->addTexture(back_hit);
+
 
 	//Setup ImGUI variables
 	glm::vec3 wifi_scale = glm::vec3(30, 34.792, 1);
@@ -202,8 +311,43 @@ int AVWilliamsWifiVisualization() {
 		if(wifi_transforms.size() > 0)
 			render(Cube, &instance_shader);
 
-		//Render ImGUI
+		//Front and Back Shaders to get ray
+		glBindFramebuffer(GL_FRAMEBUFFER, frame_buff);
+		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+		glEnable(GL_CULL_FACE);
+		glCullFace(GL_BACK);
+		front_shader.Use();
+		front_shader.SetUniform4fv("model", bounding_cube_transform);
+		front_shader.SetUniform4fv("camera", camera.getView());
+		front_shader.SetUniform4fv("projection", camera.getProjection());
+		render(BoundingCube, &front_shader);
+		glClear(GL_DEPTH_BUFFER_BIT);
+		glCullFace(GL_FRONT);
+		back_shader.Use();
+		back_shader.SetUniform4fv("model", bounding_cube_transform);
+		back_shader.SetUniform4fv("camera", camera.getView());
+		back_shader.SetUniform4fv("projection", camera.getProjection());
+		render(BoundingCube, &back_shader);
+		glDisable(GL_CULL_FACE);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+		//Volume Shader (3D)
+		volume_shader.Use();
+		volume_shader.SetUniform1f("StepSize", stepSize);
+		volume_shader.SetUniform3f("viewPos", camera.getPosition());
+		volume_shader.SetUniform3f("volume_size", bounding_cube_scale);
+		volume_shader.SetUniform3f("volume_bottom", glm::vec3(-.5, -.5, -.5) * bounding_cube_scale + bounding_cube_translate);
+		glBindTexture(GL_TEXTURE_3D, volume_tex);
+		GLint texture_position = glGetUniformLocation(volume_shader.getShader(), "volume");
+		if (texture_position >= 0) {
+			glActiveTexture(GL_TEXTURE0);
+			glUniform1i(texture_position, 0);
+		}
+		render(screen_quad, &volume_shader, 1);
+		glBindTexture(GL_TEXTURE_3D, 0);
+		//Render ImGUI
+		
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
@@ -246,7 +390,7 @@ int AVWilliamsWifiVisualization() {
 		ImGui::Render();
 
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
+		
 		w.ProcessFrame();
 
 		glFinish();

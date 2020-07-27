@@ -32,6 +32,7 @@ class ShaderProgram;
 
 //any old render function
 void render(Model mesh, ShaderProgram* sp);
+void render(Model mesh, ShaderProgram* sp, int i);
 
 void error_callback(int error, const char* description);
 

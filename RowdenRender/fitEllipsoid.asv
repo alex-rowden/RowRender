@@ -1,0 +1,9 @@
+function [mu, axis, r, min_coord, max_coord] = fitEllipsoid(mac, data)
+    router_data = data(strcmp(data.mac, mac), :);
+    router_coords = [router_data.x, router_data.y, router_data.floor];
+    router_weights = 10.^(router_data.rssi/10);
+    [axis,score,r,tsquared,explained,mu] = pca(router_coords, 'Weights', router_weights);
+    r = 3 * sqrt(r)) * 10;
+    min_coord = router;
+    max_coord = max(router_coords);
+end

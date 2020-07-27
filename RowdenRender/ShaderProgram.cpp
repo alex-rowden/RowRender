@@ -14,6 +14,7 @@ ShaderProgram::ShaderProgram(std::vector<Shaders> shaders) {
 		case Shaders::FRONT_BACK_VERT:
 		case Shaders::INSTANCE_VERT:
 		case Shaders::INSTANCE_VERT_COLOR:
+		case Shaders::VOLUME_VERT_3D:
 			glAttachShader(shaderProgram, vertexShader);
 			break;
 		case Shaders::FRAGMENT:
@@ -28,6 +29,7 @@ ShaderProgram::ShaderProgram(std::vector<Shaders> shaders) {
 		case Shaders::FRONT_FRAG:
 		case Shaders::BACK_FRAG:
 		case Shaders::INSTANCE_FRAG_COLOR:
+		case Shaders::VOLUME_FRAG_3D:
 			glAttachShader(shaderProgram, fragmentShader);
 			break;
 		}
@@ -235,6 +237,12 @@ void ShaderProgram::program_error_check(Shaders shader) {
 		case Shaders::INSTANCE_VERT_COLOR:
 			filename = "instance_vshader_color.glsl";
 			break;
+		case Shaders::VOLUME_FRAG_3D:
+			filename = "3d_volume_fragment.glsl";
+			break;
+		case Shaders::VOLUME_VERT_3D:
+			filename = "3d_volume_vertex.glsl";
+			break;
 		default:
 			throw "Not a valid shader";
 		}
@@ -307,6 +315,12 @@ void ShaderProgram::importShaderFile(Shaders shader, std::string *ShaderString) 
 		break;
 	case Shaders::INSTANCE_VERT_COLOR:
 		filename = "instance_vshader_color.glsl";
+		break;
+	case Shaders::VOLUME_FRAG_3D:
+		filename = "3d_volume_fragment.glsl";
+		break;
+	case Shaders::VOLUME_VERT_3D:
+		filename = "3d_volume_vertex.glsl";
 		break;
 	default:
 		throw "Not a valid shader";
@@ -418,6 +432,14 @@ void ShaderProgram::shader_error_check(Shaders shader) {
 		shader_name = "INSTANCE_FRAGMENT_COLOR_SHADER";
 		shader_adr = &vertexShader;
 		break;
+	case Shaders::VOLUME_FRAG_3D:
+		shader_name = "3D_VOLUME_FRAGMENT_SHADER";
+		shader_adr = &fragmentShader;
+		break;
+	case Shaders::VOLUME_VERT_3D:
+		shader_name = "3D_VOLUME_VERTEX_SHADER";
+		shader_adr = &vertexShader;
+		break;
 	default:
 		throw("Missing definition for shader in shader_error_check");
 	}
@@ -446,6 +468,7 @@ void ShaderProgram::SetupShader(Shaders shader) {
 	case Shaders::VOLUME_VERT:
 	case Shaders::FRONT_BACK_VERT:
 	case Shaders::INSTANCE_VERT_COLOR:
+	case Shaders::VOLUME_VERT_3D:
 		vertexShader = glCreateShader(GL_VERTEX_SHADER);
 		glShaderSource(vertexShader, 1, &shader_source, NULL);
 		glCompileShader(vertexShader);
@@ -462,6 +485,7 @@ void ShaderProgram::SetupShader(Shaders shader) {
 	case Shaders::FRONT_FRAG:
 	case Shaders::BACK_FRAG:
 	case Shaders::INSTANCE_FRAG_COLOR:
+	case Shaders::VOLUME_FRAG_3D:
 		fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 		glShaderSource(fragmentShader, 1, &shader_source, NULL);
 		glCompileShader(fragmentShader);

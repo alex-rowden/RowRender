@@ -9,8 +9,8 @@ class Mesh
 {
 public:
 	Mesh();
-	Mesh(Shape *shape);
-	Mesh(std::vector<Shape *> shapes);
+	Mesh(Shape* shape);
+	Mesh(std::vector<Shape*> shapes);
 	Mesh(std::vector<glm::vec3> vertices, std::vector<glm::ivec3> _indices);
 	void addTexture(Texture2D texture);
 	void SetUniformColor(glm::vec4 color);
@@ -20,7 +20,9 @@ public:
 	void SetAsLight() { is_light = true; }
 	void SetInstanceTransforms(std::vector<glm::mat4>);
 	void SetInstanceTransforms(std::vector<glm::mat4>, std::vector<float>);
-	void Render(ShaderProgram *shader);
+	
+	void Render(ShaderProgram* shader, int);
+	void Render(ShaderProgram* shader) { Render(shader, 0); };
 	bool isLight() { return is_light; }
 
 	std::vector<float> getVerticies() { return verticies; }

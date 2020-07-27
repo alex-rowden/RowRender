@@ -73,6 +73,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\WifiCampusDataParser\top_half.raw" />
+    <None Include="3d_volume_fragment.glsl" />
+    <None Include="3d_volume_vertex.glsl" />
     <None Include="back_fshader.glsl" />
     <None Include="box.cu" />
     <None Include="fragment_shader.glsl" />
@@ -155,7 +157,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>C:\Users\ARR87\Documents\glm-0.9.9.7\glm\;C:\Users\ARR87\Documents\glfw-3.3.2.bin.WIN64\include;C:\Users\ARR87\Documents\GLAD\include;C:\Users\ARR87\Documents\stb-master;C:\Users\ARR87\Documents\GitHub\imgui;C:\Users\ARR87\Documents\GitHub\imgui\examples;C:\Users\ARR87\Documents\assimp-5.0.0\build\include;C:\Users\ARR87\Documents\assimp-5.0.0\include;C:\Users\ARR87\Documents\Simple OpenGL Image Library\src;C:\Users\ARR87\Documents\GitHub\openvr\headers;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Windows\System32;C:\Users\ARR87\Documents\glfw-3.3.2.bin.WIN64\lib-vc2019;C:\Users\ARR87\Documents\assimp-5.0.0\build\code\Release;C:\Users\ARR87\Documents\Simple OpenGL Image Library\lib;C:\Users\ARR87\Documents\GitHub\openvr\lib\win64;$(LibraryPath)</LibraryPath>
+    <LibraryPath>C:\Windows\System32;C:\Users\ARR87\Documents\GitHub\glfw\build\src\Release;C:\Users\ARR87\Documents\assimp-5.0.0\build\code\Release;C:\Users\ARR87\Documents\Simple OpenGL Image Library\lib;C:\Users\ARR87\Documents\GitHub\openvr\lib\win64;$(LibraryPath)</LibraryPath>
     <SourcePath>C:\Users\ARR87\Documents\glm-0.9.9.7\glm\;C:\Users\ARR87\Documents\GLAD\src;C:\Users\ARR87\Documents\GitHub\imgui;C:\Users\ARR87\Documents\GitHub\imgui\examples;C:\Users\ARR87\Documents\Simple OpenGL Image Library\src;C:\Users\ARR87\Documents\GitHub\openvr\src;$(SourcePath)</SourcePath>
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
     <TargetName>$(ProjectName)</TargetName>
@@ -216,6 +218,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>C:\Users\alrowden\source\repos\imgui;C:\Users\ARR87\Documents\GLAD\include;C:\Users\ARR87\Documents\GitHub\openvr\headers</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

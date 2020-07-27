@@ -25,6 +25,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 	Window* this_window = (Window*)glfwGetWindowUserPointer(window);
 	this_window->width = width;
 	this_window->height = height;
+	this_window->setResized(true);
 }
 
 void standard_mouse_callback(GLFWwindow* window, double xpos, double ypos) {
