@@ -24,6 +24,11 @@ struct gBuffer {
 	GLuint frame_buffer, normal_tex, color_tex, frag_pos_tex, freq_mask_tex, depth_render_buf;
 	Texture2D color_texture, frag_pos_texture, normal_texture, freq_mask_texture;
 };
+
+struct eyeBuffer {
+	GLuint frame_buffer, screen_tex, depth_render_buf;
+	Texture2D screenTexture;
+};
  
 void maxSeperatedColors(int n, std::vector<glm::vec4>& out, bool ordered = true) {
 	float increment = 360.0f / (n);
@@ -166,11 +171,41 @@ void createFramebuffer(glm::vec2 resolution, gBuffer* buffer) {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void createFramebuffers(glm::vec2 resolution, gBuffer *buffers, bool use_vr) {
+void createEyeFramebuffer(glm::vec2 resolution, eyeBuffer* buffer) {
+	glGenFramebuffers(1, &buffer->frame_buffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, buffer->frame_buffer);
+
+	glGenTextures(1, &buffer->screen_tex);
+	glBindTexture(GL_TEXTURE_2D, buffer->screen_tex);
+	buffer->screenTexture = Texture2D();
+	buffer->screenTexture.SetTextureID(buffer->screen_tex);
+	buffer->screenTexture.giveName("ScreenTexture");
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, resolution.x, resolution.y, 0, GL_RGBA, GL_FLOAT, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, buffer->screen_tex, 0);
+
+	glGenRenderbuffers(1, &buffer->depth_render_buf);
+	glBindRenderbuffer(GL_RENDERBUFFER, buffer->depth_render_buf);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, resolution.x, resolution.y);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, buffer->depth_render_buf);
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+		std::cout << "framebuffer broke" << std::endl;
+		return;
+	}
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void createFramebuffers(glm::vec2 resolution, gBuffer *buffers, eyeBuffer *eyes, bool use_vr) {
 	createFramebuffer(resolution, &buffers[0]);
+	createEyeFramebuffer(resolution, &eyes[0]);
 	if (use_vr)
-		createFramebuffer(resolution, &buffers[1]);
-	//buffers[0].color_texture.giveName("screenTexture");
+		createEyeFramebuffer(resolution, &eyes[1]);
+	eyes[0].screenTexture.giveName("screenTexture");
 }
 
 
@@ -439,12 +474,14 @@ int AVWilliamsWifiVisualization() {
 	glEnable(GL_DEPTH_TEST);
 
 
-	gBuffer buffers[2];
-	createFramebuffers(resolution, buffers, use_vr);
-	quad.getMeshes().at(0)->addTexture(buffers[0].color_texture);
-	quad.getMeshes().at(0)->addTexture(buffers[0].frag_pos_texture);
-	quad.getMeshes().at(0)->addTexture(buffers[0].normal_texture);
-	
+	gBuffer buffer[1];
+	eyeBuffer eyes[2];
+	createFramebuffers(resolution, buffer, eyes, use_vr);
+	quad.getMeshes().at(0)->addTexture(buffer[0].color_texture);
+	quad.getMeshes().at(0)->addTexture(buffer[0].frag_pos_texture);
+	quad.getMeshes().at(0)->addTexture(buffer[0].normal_texture);
+	quad.getMeshes().at(0)->addTexture(eyes[0].screenTexture);
+
 	int num_fb = 1;
 	if (use_vr)
 		num_fb = 2;
@@ -477,8 +514,9 @@ int AVWilliamsWifiVisualization() {
 			if (use_vr) {
 				ProjectionMat = vr.getProjectionMatrix(curr_eye);
 				ViewMat = vr.getViewMatrix(curr_eye) * camera_offset * ViewMat;
+				
 			}
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			glBindFramebuffer(GL_FRAMEBUFFER, eyes[i].frame_buffer);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			//render skybox
@@ -498,7 +536,7 @@ int AVWilliamsWifiVisualization() {
 			render(quad, &ground_shader);
 
 			//render building model
-			glBindFramebuffer(GL_FRAMEBUFFER, buffers[i].frame_buffer);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, buffer[i].frame_buffer);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			model_shader.Use();
 			model_shader.SetUniform4fv("model", avw_transform);
@@ -539,20 +577,17 @@ int AVWilliamsWifiVisualization() {
 			//glDepthMask(GL_TRUE);
 			//glClear(GL_DEPTH_BUFFER_BIT);
 
-			//render wifi instances
-			instance_shader.Use();
-			wifi_transforms.clear();
-			if (shade_instances)
-				wifi_transforms = wifi.getTransforms(wifinames, routers, wifi_scale);
 			
 			deferred_shader.Use();
 			deferred_shader.SetUniform1i("num_point_lights", numLights);
 			deferred_shader.SetUniform3f("viewPos", camera.getPosition());
 			deferred_shader.SetLights(modelLights, camera.getPosition(), numLights);
 
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			glBindFramebuffer(GL_FRAMEBUFFER, eyes[i].frame_buffer);
 			//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			glDepthMask(GL_FALSE);
 			render(quad, &deferred_shader);
+			glDepthMask(GL_TRUE);
 
 			if (updated_routers) {
 				wifi.updateRouterStructure(routers, wifinames, freqs, model_shader, nearest_router_on);
@@ -622,6 +657,12 @@ int AVWilliamsWifiVisualization() {
 					AVW.getMeshes().at(0)->setTexture(text);
 				}
 			}
+			//render wifi instances
+			instance_shader.Use();
+			wifi_transforms.clear();
+			if (shade_instances)
+				wifi_transforms = wifi.getTransforms(wifinames, routers, wifi_scale);
+
 			std::vector<float> wifi_color_indices = wifi.getColorIndices();
 			if (shade_instances)
 				Sphere.getMeshes().at(0)->SetInstanceTransforms(wifi_transforms, wifi_color_indices);
@@ -634,6 +675,7 @@ int AVWilliamsWifiVisualization() {
 			instance_shader.SetUniform3fv("normalMat", glm::mat3(1));
 			instance_shader.SetLights(lights);
 			instance_shader.SetUniform3f("viewPos", camera.getPosition());
+			glBindFramebuffer(GL_FRAMEBUFFER, eyes[i].frame_buffer);
 			if (wifi_transforms.size() > 0 && shade_instances)
 				render(Sphere, &instance_shader);
 			if (use_vr) {
@@ -660,15 +702,15 @@ int AVWilliamsWifiVisualization() {
 				ground_shader.SetUniform4fv("model", right_hand_transform);
 
 				render(Cylinder, &ground_shader);
-				vr.composite(curr_eye, buffers[i].color_tex);
+				vr.composite(curr_eye, buffer[i].color_tex);
 			}
 		}
 		glFlush(); 
 		
-		//glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		//render2quad.Use();
-		//render(quad, &render2quad);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		render2quad.Use();
+		render(quad, &render2quad);
 		
 		//Render ImGUI
 		ImGui_ImplOpenGL3_NewFrame();

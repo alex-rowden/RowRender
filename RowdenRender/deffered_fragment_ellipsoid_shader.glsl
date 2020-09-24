@@ -92,7 +92,11 @@ void main()
 	vec3 norm = normalize(texture(normal_tex, TexCoord).rgb);
 	//tangent = normalize(texture(tangent_tex, TexCoord).rgb);
 	//bitangent = normalize(cross(norm, tangent));
-	vec3 FragPos = texture(fragPos_tex, TexCoord).rgb;
+	vec4 FragPos4 = texture(fragPos_tex, TexCoord).rgba;
+	float mask = FragPos4.a;
+	if (mask < 1)
+		discard;
+	vec3 FragPos = FragPos4.rgb;
 
 	vec3 viewDir = normalize(viewPos - FragPos);
 	vec3 ret = vec3(0, 0, 0);
