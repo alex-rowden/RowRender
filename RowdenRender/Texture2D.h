@@ -16,12 +16,14 @@ public:
 	Texture2D(std::vector<unsigned char>* vals, int height, int width);
 	//Texture2D(std::vector<unsigned short>* vals, int height, int width);
 	Texture2D(unsigned char* vals, int height, int width);
+	Texture2D(unsigned char** vals, int height, int width);
 	Texture2D(float* vals, int height, int width);
 	Texture2D(unsigned short* vals, int height, int width);
 	unsigned int getID() { return texture; }
 	void init_from_vector(std::vector<glm::vec4> *color, int height, int width);
 	void giveName(std::string);
 	void setBorderColor(glm::vec4 color);
+	void updateTexture(std::vector<glm::vec4> *colors, int height, int width);
 	void setTexParameterWrap(GLint s, GLint t);
 	void setTexParameterWrap(GLint wrap);
 	void setDims(int width, int height, int numChannels) { this->width = width; this->numChannels = numChannels; this->height = height; }

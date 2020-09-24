@@ -15,8 +15,9 @@ public:
 	void addTexture(Texture2D texture);
 	void SetUniformColor(glm::vec4 color);
 	void SetColors(std::vector<glm::vec4> colors);
-	void SetData(GLenum usage = GL_STATIC_DRAW);
+	void SetData(GLenum usage = GL_STATIC_DRAW, bool uses_tangents = false);
 	void setTexture(Texture2D tex, int index);
+	void setTexture(Texture2D texture);
 	void SetAsLight() { is_light = true; }
 	void SetInstanceTransforms(std::vector<glm::mat4>);
 	void SetInstanceTransforms(std::vector<glm::mat4>, std::vector<float>);
@@ -40,6 +41,7 @@ private:
 	std::vector<float> normals;
 	std::vector<float> texCoords;
 	std::vector<Texture2D> textures;
-	unsigned int VertexBufferObject, VertexArrayObject, IndexBufferArray, NormalBuffer, TexCoordBuffer, matrixBuffer, colorBuffer;
+	std::vector<float> tangents;
+	unsigned int VertexBufferObject, VertexArrayObject, IndexBufferArray, NormalBuffer, TexCoordBuffer, matrixBuffer, colorBuffer, tangentBufferArray;
 };
 

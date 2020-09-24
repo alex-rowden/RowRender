@@ -4,6 +4,7 @@
 #include <fstream>
 class Lights;
 class Camera;
+struct Ellipsoid;
 
 class ShaderProgram
 {
@@ -21,6 +22,11 @@ public:
 		FRONT_FRAG, BACK_FRAG,
 		INSTANCE_FRAG_COLOR, INSTANCE_VERT_COLOR,
 		VOLUME_FRAG_3D, VOLUME_VERT_3D,
+		FRAG_ELLIPSOID, VERT_ELLIPSOID,
+		PREPASS_SHADER,
+		DEFFERED_RENDER_VERT, DEFFERED_RENDER_FRAG,
+		DEFFERED_RENDER_ELLIPSOID_VERT, DEFFERED_RENDER_ELLIPSOID_FRAG,
+		SSAO_VERT, SSAO_FRAG,
 	};
 	void SetupShader(Shaders shader);
 	ShaderProgram() {};
@@ -47,7 +53,12 @@ public:
 	void SetUniform3fv(const char* uniform_name, glm::mat3 mat, GLint transpose = GL_FALSE);
 	void SetUniform2fv(const char* uniform_name, glm::mat2 mat, GLint transpose = GL_FALSE);
 
+	void SetUniform1b(const char* name, bool in);
+
 	void SetLights(Lights lights);
+	void SetLights(Lights&lights, glm::vec3 position, int num_lights = -1);
+
+	void SetEllipsoid(Ellipsoid ellipse);
 	void SetGaussians(std::vector<Gaussian> gauss);
 	GLint getShader() { return shaderProgram; }
 private:

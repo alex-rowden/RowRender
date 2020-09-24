@@ -59,6 +59,31 @@ float sdot(vec2 sincosa, vec2 sincosnorm, float a, float phi) {
 	return sincosa.x * sincosnorm.x * cos(a - phi) + sincosa.y * sincosnorm.y;
 }
 
+//Edited from http://www.andrewnoske.com/wiki/Code_-_heatmaps_and_color_gradients
+vec3 heatmapcolor(float value) {
+	const int NUM_COLORS = 4;
+	vec3 color[NUM_COLORS] = vec3[NUM_COLORS]( vec3(0,0,1), vec3(0,1,0), vec3(1,1,0), vec3(1,0,0) );
+	// A static array of 4 colors:  (blue,   green,  yellow,  red) using {r,g,b} for each.
+
+	int idx1;        // |-- Our desired color will be between these two indexes in "color".
+	int idx2;        // |
+	float fractBetween = 0;
+	if (value <= 0) { idx1 = idx2 = 0; }    // accounts for an input <=0
+	else if (value >= 1) { idx1 = idx2 = NUM_COLORS - 1; }    // accounts for an input >=0
+	else
+	{
+		value = value * (NUM_COLORS - 1);        // Will multiply value by 3.
+		idx1 = int(floor(value));                  // Our desired color will be after this index.
+		idx2 = idx1 + 1;                        // ... and before this index (inclusive).
+		fractBetween = value - float(idx1);    // Distance between the two indexes (0-1).
+	}
+	vec3 ret;
+	ret.r= (color[idx2].r - color[idx1].r) * fractBetween + color[idx1].r;
+	ret.g = (color[idx2].g - color[idx1].g) * fractBetween + color[idx1].g;
+	ret.b = (color[idx2].b - color[idx1].b) * fractBetween + color[idx1].b;
+	return ret;
+}
+
 void main() {
 	vec3 front = (texture(fhp, TexCoord).xyz);
 	vec3 back = (texture(bhp, TexCoord).xyz);
@@ -103,8 +128,7 @@ void main() {
 	//float upperBoundStep = 5 * StepSize;
 	//FragColor = vec4(vec3(distance / 75.0f), 1.0);
 	//FragColor = vec4(viewPos / 50.0f, 1);
-	//FragColor = vec4(1, 0, 1, .3);
-	//return;
+	
 	float nextDistance = StepSize;
 	bool above_arr[6] = bool[6]( false, false, false, false, false, false);
 	bool above = false;
@@ -132,8 +156,9 @@ void main() {
 		bool shade_intersection = false;
 		volume_sample = texture(volume, vec3(vol_u, vol_v, vol_w)).r;
 		if (volume_sample != 0) {
-			color_composited += vec3(1, 0, 0);
-			opaque_composited += volume_sample / 10.0f;
+			float opaque_self = volume_sample / 10.0f;
+			color_composited += (1 - opaque_composited) * heatmapcolor(volume_sample) * opaque_self;
+			opaque_composited += (1 - opaque_composited) * opaque_self;
 		}
 		if (opaque_composited > .9) {
 			break;

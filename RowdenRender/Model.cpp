@@ -16,9 +16,11 @@ void Model::addModel(Model* model) {
 	}
 }
 
-void Model::loadModel(std::string path) {
+void Model::loadModel(std::string path, bool import_tangents) {
 	Assimp::Importer importer;
-	const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals | aiProcess_FixInfacingNormals);
+	const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate |
+		aiProcess_FlipUVs | aiProcess_GenNormals | aiProcess_FixInfacingNormals |
+		aiProcess_CalcTangentSpace);
 
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 	{
@@ -27,30 +29,33 @@ void Model::loadModel(std::string path) {
 	}
 	directory = path.substr(0, path.find_last_of('\\'));
 
-	processNode(scene->mRootNode, scene);
+	processNode(scene->mRootNode, scene, import_tangents);
 }
 
-void Model::setModel() {
+void Model::setModel(bool use_tangents) {
 	for (auto mesh : meshes) {
-		mesh->SetData();
+		mesh->SetData(GL_STATIC_DRAW, use_tangents);
 	}
 }
 
-void Model::processNode(aiNode *node, const aiScene *scene) {
+void Model::processNode(aiNode *node, const aiScene *scene, bool import_tangents) {
 	for (unsigned int i = 0; i < node->mNumMeshes; i++) {
 		aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-		meshes.push_back(processMesh(mesh, scene));
+		meshes.push_back(processMesh(mesh, scene, import_tangents));
 	}
 	for (unsigned int i = 0; i < node->mNumChildren; i++) {
-		processNode(node->mChildren[i], scene);
+		processNode(node->mChildren[i], scene, import_tangents);
 	}
 }
 
-Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene) {
+Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, bool import_tangents) {
 	Shape shape = Shape();
 	for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
 		shape.addVertex(glm::vec3(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z));
 		shape.addNormal(glm::vec3(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z));
+		if (import_tangents) {
+			shape.addTangents(mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z);
+		}
 		if (mesh->mTextureCoords[0]) {
 			shape.addTexCoord(glm::vec2(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y));
 		}

@@ -6,6 +6,7 @@ Window::Window(const char *name, int resolution_x, int resolution_y) {
 	bool window_made = makeWindow(resolution_x, resolution_y, name);
 	glfwSetWindowUserPointer(window, this);
 	glfwSetCursorPos(window, width / 2.0f, height / 2.0f);
+	lightPositions = std::vector<glm::vec3>();
 	if (!window_made) {
 		std::cout << "Failed to create window" << std::endl;
 		glfwTerminate();
@@ -28,37 +29,15 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 	this_window->setResized(true);
 }
 
+
 void standard_mouse_callback(GLFWwindow* window, double xpos, double ypos) {
-	/*
-	Window *win = static_cast<Window *>(glfwGetWindowUserPointer(window)); 
-	if (win->firstMouse) // this bool variable is initially set to true
-	{
-		win->lastTime = glfwGetTime();
-		win->lastX = xpos;
-		win->lastY = ypos;
-		win->firstMouse = false;
-	}
 	
-	win->lastX = xpos;
-	win->lastY = ypos;
-
-	float sensitivity = 0.001f;
-	
-	glfwSetCursorPos(win->getWindow(), win->width / 2.0f, win->height / 2.0f);
-
-	win->horizontalAngle = sensitivity * float(win->width / 2.0f - xpos);
-	win->verticalAngle = sensitivity * float(win->height / 2.0f - ypos);
-
-
-	
-	win->camera->setDirection(glm::vec3(cos(win->verticalAngle) * sin(win->horizontalAngle), sin(win->verticalAngle), cos(win->verticalAngle) * cos(win->horizontalAngle)));
-	win->camera->setRight(glm::vec3(sin(win->horizontalAngle - 3.14f / 2.0f), 0, cos(win->horizontalAngle - 3.14f / 2.0f)));
-	win->camera->setUp(glm::cross(win->camera->getDirection(), win->camera->getRight()));
-	*/
 
 	Window* win = static_cast<Window*>(glfwGetWindowUserPointer(window));
-	int state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
-	if (state == GLFW_PRESS && !ImGui::GetIO().WantCaptureMouse)
+	int lstate = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
+	int rstate = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT);
+	if ((ImGui::GetCurrentContext() != NULL) && ImGui::GetIO().WantCaptureMouse) return;
+	if (lstate == GLFW_PRESS )
 	{
 
 		if (win->firstMouse) // this bool variable is initially set to true
@@ -72,32 +51,57 @@ void standard_mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 		win->lastX = xpos;
 		win->lastY = ypos;
 
-		float sensitivity = 0.001f;
+		float sensitivity = 0.1f;
 		xoffset *= sensitivity;
 		yoffset *= sensitivity;
 
-		win->camera->yaw += yoffset;
-		win->camera->pitch += xoffset;
+		win->camera->yaw += xoffset;
+		win->camera->pitch -= yoffset;
 		float pitch = win->camera->pitch;
 		float yaw = win->camera->yaw;
 
-		if (pitch > 90.0f)
-			win->camera->pitch = 90.0f;
-		if (pitch < -90.0f)
-			win->camera->pitch = -90.0f;
+		if (pitch > 89.f)
+			win->camera->pitch = 89.f;
+		if (pitch < -89.f)
+			win->camera->pitch = -89.f;
 
 		glm::vec3 front;
-		double xzLen = cos(pitch);
-		front.x = xzLen * cos(yaw);
-		front.y = sin(pitch);
-		front.z = xzLen * sin(-yaw);
+		double xzLen = cos(glm::radians(pitch));
+		front.x = xzLen * cos(glm::radians(yaw));
+		front.z = sin(glm::radians(pitch));
+		front.y = xzLen * sin(glm::radians(yaw));
 
 		win->camera->setDirection(glm::normalize(front));
+	}else if(rstate == GLFW_PRESS){
+		if (win->firstMouse) // this bool variable is initially set to true
+		{
+			win->lastX = xpos;
+			win->lastY = ypos;
+			win->firstMouse = false;
+		}
+		win->x_offset = win->lastX - xpos;
+		win->y_offset = ypos - win->lastY;
+		//win->lastX = xpos;
+		//win->lastY = ypos;
+		win->button_pressed = true;
+		
+	}
+	else if (rstate == GLFW_RELEASE) {
+		win->button_pressed = false;
+		win->firstMouse = true;
 	}
 	else {
 		win->firstMouse = true;
 	}
-	
+	if (win->button_pressed) {
+		float currentFrame = glfwGetTime();
+		float deltaTime = currentFrame - win->lastTime;
+		win->lastTime = currentFrame;
+		float speed = deltaTime * win->speed;
+		std::cout << win->x_offset << ", " << win->y_offset << std::endl;
+		win->camera->moveForward(speed * win->y_offset);
+		win->camera->moveRight(speed * win->x_offset / 10.0f);
+	}
 }
 
 void Window::standardInputProcessor(GLFWwindow* window) { //Go to processInputFunction, no extra steps needed
@@ -149,7 +153,9 @@ void Window::standardInputProcessor(GLFWwindow* window) { //Go to processInputFu
 	}if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
 		std::cout << glm::to_string(camera->getPosition())<< std::endl;
 		std::cout << glm::to_string(camera->getDirection())<< std::endl;
-		
+		if (std::find(lightPositions.begin(), lightPositions.end(), camera->getPosition()) ==  lightPositions.end()) {
+			lightPositions.emplace_back(camera->getPosition());
+		}
 		//signal = true;
 	}
 	else {

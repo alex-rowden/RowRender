@@ -14,21 +14,21 @@ class Texture2D;
 class Model
 {
 private:
-	void loadModel(std::string path);
+	void loadModel(std::string path, bool import_tangents = false);
 	std::vector<Mesh*> meshes;
 	std::string directory;
-	void processNode(aiNode* node, const aiScene* scene);
-	Mesh *processMesh(aiMesh* mesh, const aiScene* scene);
+	void processNode(aiNode* node, const aiScene* scene, bool import_tangents);
+	Mesh *processMesh(aiMesh* mesh, const aiScene* scene, bool import_tangents);
 	std::vector<Texture2D> loadMaterialTextures(aiMaterial* mat, aiTextureType type, std::string typeName);
 	std::vector<Texture2D> loadEmbeddedTextures(const aiScene* scene, const std::string& path);
 public:
-	Model(const char* path) { loadModel(std::string(path)); };
-	Model(std::string string) { loadModel(string); }
+	Model(const char* path, bool use_tangents = false) { loadModel(std::string(path), use_tangents); };
+	Model(std::string string, bool use_tangents = false) { loadModel(string, use_tangents); }
 	Model() {};
 	void Render(ShaderProgram* sp);
 	void addMesh(Mesh *mesh);
 	void addModel(Model* model);
-	void setModel();
+	void setModel(bool use_tangents = false);
 	std::vector<Mesh*> getMeshes() { return meshes; }
 };
 

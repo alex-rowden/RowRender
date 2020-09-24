@@ -12,6 +12,64 @@ void render(Model mesh, ShaderProgram* sp) {
 	}
 }
 
+//Taken from https://stackoverflow.com/a/6930407
+glm::vec3 hsv2rgb(glm::vec3 hsv)
+{
+	double      hh, p, q, t, ff;
+	long        i;
+	glm::vec3         out;
+	if (hsv.g <= 0.0) {       // < is bogus, just shuts up warnings
+		out.r = hsv.b;
+		out.g = hsv.b;
+		out.b = hsv.b;
+		return out;
+	}
+	hh = hsv.r;
+	if (hh >= 360.0) hh = 0.0;
+	hh /= 60.0;
+	i = (long)hh;
+	ff = hh - i;
+	p = hsv.b * (1.0 - hsv.g);
+	q = hsv.b * (1.0 - (hsv.g * ff));
+	t = hsv.b * (1.0 - (hsv.g * (1.0 - ff)));
+
+	switch (i) {
+	case 0:
+		out.r = hsv.b;
+		out.g = t;
+		out.b = p;
+		break;
+	case 1:
+		out.r = q;
+		out.g = hsv.b;
+		out.b = p;
+		break;
+	case 2:
+		out.r = p;
+		out.g = hsv.b;
+		out.b = t;
+		break;
+
+	case 3:
+		out.r = p;
+		out.g = q;
+		out.b = hsv.b;
+		break;
+	case 4:
+		out.r = t;
+		out.g = p;
+		out.b = hsv.b;
+		break;
+	case 5:
+	default:
+		out.r = hsv.b;
+		out.g = p;
+		out.b = q;
+		break;
+	}
+	return out;
+}
+
 void error_callback(int error, const char* description) {
 	fprintf(stderr, "Error: %s\n", description);
 }
@@ -19,7 +77,7 @@ void error_callback(int error, const char* description) {
 void setupDearIMGUI(GLFWwindow* window) {
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	ImGuiIO& io = ImGui::GetIO();
 	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
 	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 

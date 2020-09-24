@@ -22,9 +22,11 @@ public:
 	void setSpeed(float speed) { this->speed = speed; };
 	void setResized(bool resize) { resized = resize; }
 	bool getResized() { return resized; }
-
 	GLFWwindow* getWindow();
 	float lastX = 400, lastY = 300;
+	float x_offset = 0;
+	float y_offset = 0;
+	bool button_pressed = false;
 	Camera* camera;
 	bool firstMouse = true;
 	glm::vec3 scale = glm::vec3(1);
@@ -36,6 +38,7 @@ public:
 	double lastTime = 0;
 	float horizontalAngle = 3.14f;
 	float verticalAngle = 0.0f;
+	std::vector<glm::vec3> lightPositions;
 private:
 	bool resized = false;
 

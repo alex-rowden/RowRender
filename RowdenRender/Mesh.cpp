@@ -29,6 +29,11 @@ Mesh::Mesh(std::vector<Shape *> shapes) {
 			normals.emplace_back(normal.y);
 			normals.emplace_back(normal.z);
 		}
+		for (auto tangent : shape->getTangents()) {
+			tangents.emplace_back(tangent.x);
+			tangents.emplace_back(tangent.y);
+			tangents.emplace_back(tangent.z);
+		}
 	}
 }
 Mesh::Mesh(Shape *shape) {
@@ -51,6 +56,11 @@ Mesh::Mesh(Shape *shape) {
 		normals.emplace_back(normal.x);
 		normals.emplace_back(normal.y);
 		normals.emplace_back(normal.z);
+	}
+	for (auto tangent : shape->getTangents()) {
+		tangents.emplace_back(tangent.x);
+		tangents.emplace_back(tangent.y);
+		tangents.emplace_back(tangent.z);
 	}
 }
 
@@ -164,12 +174,14 @@ void Mesh::SetInstanceTransforms(std::vector<glm::mat4> transforms, std::vector<
 }
 
 
-void Mesh::SetData(GLenum usage) {
+void Mesh::SetData(GLenum usage, bool uses_tangents) {
 	glGenVertexArrays(1, &VertexArrayObject);
 	glGenBuffers(1, &VertexBufferObject);
 	glGenBuffers(1, &NormalBuffer);
 	glGenBuffers(1, &IndexBufferArray);
 	glGenBuffers(1, &TexCoordBuffer);
+	if (uses_tangents)
+		glGenBuffers(1, &tangentBufferArray);
 
 	glBindVertexArray(VertexArrayObject);
 
@@ -181,6 +193,11 @@ void Mesh::SetData(GLenum usage) {
 
 	glBindBuffer(GL_ARRAY_BUFFER, TexCoordBuffer);
 	glBufferData(GL_ARRAY_BUFFER, texCoords.size() * sizeof(float), (void*)texCoords.data(), usage);
+
+	if (uses_tangents) {
+		glBindBuffer(GL_ARRAY_BUFFER, tangentBufferArray);
+		glBufferData(GL_ARRAY_BUFFER, tangents.size() * sizeof(float), (void*)tangents.data(), usage);
+	}
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
@@ -204,6 +221,12 @@ void Mesh::SetData(GLenum usage) {
 	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
 	glEnableVertexAttribArray(2);
 
+	if (uses_tangents) {
+		glBindBuffer(GL_ARRAY_BUFFER, tangentBufferArray);
+		glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
+		glEnableVertexAttribArray(3);
+	}
+
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 }
@@ -214,6 +237,16 @@ void Mesh::addTexture(Texture2D texture) {
 
 void Mesh::setTexture(Texture2D texture, int index) {
 	textures[index] = texture;
+}void Mesh::setTexture(Texture2D texture) {
+	bool found = false;
+	for (int i = 0; i < textures.size(); i++) {
+		if (texture.name == textures[i].name) {
+			textures[i] = texture;
+			found = true;
+		}
+	}
+	if (!found)
+		textures.emplace_back(texture);
 }
 
 void Mesh::Render(ShaderProgram *shader, int offset) {

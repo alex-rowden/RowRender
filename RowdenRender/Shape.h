@@ -8,6 +8,7 @@ private:
 	std::vector<glm::ivec3> indices;
 	std::vector<glm::vec2> texCoords;
 	std::vector<glm::vec3> normals;
+	std::vector<glm::vec3> tangents;
 public:
 	enum class PREMADE { CUBE, QUAD };
 	Shape();
@@ -20,6 +21,7 @@ public:
 	void addNormal(glm::vec3 normal);
 	void addVertex(float x, float y, float z);
 	void addNormal(float x, float y, float z);
+	void addTangents(float x, float y, float z) { tangents.emplace_back(glm::vec3(x, y, z)); }
 	void addIndex(int x, int y, int z);
 	void addTexCoord(float x, float y);
 	void addUniqueIndices();
@@ -27,5 +29,6 @@ public:
 	std::vector<glm::ivec3> getIndices() const;
 	std::vector<glm::vec2> getTexCoords() const;
 	std::vector<glm::vec3> getNormals() const;
+	std::vector<glm::vec3> getTangents()const { return tangents; }
 };
 

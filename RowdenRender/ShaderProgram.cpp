@@ -15,6 +15,10 @@ ShaderProgram::ShaderProgram(std::vector<Shaders> shaders) {
 		case Shaders::INSTANCE_VERT:
 		case Shaders::INSTANCE_VERT_COLOR:
 		case Shaders::VOLUME_VERT_3D:
+		case Shaders::VERT_ELLIPSOID:
+		case Shaders::DEFFERED_RENDER_VERT:
+		case Shaders::DEFFERED_RENDER_ELLIPSOID_VERT:
+		case Shaders::SSAO_VERT:
 			glAttachShader(shaderProgram, vertexShader);
 			break;
 		case Shaders::FRAGMENT:
@@ -30,6 +34,11 @@ ShaderProgram::ShaderProgram(std::vector<Shaders> shaders) {
 		case Shaders::BACK_FRAG:
 		case Shaders::INSTANCE_FRAG_COLOR:
 		case Shaders::VOLUME_FRAG_3D:
+		case Shaders::FRAG_ELLIPSOID:
+		case Shaders::DEFFERED_RENDER_FRAG:
+		case Shaders::DEFFERED_RENDER_ELLIPSOID_FRAG:
+		case Shaders::PREPASS_SHADER:
+		case Shaders::SSAO_FRAG:
 			glAttachShader(shaderProgram, fragmentShader);
 			break;
 		}
@@ -44,6 +53,60 @@ ShaderProgram::ShaderProgram(std::vector<Shaders> shaders) {
 
 void ShaderProgram::Use() {
 	glUseProgram(shaderProgram);
+}
+
+void ShaderProgram::SetLights(Lights&lights, glm::vec3 position, int num_lights) {
+	if (num_lights != -1) {
+	float z_boost = 0;
+	float z_coord = position.z;
+	if (z_coord > .92)
+		z_boost += 1.01;
+	if (z_coord > 1.92)
+		z_boost += 1.01;
+	if (z_coord > 2.92)
+		z_boost += 1.01;
+	for (int i = 0; i < lights.point_lights.size(); i++) {
+		lights.point_lights.at(i).position.z += z_boost;
+	}
+	
+		std::vector<float> distances(num_lights);
+		std::fill(distances.begin(), distances.end(), std::numeric_limits<float>().max());
+		std::vector<int> indices(num_lights);
+		float curr_distance, swap_distance;
+		int curr_index, swap_index;
+		for (int i = 0; i < lights.point_lights.size(); i++) {
+			curr_distance = glm::distance(lights.point_lights[i].position, position);
+			curr_index = i;
+			for (int j = 0; j < num_lights; j++) {
+				if (curr_distance < distances[j]) {
+					swap_distance = distances[j];
+					swap_index = indices[j];
+					distances[j] = curr_distance;
+					indices[j] = curr_index;
+					curr_distance = swap_distance;
+					curr_index = swap_index;
+				}
+			}
+		}
+		std::vector<Lights::PointLight> new_lights(num_lights);
+		for (int i = 0; i < num_lights; i++) {
+			/*
+			std::vector<int>::iterator it = std::find(indices.begin(), indices.end(), i);
+			
+			std::swap(lights.point_lights[i], lights.point_lights[indices[i]]);
+			if (it != indices.end()) {
+				int index = distance(indices.begin(), it);
+				indices[i] = index;
+			}
+			*/
+			new_lights[i] = lights.point_lights[indices[i]];
+		}
+		
+		//lights.point_lights.resize(num_lights);
+		(&lights)->point_lights = new_lights;
+   	}
+	
+	SetLights(lights);
 }
 
 void ShaderProgram::SetLights(Lights lights) {
@@ -70,6 +133,13 @@ void ShaderProgram::SetLights(Lights lights) {
 		SetUniform3f((light_preamble + "color").c_str(), light.color);
 
 	}
+	SetUniform1i("num_point_lights", lights.getPointLights().size());
+}
+
+void ShaderProgram::SetEllipsoid(Ellipsoid ellipse) {
+	SetUniform3f("ellipsoid.mu", ellipse.mu);
+	SetUniform3fv("ellipsoid.axes", ellipse.axis);
+	SetUniform3f("ellipsoid.r", ellipse.r);
 }
 
 void ShaderProgram::SetGaussians(std::vector<Gaussian> gaus) {
@@ -163,6 +233,15 @@ void ShaderProgram::SetUniform2fv(const char* name, glm::mat2 mat, GLint transpo
 	glUniformMatrix2fv(location, 1, transpose, glm::value_ptr(mat));
 }
 
+void ShaderProgram::SetUniform1b(const char* name, bool in) {
+	int location = glGetUniformLocation(shaderProgram, name);
+	glUseProgram(shaderProgram);
+	if (in)
+		glUniform1i(location, 1);
+	else
+		glUniform1i(location, 0);
+}
+
 
 void ShaderProgram::program_error_check(Shaders shader) {
 	int success;
@@ -243,6 +322,33 @@ void ShaderProgram::program_error_check(Shaders shader) {
 		case Shaders::VOLUME_VERT_3D:
 			filename = "3d_volume_vertex.glsl";
 			break;
+		case Shaders::FRAG_ELLIPSOID:
+			filename = "fragment_shader_ellipse.glsl";
+			break;
+		case Shaders::VERT_ELLIPSOID:
+			filename = "vertex_shader_ellipse.glsl";
+			break;
+		case Shaders::DEFFERED_RENDER_FRAG:
+			filename = "deffered_fragment_shader.glsl";
+			break;
+		case Shaders::DEFFERED_RENDER_VERT:
+			filename = "deffered_vertex_shader.glsl";
+			break;
+		case Shaders::DEFFERED_RENDER_ELLIPSOID_FRAG:
+			filename = "deffered_fragment_ellipsoid_shader.glsl";
+			break;
+		case Shaders::DEFFERED_RENDER_ELLIPSOID_VERT:
+			filename = "deffered_vertex_ellipsoid_shader.glsl";
+			break;
+		case Shaders::PREPASS_SHADER:
+			filename = "prepass_shader.glsl";
+			break;
+		case Shaders::SSAO_VERT:
+			filename = "ssao_vert.glsl";
+			break;
+		case Shaders::SSAO_FRAG:
+			filename = "ssao_frag.glsl";
+			break;
 		default:
 			throw "Not a valid shader";
 		}
@@ -321,6 +427,33 @@ void ShaderProgram::importShaderFile(Shaders shader, std::string *ShaderString) 
 		break;
 	case Shaders::VOLUME_VERT_3D:
 		filename = "3d_volume_vertex.glsl";
+		break;
+	case Shaders::FRAG_ELLIPSOID:
+		filename = "fragment_shader_ellipse.glsl";
+		break;
+	case Shaders::VERT_ELLIPSOID:
+		filename = "vertex_shader_ellipse.glsl";
+		break;
+	case Shaders::DEFFERED_RENDER_FRAG:
+		filename = "deffered_fragment_shader.glsl";
+		break;
+	case Shaders::DEFFERED_RENDER_VERT:
+		filename = "deffered_vertex_shader.glsl";
+		break;
+	case Shaders::DEFFERED_RENDER_ELLIPSOID_FRAG:
+		filename = "deffered_fragment_ellipsoid_shader.glsl";
+		break;
+	case Shaders::DEFFERED_RENDER_ELLIPSOID_VERT:
+		filename = "deffered_vertex_ellipsoid_shader.glsl";
+		break;
+	case Shaders::PREPASS_SHADER:
+		filename = "prepass_shader.glsl";
+		break;
+	case Shaders::SSAO_FRAG:
+		filename = "ssao_frag.glsl";
+		break;
+	case Shaders::SSAO_VERT:
+		filename = "ssao_vert.glsl";
 		break;
 	default:
 		throw "Not a valid shader";
@@ -440,6 +573,42 @@ void ShaderProgram::shader_error_check(Shaders shader) {
 		shader_name = "3D_VOLUME_VERTEX_SHADER";
 		shader_adr = &vertexShader;
 		break;
+	case Shaders::FRAG_ELLIPSOID:
+		shader_name = "ELLIPSOID_FRAGMENT_SHADER";
+		shader_adr = &fragmentShader;
+		break;
+	case Shaders::VERT_ELLIPSOID:
+		shader_name = "ELLIPSOID_VERTEX_SHADER";
+		shader_adr = &vertexShader;
+		break;
+	case Shaders::PREPASS_SHADER:
+		shader_name = "PREPASS_SHADER";
+		shader_adr = &fragmentShader;
+		break;
+	case Shaders::DEFFERED_RENDER_VERT:
+		shader_name = "DEFFERED_VERTEX_RENDER";
+		shader_adr = &vertexShader;
+		break;
+	case Shaders::DEFFERED_RENDER_FRAG:
+		shader_name = "DEFFERED_FRAGMENT_RENDER";
+		shader_adr = &fragmentShader;
+		break;
+	case Shaders::DEFFERED_RENDER_ELLIPSOID_VERT:
+		shader_name = "DEFFERED_VERTEX_ELLIPSOID_RENDER";
+		shader_adr = &vertexShader;
+		break;
+	case Shaders::DEFFERED_RENDER_ELLIPSOID_FRAG:
+		shader_name = "DEFFERED_FRAGMENT_ELLIPSOID_RENDER";
+		shader_adr = &fragmentShader;
+		break;
+	case Shaders::SSAO_VERT:
+		shader_name = "SSAO_VERTEX_SHADER";
+		shader_adr = &vertexShader;
+		break;
+	case Shaders::SSAO_FRAG:
+		shader_name = "SSAO_FRAGMENT_SHADER";
+		shader_adr = &fragmentShader;
+		break;
 	default:
 		throw("Missing definition for shader in shader_error_check");
 	}
@@ -469,6 +638,10 @@ void ShaderProgram::SetupShader(Shaders shader) {
 	case Shaders::FRONT_BACK_VERT:
 	case Shaders::INSTANCE_VERT_COLOR:
 	case Shaders::VOLUME_VERT_3D:
+	case Shaders::VERT_ELLIPSOID:
+	case Shaders::DEFFERED_RENDER_VERT:
+	case Shaders::DEFFERED_RENDER_ELLIPSOID_VERT:
+	case Shaders::SSAO_VERT:
 		vertexShader = glCreateShader(GL_VERTEX_SHADER);
 		glShaderSource(vertexShader, 1, &shader_source, NULL);
 		glCompileShader(vertexShader);
@@ -486,6 +659,11 @@ void ShaderProgram::SetupShader(Shaders shader) {
 	case Shaders::BACK_FRAG:
 	case Shaders::INSTANCE_FRAG_COLOR:
 	case Shaders::VOLUME_FRAG_3D:
+	case Shaders::FRAG_ELLIPSOID:
+	case Shaders::DEFFERED_RENDER_FRAG:
+	case Shaders::DEFFERED_RENDER_ELLIPSOID_FRAG:
+	case Shaders::PREPASS_SHADER:
+	case Shaders::SSAO_FRAG:
 		fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 		glShaderSource(fragmentShader, 1, &shader_source, NULL);
 		glCompileShader(fragmentShader);

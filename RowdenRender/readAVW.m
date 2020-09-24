@@ -24,10 +24,10 @@ function [data_entries] = readAVW(filename, this_floor)
             if(num > 7)
                 name = "";
                 for j=1:(num-7)
-                    name = name + tokens{j};
+                    name = name + tokens{j} + " ";
                     offset = j;
                 end
-                wifi_name(count)= string(name);
+                wifi_name(count)= strtrim(string(name));
             else
                 wifi_name(count) = string("");
             end

@@ -7,7 +7,7 @@ in vec2 TexCoord;
 in vec3 FragPos;
 in vec3 normal;
 
-uniform sampler2D texture_diffuse1;
+uniform sampler2D wifi_colors;
 
 uniform float ambient_coeff, diffuse_coeff, spec_coeff;
 uniform int shininess;
@@ -50,8 +50,8 @@ vec3 CalcDirLight(DirLight light, vec3 norm, vec3 fragPos, vec3 viewDir)
 	//float attenuation = 1.0 / (light.constant + light.linear * distance +
 	//	light.quadratic * (distance * distance));
 	// combine results
-	vec3 ambient = light.color * vec3(texture(texture_diffuse1, TexCoord));
-	vec3 diffuse = light.color * diff * vec3(texture(texture_diffuse1, TexCoord));
+	vec3 ambient = light.color * vec3(texture(wifi_colors, TexCoord));
+	vec3 diffuse = light.color * diff * vec3(texture(wifi_colors, TexCoord));
 	vec3 specular = light.color * spec * vec3(1, 1, 1);
 	//ambient *= attenuation;
 	//diffuse *= attenuation;

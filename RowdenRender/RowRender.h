@@ -26,13 +26,31 @@ struct Gaussian {
 #include "Lights.h"
 #include "ShaderProgram.h"
 #include "Model.h"
+#include <openvr.h>
+#include "TextRenderer.h"
 
 class Model;
 class ShaderProgram;
 
+
+struct Ellipsoid {
+	glm::vec4 mu;
+	glm::vec4 r;
+	glm::mat4 axis;
+
+};
+
+const glm::vec3 GOLD = glm::vec3(255, 144, 0) / 255.0f;
+const glm::vec3 PURPLE = glm::vec3(84, 106, 255) / 255.0f;
 //any old render function
 void render(Model mesh, ShaderProgram* sp);
 void render(Model mesh, ShaderProgram* sp, int i);
+
+//input is vec3 in form (H,S,V)
+//H - [0, 360) representing Hue ("attribute of a visual sensation according to which an area appears to be similar to one of the perceived colors or combinations")
+//S - [0,1] representing Saturation ("colorfulness of a stimulus relative to its own brightness")
+//V - [0,1] representing Value ( the largest component of the color)
+glm::vec3 hsv2rgb(glm::vec3);
 
 void error_callback(int error, const char* description);
 

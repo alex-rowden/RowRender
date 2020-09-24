@@ -1,5 +1,6 @@
 #include "CampusWifiVisualization.h"
 #include "AVWilliamsWifiVisualization.h"
+#include "DefferedRenderingDemo.h"
 #include <string>
 bool campus = false;
 int main(int argc, char *argv[]) {
@@ -9,7 +10,10 @@ int main(int argc, char *argv[]) {
 	}
 	if(campus)
 		return CampusWifiVisualization();
-	else {
+	else if(true){
 		return AVWilliamsWifiVisualization();
+	}
+	else {
+		return DefferedRenderingDemo();
 	}
 }

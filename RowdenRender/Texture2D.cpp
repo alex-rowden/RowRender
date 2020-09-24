@@ -33,6 +33,7 @@ Texture2D::Texture2D(const char * filename) {
 	default:
 		return;
 	}
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	glTexImage2D(GL_TEXTURE_2D, 0, imageFormat, width, height, 0, imageFormat, GL_UNSIGNED_BYTE, data);
 	glGenerateMipmap(GL_TEXTURE_2D);
 	stbi_image_free(data);
@@ -91,6 +92,15 @@ Texture2D::Texture2D(unsigned char *vals, int height, int width) {
 	numChannels = 1;
 
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, vals);
+	glGenerateMipmap(GL_TEXTURE_2D);
+}Texture2D::Texture2D(unsigned char **vals, int height, int width) {
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	this->height = height;
+	this->width = width;
+	numChannels = 1;
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, vals[0]);
 	glGenerateMipmap(GL_TEXTURE_2D);
 }Texture2D::Texture2D(unsigned short *vals, int height, int width) {
 	glGenTextures(1, &texture);
@@ -179,6 +189,16 @@ Texture2D::Texture2D(glm::vec4 color) {
 void Texture2D::setBorderColor(glm::vec4 color) {
 
 	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, &color[0]);
+}
+
+void Texture2D::updateTexture(std::vector<glm::vec4> *colors, int height, int width) {
+	glBindTexture(GL_TEXTURE_2D, texture);
+	this->height = height;
+	this->width = width;
+	numChannels = 4;
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_FLOAT, colors->data());
+	glGenerateMipmap(GL_TEXTURE_2D);
 }
 
 //Set parameter s and then t with content for wrapping

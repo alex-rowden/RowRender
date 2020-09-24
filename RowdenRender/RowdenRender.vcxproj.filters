@@ -87,6 +87,15 @@
     <ClCompile Include="AVWWifiData.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="DefferedRenderingDemo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="VR_Wrapper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TextRenderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Window.h">
@@ -168,6 +177,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="AVWWifiData.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DefferedRenderingDemo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VR_Wrapper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TextRenderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -252,6 +270,36 @@
       <Filter>Source Files\Shaders</Filter>
     </None>
     <None Include="3d_volume_vertex.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="fragment_shader_ellipse.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="vertex_shader_ellipse.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="deffered_fragment_shader.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="deffered_vertex_shader.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="prepass_shader.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="prepass_vert.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="ssao_frag.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="ssao_vert.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="deffered_fragment_ellipsoid_shader.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="deffered_vertex_ellipsoid_shader.glsl">
       <Filter>Source Files\Shaders</Filter>
     </None>
   </ItemGroup>
