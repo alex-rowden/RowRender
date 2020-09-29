@@ -91,7 +91,7 @@ void setupDearIMGUI(GLFWwindow* window) {
 void MessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
 {
 	// ignore non-significant error/warning codes
-	if (id == 131169 || id == 131185 || id == 131218 || id == 131204 || id == 131154) return;
+	if (id == 131169 || id == 131185 || id == 131218 || id == 131204 || id == 131154 || id == 131140) return;
 
 	std::cout << "---------------" << std::endl;
 	std::cout << "Debug message (" << id << "): " << message << std::endl;

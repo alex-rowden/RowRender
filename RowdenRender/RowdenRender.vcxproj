@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -29,6 +29,7 @@
     <ClCompile Include="AVWilliamsWifiVisualization.cpp" />
     <ClCompile Include="AVWWifiData.cpp" />
     <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="DataBuffer.cpp" />
     <ClCompile Include="DefferedRenderingDemo.cpp" />
     <ClCompile Include="GaussianLoader.cpp" />
     <ClCompile Include="Lights.cpp" />
@@ -60,6 +61,7 @@
     <ClInclude Include="Camera.h" />
     <ClInclude Include="CampusWifiVisualization.h" />
     <ClInclude Include="common.h" />
+    <ClInclude Include="DataBuffer.h" />
     <ClInclude Include="DefferedRenderingDemo.h" />
     <ClInclude Include="GaussianLoader.h" />
     <ClInclude Include="Lights.h" />

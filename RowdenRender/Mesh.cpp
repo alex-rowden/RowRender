@@ -1,4 +1,4 @@
-#include "Mesh.h"
+ #include "Mesh.h"
 
 Mesh::Mesh() {
 	verticies = std::vector<float>();

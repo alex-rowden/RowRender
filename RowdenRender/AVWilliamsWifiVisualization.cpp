@@ -3,7 +3,9 @@
 #include "RowRender.h"
 #include "WifiData.h"
 #include "AVWWifiData.h"
+
 #include "VR_Wrapper.h"
+#include "DataBuffer.h"
 
 #include <random>
 #include <fstream>
@@ -16,13 +18,15 @@
 
 using namespace vr;
 
+bool use_vr = false;
+
 GLuint fhp_tex, bhp_tex;
 bool nearest_router_on = false;
 bool jittered = true;
-bool use_vr = false ;
+
 struct gBuffer {
-	GLuint frame_buffer, normal_tex, color_tex, frag_pos_tex, freq_mask_tex, depth_render_buf;
-	Texture2D color_texture, frag_pos_texture, normal_texture, freq_mask_texture;
+	GLuint frame_buffer, normal_tex, color_tex, frag_pos_tex, freq_mask_tex, color_array_tex,  ellipsoid_coordinates_tex, depth_render_buf;
+	Texture2D color_texture, frag_pos_texture, normal_texture, freq_mask_texture, ellipsoid_coordinates_texture;
 };
 
 struct eyeBuffer {
@@ -154,10 +158,29 @@ void createFramebuffer(glm::vec2 resolution, gBuffer* buffer) {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, buffer->freq_mask_tex, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT4, GL_TEXTURE_2D, buffer->freq_mask_tex, 0);
+	
+	glGenTextures(1, &buffer->ellipsoid_coordinates_tex);
+	glBindTexture(GL_TEXTURE_2D, buffer->ellipsoid_coordinates_tex);
+	buffer->ellipsoid_coordinates_texture = Texture2D();
+	buffer->ellipsoid_coordinates_texture.SetTextureID(buffer->ellipsoid_coordinates_tex);
+	buffer->ellipsoid_coordinates_texture.giveName("ellipsoid_coordinates_tex");
 
-	GLenum DrawBuffers[4] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
-	glDrawBuffers(4, DrawBuffers); // "2" is the size of DrawBuffers
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, resolution.x, resolution.y, 0, GL_RGBA, GL_FLOAT, 0);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, buffer->ellipsoid_coordinates_tex, 0);
+	
+
+
+	GLenum DrawBuffers[5];
+	for (int i = 0; i < 5; ++i)
+		DrawBuffers[i] = GL_COLOR_ATTACHMENT0 + i; //Sets appropriate indices for each color buffer
+	
+	glDrawBuffers(5, DrawBuffers);
 
 	glGenRenderbuffers(1, &buffer->depth_render_buf);
 	glBindRenderbuffer(GL_RENDERBUFFER, buffer->depth_render_buf);
@@ -415,8 +438,8 @@ int AVWilliamsWifiVisualization() {
 	float extent = 1;
 	float z_boost = 1;
 	float theta = 0;
-	float u_stretch = 1.157;
-	float v_stretch = .567;
+	float u_stretch = 5.015;
+	float v_stretch = 4.659;
 	int num_dashes = 6;
 
 	VolumeData volume;
@@ -437,11 +460,12 @@ int AVWilliamsWifiVisualization() {
 	wifi_tex.giveName("wifi_colors");
 	Sphere.getMeshes().at(0)->setTexture(wifi_tex, 0);
 
-	Texture2D frequency_texture = Texture2D("./Content/Textures/pills.png");
+	Texture2D frequency_texture = Texture2D("./Content/Textures/single_pill.png");
 	frequency_texture.giveName("frequency_tex");
 	frequency_texture.setTexMinMagFilter(GL_NEAREST, GL_NEAREST);
 	frequency_texture.setTexParameterWrap(GL_REPEAT);
 	AVW.getMeshes().at(0)->addTexture(frequency_texture);
+	quad.getMeshes().at(0)->addTexture(frequency_texture);
 
 
 	std::vector<glm::vec4> heatmap = std::vector<glm::vec4>(2);
@@ -480,7 +504,10 @@ int AVWilliamsWifiVisualization() {
 	quad.getMeshes().at(0)->addTexture(buffer[0].color_texture);
 	quad.getMeshes().at(0)->addTexture(buffer[0].frag_pos_texture);
 	quad.getMeshes().at(0)->addTexture(buffer[0].normal_texture);
+	quad.getMeshes().at(0)->addTexture(buffer[0].freq_mask_texture);
+	quad.getMeshes().at(0)->addTexture(buffer[0].ellipsoid_coordinates_texture);
 	quad.getMeshes().at(0)->addTexture(eyes[0].screenTexture);
+	quad.getMeshes().at(0)->addTexture(wifi_tex);
 
 	int num_fb = 1;
 	if (use_vr)
@@ -495,6 +522,9 @@ int AVWilliamsWifiVisualization() {
 
 	float linear_term = 1, thickness = .1, distance_mask = 0;
 	bool bin_orientations = false;
+	bool group_frequencies = false;
+
+
 
 	while (!glfwWindowShouldClose(w.getWindow())) {
 		//clear default framebuffer
@@ -581,6 +611,10 @@ int AVWilliamsWifiVisualization() {
 			deferred_shader.Use();
 			deferred_shader.SetUniform1i("num_point_lights", numLights);
 			deferred_shader.SetUniform3f("viewPos", camera.getPosition());
+			deferred_shader.SetUniform1b("group_frequencies", group_frequencies);
+			deferred_shader.SetUniform1i("num_frequencies", wifi.getActiveFreqs(freqs).size());
+			deferred_shader.SetUniform1f("u_stretch", u_stretch);
+			deferred_shader.SetUniform1f("v_stretch", v_stretch);
 			deferred_shader.SetLights(modelLights, camera.getPosition(), numLights);
 
 			glBindFramebuffer(GL_FRAMEBUFFER, eyes[i].frame_buffer);
@@ -591,6 +625,7 @@ int AVWilliamsWifiVisualization() {
 
 			if (updated_routers) {
 				wifi.updateRouterStructure(routers, wifinames, freqs, model_shader, nearest_router_on);
+				wifi.updateRouterStructure(routers, wifinames, freqs, deferred_shader, nearest_router_on);
 				updated_routers = false;
 				if (nearest_router_on) {
 					std::vector<glm::vec4> new_wifi_colors(wifi.getNumActiveRouters(routers));
@@ -737,6 +772,7 @@ int AVWilliamsWifiVisualization() {
 			ImGui::SliderFloat3("Bounding Box Offset", glm::value_ptr(bounding_cube_translate), -10, 10);
 			ImGui::Checkbox("Shade Instances", &shade_instances);
 			ImGui::Checkbox("Bin Orientations", &bin_orientations);
+			ImGui::Checkbox("Group Frequencies", &group_frequencies);
 			ImGui::Checkbox("Display Names", &display_names);
 			ImGui::Checkbox("Jittered Colors", &jittered);
 			ImGui::SliderFloat("Extent", &extent, 0, 5);
@@ -744,7 +780,7 @@ int AVWilliamsWifiVisualization() {
 			ImGui::SliderFloat("Contour Frequency", &frequency, .1, 10);
 			ImGui::SliderFloat("Theta", &theta, 0, 360);
 			ImGui::SliderFloat("u stretch", &u_stretch, 0, 10);
-			ImGui::SliderFloat("v stretch", &v_stretch, 0, 1);
+			ImGui::SliderFloat("v stretch", &v_stretch, 0, 10);
 			ImGui::SliderFloat("Linear Term", &linear_term, 0, 1);
 			ImGui::SliderFloat("thickness", &thickness, 0, .1);
 			ImGui::SliderFloat("distance mask", &distance_mask, 0, 3);

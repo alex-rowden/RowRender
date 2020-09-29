@@ -14,7 +14,9 @@ uniform sampler2D wifi_colors;
 layout(location = 0) out vec4 normal_tex;
 layout(location = 1) out vec4 albedo_tex;
 layout(location = 2) out vec4 fragPos_tex;
-layout(location = 3) out int freq_mask_tex;
+layout(location = 3) out vec4 ellipsoid_coordinates_tex;
+layout(location = 4) out int freq_mask_tex;
+
 
 
 uniform sampler2D ellipsoid_tex;
@@ -26,7 +28,7 @@ uniform int num_contours;
 uniform int num_routers, num_point_lights, num_freqs;
 uniform bool bin_orientations, display_names;
 
-#define MAX_ROUTERS 120
+#define MAX_ROUTERS 20
 
 bool freq_used[12] = {
 	false, false, false, false, false, false,
@@ -83,6 +85,7 @@ vec3 calculateColor(vec3 fragPos) {
 	
 	vec3 ret = vec3(0);
 	float alpha = 1;
+	freq_mask_tex = 0;
 	for (int i = 0; i < num_routers; i++) {
 		float distance = ellipsoidDistance(fragPos, Ellipsoids[i]);
 		if (distance <= extent) {
@@ -94,6 +97,7 @@ vec3 calculateColor(vec3 fragPos) {
 			//	mask = texture(crosshair_tex, vec2(distance / extent * frequency, radius * atan(modified_coords.x / modified_coords.z))).r;
 
 			vec3 color = texture(wifi_colors, vec2(0, Ellipsoids[i].mu.w)).rgb;
+			
 			if ((dot(Normal, vec3(0, 0, 1))) > 1e-6) {
 				if (bin_orientations && freq_used[int(Ellipsoids[i].r.w)]) {
 					continue;
@@ -101,14 +105,16 @@ vec3 calculateColor(vec3 fragPos) {
 				else {
 					freq_used[int(Ellipsoids[i].r.w)] = true;
 				}
-				freq_mask_tex += int(pow(ceil(num_routers), int(Ellipsoids[i].r.w)));
+				freq_mask_tex += int(1 << (4 * int(Ellipsoids[i].r.w)));
 				vec3 modified_coords = ellipsoidCoordinates(fragPos, Ellipsoids[i]);
 
 				vec2 index = (vec2(dot(tangent, modified_coords), dot(bitangent, modified_coords)) + vec2(1)) / 2.0f;
 				index = rotateVector(theta + Ellipsoids[i].r.w * delta_theta, index);
+				ellipsoid_coordinates_tex = vec4(index, 0, 1);
 				//float mask = texture(crosshair_tex, vec2(distance / extent * frequency, radius * atan(modified_coords.x / modified_coords.y))).r;
 				float mask = texture(frequency_tex, index).r;
 				alpha_new = mask;
+				
 				
 			}
 			else if (-dot(Normal, vec3(0, 0, 1)) > 1e-6) {
