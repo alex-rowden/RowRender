@@ -25,8 +25,8 @@ bool nearest_router_on = false;
 bool jittered = true;
 
 struct gBuffer {
-	GLuint frame_buffer, normal_tex, color_tex, frag_pos_tex, freq_mask_tex, color_array_tex,  ellipsoid_coordinates_tex, depth_render_buf;
-	Texture2D color_texture, frag_pos_texture, normal_texture, freq_mask_texture, ellipsoid_coordinates_texture;
+	GLuint frame_buffer, normal_tex, color_tex, frag_pos_tex, color_array_tex,  ellipsoid_coordinates_tex, depth_render_buf;
+	Texture2D color_texture, frag_pos_texture, normal_texture, ellipsoid_coordinates_texture;
 };
 
 struct eyeBuffer {
@@ -138,7 +138,7 @@ void createFramebuffer(glm::vec2 resolution, gBuffer* buffer) {
 	buffer->frag_pos_texture.SetTextureID(buffer->frag_pos_tex);
 	buffer->frag_pos_texture.giveName("fragPos_tex");
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, resolution.x, resolution.y, 0, GL_RGBA, GL_FLOAT, 0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, resolution.x, resolution.y, 0, GL_RGBA, GL_FLOAT, 0);
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -146,27 +146,13 @@ void createFramebuffer(glm::vec2 resolution, gBuffer* buffer) {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, buffer->frag_pos_tex, 0);
 	
-	glGenTextures(1, &buffer->freq_mask_tex);
-	glBindTexture(GL_TEXTURE_2D, buffer->freq_mask_tex);
-	buffer->freq_mask_texture = Texture2D();
-	buffer->freq_mask_texture.SetTextureID(buffer->freq_mask_tex);
-	buffer->freq_mask_texture.giveName("freq_mask_tex");
-
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_R32I, resolution.x, resolution.y, 0, GL_RED_INTEGER, GL_INT, 0);
-
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT4, GL_TEXTURE_2D, buffer->freq_mask_tex, 0);
-	
 	glGenTextures(1, &buffer->ellipsoid_coordinates_tex);
 	glBindTexture(GL_TEXTURE_2D, buffer->ellipsoid_coordinates_tex);
 	buffer->ellipsoid_coordinates_texture = Texture2D();
 	buffer->ellipsoid_coordinates_texture.SetTextureID(buffer->ellipsoid_coordinates_tex);
 	buffer->ellipsoid_coordinates_texture.giveName("ellipsoid_coordinates_tex");
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, resolution.x, resolution.y, 0, GL_RGBA, GL_FLOAT, 0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, resolution.x, resolution.y, 0, GL_RGBA, GL_FLOAT, 0);
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -176,11 +162,11 @@ void createFramebuffer(glm::vec2 resolution, gBuffer* buffer) {
 	
 
 
-	GLenum DrawBuffers[5];
-	for (int i = 0; i < 5; ++i)
+	GLenum DrawBuffers[4];
+	for (int i = 0; i < 4; ++i)
 		DrawBuffers[i] = GL_COLOR_ATTACHMENT0 + i; //Sets appropriate indices for each color buffer
 	
-	glDrawBuffers(5, DrawBuffers);
+	glDrawBuffers(4, DrawBuffers);
 
 	glGenRenderbuffers(1, &buffer->depth_render_buf);
 	glBindRenderbuffer(GL_RENDERBUFFER, buffer->depth_render_buf);
@@ -430,7 +416,7 @@ int AVWilliamsWifiVisualization() {
 	int num_routers = 6;
 
 	//load avw wifi data
-	AVWWifiData wifi(model_shader);
+	AVWWifiData wifi(deferred_shader);
 	Ellipsoid ellipsoid;
 	wifi.loadEllipsoid("one_router.elipsoid", ellipsoid);
 	float radius = 1;
@@ -504,7 +490,6 @@ int AVWilliamsWifiVisualization() {
 	quad.getMeshes().at(0)->addTexture(buffer[0].color_texture);
 	quad.getMeshes().at(0)->addTexture(buffer[0].frag_pos_texture);
 	quad.getMeshes().at(0)->addTexture(buffer[0].normal_texture);
-	quad.getMeshes().at(0)->addTexture(buffer[0].freq_mask_texture);
 	quad.getMeshes().at(0)->addTexture(buffer[0].ellipsoid_coordinates_texture);
 	quad.getMeshes().at(0)->addTexture(eyes[0].screenTexture);
 	quad.getMeshes().at(0)->addTexture(wifi_tex);
@@ -575,30 +560,12 @@ int AVWilliamsWifiVisualization() {
 			Lights modelLights = setPointLights(totalLights, constant, linear, quadratic);
 			model_shader.SetUniform4fv("projection", ProjectionMat);
 			
-			model_shader.SetUniform1f("transparency", transparency);
-			model_shader.SetEllipsoid(ellipsoid);
-			wifi_transform = glm::translate(glm::mat4(1), wifi_translate);
-			wifi.ellipsoid_transform = wifi_transform * glm::scale(glm::mat4(1), wifi_scale);
-			model_shader.SetUniform4fv("ellipsoid_transform", wifi.ellipsoid_transform);
-			wifi.radius_stretch = wifi_scale * glm::vec3(1, 1, z_boost);
-
-			model_shader.SetUniform3f("radius_stretch", wifi.radius_stretch);
-			model_shader.SetUniform1f("radius", radius);
-			model_shader.SetUniform1f("extent", extent);
-			model_shader.SetUniform1f("frequency", 1 / frequency);
-			model_shader.SetUniform1f("linear_term", linear_term);
-			model_shader.SetUniform1f("thickness", thickness);
-			model_shader.SetUniform1b("contour_on", contour_on);
-			model_shader.SetUniform1b("display_names", display_names);
-			model_shader.SetUniform1f("theta", theta);
-			model_shader.SetUniform1f("u_stretch", u_stretch);
-			model_shader.SetUniform1f("v_stretch", v_stretch);
+			
+			
 			model_shader.SetUniform1f("distance_mask", distance_mask);
-			model_shader.SetUniform1i("num_contours", num_dashes);
+
 			model_shader.SetUniform3f("viewPos", camera.getPosition());
-			model_shader.SetUniform1i("num_freqs", wifi.getActiveFreqs(freqs).size());
-			model_shader.SetUniform1f("delta_theta", 180.f/wifi.getActiveFreqs(freqs).size());
-			model_shader.SetUniform1b("bin_orientations", bin_orientations);
+			
 			//glDepthMask(GL_FALSE);
 			glEnable(GL_CULL_FACE);
 			glCullFace(GL_BACK);
@@ -609,12 +576,28 @@ int AVWilliamsWifiVisualization() {
 
 			
 			deferred_shader.Use();
+			deferred_shader.SetUniform1f("transparency", transparency);
+			deferred_shader.SetEllipsoid(ellipsoid);
+			wifi_transform = glm::translate(glm::mat4(1), wifi_translate);
+			wifi.ellipsoid_transform = wifi_transform * glm::scale(glm::mat4(1), wifi_scale);
+			deferred_shader.SetUniform4fv("ellipsoid_transform", wifi.ellipsoid_transform);
+			wifi.radius_stretch = wifi_scale * glm::vec3(1, 1, z_boost);
+
+			deferred_shader.SetUniform3f("radius_stretch", wifi.radius_stretch);
+			deferred_shader.SetUniform1f("extent", extent);
+			deferred_shader.SetUniform1f("frequency", 1 / frequency);
+			deferred_shader.SetUniform1f("linear_term", linear_term);
+			deferred_shader.SetUniform1f("thickness", thickness);
+			deferred_shader.SetUniform1b("contour_on", contour_on);
+			deferred_shader.SetUniform1b("display_names", display_names);
 			deferred_shader.SetUniform1i("num_point_lights", numLights);
 			deferred_shader.SetUniform3f("viewPos", camera.getPosition());
 			deferred_shader.SetUniform1b("group_frequencies", group_frequencies);
 			deferred_shader.SetUniform1i("num_frequencies", wifi.getActiveFreqs(freqs).size());
 			deferred_shader.SetUniform1f("u_stretch", u_stretch);
 			deferred_shader.SetUniform1f("v_stretch", v_stretch);
+			deferred_shader.SetUniform1f("delta_theta", 180.f / wifi.getActiveFreqs(freqs).size());
+			deferred_shader.SetUniform1i("num_contours", num_dashes);
 			deferred_shader.SetLights(modelLights, camera.getPosition(), numLights);
 
 			glBindFramebuffer(GL_FRAMEBUFFER, eyes[i].frame_buffer);
@@ -624,7 +607,6 @@ int AVWilliamsWifiVisualization() {
 			glDepthMask(GL_TRUE);
 
 			if (updated_routers) {
-				wifi.updateRouterStructure(routers, wifinames, freqs, model_shader, nearest_router_on);
 				wifi.updateRouterStructure(routers, wifinames, freqs, deferred_shader, nearest_router_on);
 				updated_routers = false;
 				if (nearest_router_on) {

@@ -3,17 +3,25 @@
 #define MAX_POINT_LIGHTS 80
 #define NR_DIR_LIGHTS 0
 #define MAX_ROUTERS 20
+const float PI = 3.1415926535897932384626433832795;
 
 in vec2 TexCoord;
 
+//deffered textures
 uniform sampler2D normal_tex;
 uniform sampler2D albedo_tex;
 uniform sampler2D fragPos_tex;
-uniform isampler2D freq_mask_tex;
 uniform sampler2D ellipsoid_coordinates_tex;
+
+//stored textures
 uniform sampler2D frequency_tex;
 uniform sampler2D wifi_colors;
+uniform sampler2D text_tex;
+uniform sampler2D ellipsoid_tex;
  //uniform sampler2D tangent_tex;
+
+float ellipsoid_ration = 1613.3333 / 2040;
+float ellipsoid_offset = (1 - ellipsoid_ration) / 2.0;
 
 out vec4 FragColor;
 
@@ -39,6 +47,8 @@ struct PointLight {
 	vec3 diffuse;
 	vec3 specular;
 };
+uniform PointLight pointLights[MAX_POINT_LIGHTS];
+
 struct DirLight {
 	vec3 direction;
 
@@ -47,19 +57,126 @@ struct DirLight {
 
 
 uniform float ambient_coeff, diffuse_coeff, spec_coeff,
-u_stretch, v_stretch;
+u_stretch, v_stretch, linear_term, thickness,
+delta_theta, extent, frequency;
+
 uniform int shininess, num_point_lights, num_frequencies,
-num_routers;
-uniform vec3 viewPos;
-uniform vec2 resolution;
+num_routers, num_contours;
 
-uniform bool group_frequencies;
+uniform bool group_frequencies, display_names;
 
-uniform PointLight pointLights[MAX_POINT_LIGHTS];
+uniform mat4 ellipsoid_transform;
 
-float ellipsoid_ration = 1613.3333 / 2040;
-float ellipsoid_offset = (1 - ellipsoid_ration) / 2.0;
+uniform vec3 radius_stretch, viewPos;
 
+vec2 rotateVector(float theta, vec2 inp) {
+	float rad = radians(theta);
+	float cosTheta = cos(rad);
+	float sinTheta = sin(rad);
+
+	return vec2((cosTheta * inp.x - sinTheta * inp.y) * 10 * u_stretch,
+		(sinTheta * inp.x + cosTheta * inp.y) * 10 * v_stretch);
+}
+
+vec3 ellipsoidCoordinates(vec3 fragPos, Ellipsoid ellipsoid) {
+	vec3 modified_coords = ellipsoid.mu.xyz;
+	modified_coords = (ellipsoid_transform * vec4(modified_coords.xyz, 1)).xyz;
+	modified_coords = (fragPos - modified_coords);
+
+	return modified_coords;
+}
+
+float ellipsoidDistance(vec3 fragPos, Ellipsoid ellipsoid) {
+	vec3 modified_coords = mat3(ellipsoid.axes) * ellipsoidCoordinates(fragPos, ellipsoid);
+	modified_coords = (modified_coords * modified_coords) / (9 * abs(mat3(ellipsoid.axes) * abs(radius_stretch * ellipsoid.r.xyz)));
+
+	float distance = 0;
+	for (int i = 0; i < 3; i++) {
+		distance += modified_coords[i];
+	}
+	return sqrt(distance);
+}
+
+vec3 calculateColor(vec3 fragPos, vec3 Normal) {
+	vec3 color = texture(albedo_tex, TexCoord).rgb;
+
+	vec3 ret = vec3(0);
+	float alpha = 1;
+	int num_routers_per_freq[MAX_ROUTERS];
+	int router_counter[MAX_ROUTERS];
+	for (int i = 0; i < num_frequencies; i++) {
+		num_routers_per_freq[i] = 0;
+		router_counter[i] = 0;
+	}
+
+	for (int i = 0; i < num_routers; i++) {
+		float distance = ellipsoidDistance(fragPos, Ellipsoids[i]);
+		if (distance <= extent) {
+			num_routers_per_freq[int(Ellipsoids[i].r.w)] += 1;
+		}
+	}
+
+	for (int i = 0; i < num_routers; i++) {
+		float distance = ellipsoidDistance(fragPos, Ellipsoids[i]);
+		if (distance <= extent) {
+			float alpha_new = 1 - distance / extent;
+
+			//if (abs(dot(Normal, vec3(1,0,0)))> 1e-4)
+			//	mask = texture(crosshair_tex, vec2(distance / extent * frequency, radius * atan(modified_coords.z / modified_coords.y))).r;
+			//if (abs(dot(Normal, vec3(0, 1, 0))) > 1e-4)
+			//	mask = texture(crosshair_tex, vec2(distance / extent * frequency, radius * atan(modified_coords.x / modified_coords.z))).r;
+
+			vec3 color = texture(wifi_colors, vec2(0, Ellipsoids[i].mu.w)).rgb;
+
+			if ((dot(Normal, vec3(0, 0, 1))) > 1e-6) {
+				
+				vec3 modified_coords = ellipsoidCoordinates(fragPos, Ellipsoids[i]);
+
+				vec2 index = texture(ellipsoid_coordinates_tex, TexCoord).rg;//(vec2(dot(tangent, modified_coords), dot(bitangent, modified_coords)) + vec2(1)) / 2.0f;
+				index = rotateVector(Ellipsoids[i].r.w * delta_theta, index);
+				float offset = .5;
+				if (abs(fract(index.g) - .5) < 1 / 6.0f) {
+					offset = 0;
+				}
+				int router_num = int((fract(index.r + offset) - ellipsoid_offset) * 1 / ellipsoid_ration * num_routers_per_freq[int(Ellipsoids[i].r.w)]);
+				float mask = texture(frequency_tex, index).r;
+				alpha_new = mask;
+				if (router_num > router_counter[int(Ellipsoids[i].r.w)])
+					alpha_new = 0;
+				router_counter[int(Ellipsoids[i].r.w)]++;
+
+			}
+			else if (-dot(Normal, vec3(0, 0, 1)) > 1e-6) {
+				alpha_new = 0;
+			}
+			else if (mod(linear_term * log2(distance / extent), frequency) > frequency * thickness) {
+				alpha_new = 0;
+			}
+			else {
+				if (abs(mod(linear_term * log2(distance / extent), frequency) / (frequency * thickness) - .5) > .2) {
+					alpha_new = 0;
+				}
+				if (display_names) {
+					vec3 modified_coords = ellipsoidCoordinates(fragPos, Ellipsoids[i]);
+					vec2 projected_coords = vec2(TexCoord);
+					float theta = atan(projected_coords.y, projected_coords.x);
+					float norm_theta = max(theta / PI + 1, 0);
+					if (mod(norm_theta * num_contours, 2) < 1) {
+						vec2 index = vec2(1 - mod(norm_theta * num_contours, 2), mod(linear_term * log2(distance / extent), frequency) / (frequency * thickness));
+						index.y = index.y / num_routers + i / float(num_routers);
+						alpha_new = texture(text_tex, index).r;
+					}
+				}
+			}
+			ret = alpha_new * (alpha * color) + ret;
+			alpha = (1 - alpha_new) * alpha;
+		}
+	}
+
+	ret = alpha * color + ret;
+
+	return ret;
+}
 
 vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 color)
 {
@@ -111,14 +228,6 @@ vec3 CalcDirLight(DirLight light, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 
 	return (ambient * ambient_coeff + diffuse * diffuse_coeff + specular * spec_coeff);
 }
 
-vec2 rotateVector(float theta, vec2 inp) {
-	float rad = radians(theta);
-	float cosTheta = cos(rad);
-	float sinTheta = sin(rad);
-
-	return vec2((cosTheta * inp.x - sinTheta * inp.y) * u_stretch, (sinTheta * inp.x + cosTheta * inp.y) * v_stretch);
-}
-
 void main()
 {
 	vec3 norm = normalize(texture(normal_tex, TexCoord).rgb);
@@ -132,34 +241,8 @@ void main()
 
 	vec3 viewDir = normalize(viewPos - FragPos);
 	vec3 ret = vec3(0, 0, 0);
-	vec3 color = texture(albedo_tex, TexCoord).rgb;
-	unsigned int freq_mask = uint(texture(freq_mask_tex, TexCoord).r);
-	vec2 ellipsoid_coords = texture(ellipsoid_coordinates_tex, TexCoord).rg;
+	vec3 color = calculateColor(FragPos, norm);
 
-	if (group_frequencies && (dot(norm, vec3(0, 0, 1))) > 1e-6) {
-		color = vec3(1,1,1);
-		int mask = (1 << 4) - 1;
-		for (int i = num_frequencies - 1; i >= 0; i--) {
-			uint num_routers = mask & freq_mask;
-			if (num_routers > 0) {
-				vec2 index = rotateVector(180.0f / (num_frequencies)*i, ellipsoid_coords);
-				float alpha = texture(frequency_tex, index).r;
-				if (alpha > 0) {
-					float offset = .5;
-					if (abs(fract(index.g) - .5) < 1 / 6.0f) {
-						offset = 0;
-					}
-					int router_num = int((fract(index.r + offset) - ellipsoid_offset) * 1/ellipsoid_ration * num_routers);
-					int counter = 0;
-					
-					color = texture(wifi_colors, vec2(0, router_num/float(1+num_routers))).rgb;
-					break;
-					
-				}
-			}
-			freq_mask = freq_mask >> 4;
-		} 
-	}
 
 	for (int i = 0; i < num_point_lights; i++) {
 		ret += CalcPointLight(pointLights[i], norm, FragPos, viewDir, color);
