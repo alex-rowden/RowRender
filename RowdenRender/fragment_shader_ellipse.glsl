@@ -15,6 +15,7 @@ layout(location = 0) out vec4 normal_tex;
 layout(location = 1) out vec4 albedo_tex;
 layout(location = 2) out vec4 fragPos_tex;
 layout(location = 3) out vec4 ellipsoid_coordinates_tex;
+layout(location = 4) out vec4 tangent_tex;
 
 uniform float distance_mask;
 
@@ -34,4 +35,5 @@ void main()
 	albedo_tex = vec4(texture(texture_diffuse1, TexCoord).rgb, 1);
 	fragPos_tex = vec4(FragPos, 1);
 	normal_tex = vec4(norm, 1);
+	tangent_tex = vec4(normalize(Tangent), 1);
 }

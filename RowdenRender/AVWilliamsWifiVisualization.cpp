@@ -25,8 +25,8 @@ bool nearest_router_on = false;
 bool jittered = true;
 
 struct gBuffer {
-	GLuint frame_buffer, normal_tex, color_tex, frag_pos_tex, color_array_tex,  ellipsoid_coordinates_tex, depth_render_buf;
-	Texture2D color_texture, frag_pos_texture, normal_texture, ellipsoid_coordinates_texture;
+	GLuint frame_buffer, normal_tex, tangent_tex, color_tex, frag_pos_tex, color_array_tex,  ellipsoid_coordinates_tex, depth_render_buf;
+	Texture2D color_texture, frag_pos_texture, tangent_texture, normal_texture, ellipsoid_coordinates_texture;
 };
 
 struct eyeBuffer {
@@ -160,13 +160,27 @@ void createFramebuffer(glm::vec2 resolution, gBuffer* buffer) {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, buffer->ellipsoid_coordinates_tex, 0);
 	
+	glGenTextures(1, &buffer->tangent_tex);
+	glBindTexture(GL_TEXTURE_2D, buffer->tangent_tex);
+	buffer->tangent_texture = Texture2D();
+	buffer->tangent_texture.SetTextureID(buffer->tangent_tex);
+	buffer->tangent_texture.giveName("tangent_tex");
 
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, resolution.x, resolution.y, 0, GL_RGBA, GL_FLOAT, 0);
 
-	GLenum DrawBuffers[4];
-	for (int i = 0; i < 4; ++i)
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT4, GL_TEXTURE_2D, buffer->tangent_tex, 0);
+	
+	const int numAttachments = 5;
+
+	GLenum DrawBuffers[numAttachments];
+	for (int i = 0; i < numAttachments; ++i)
 		DrawBuffers[i] = GL_COLOR_ATTACHMENT0 + i; //Sets appropriate indices for each color buffer
 	
-	glDrawBuffers(4, DrawBuffers);
+	glDrawBuffers(numAttachments, DrawBuffers);
 
 	glGenRenderbuffers(1, &buffer->depth_render_buf);
 	glBindRenderbuffer(GL_RENDERBUFFER, buffer->depth_render_buf);
@@ -491,6 +505,7 @@ int AVWilliamsWifiVisualization() {
 	quad.getMeshes().at(0)->addTexture(buffer[0].frag_pos_texture);
 	quad.getMeshes().at(0)->addTexture(buffer[0].normal_texture);
 	quad.getMeshes().at(0)->addTexture(buffer[0].ellipsoid_coordinates_texture);
+	quad.getMeshes().at(0)->addTexture(buffer[0].tangent_texture);
 	quad.getMeshes().at(0)->addTexture(eyes[0].screenTexture);
 	quad.getMeshes().at(0)->addTexture(wifi_tex);
 
@@ -671,7 +686,7 @@ int AVWilliamsWifiVisualization() {
 
 					Texture2D text(tr.tex, tr.height, tr.width);
 					text.giveName("text_tex");
-					AVW.getMeshes().at(0)->setTexture(text);
+					quad.getMeshes().at(0)->setTexture(text);
 				}
 			}
 			//render wifi instances

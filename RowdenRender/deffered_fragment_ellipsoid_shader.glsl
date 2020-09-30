@@ -12,6 +12,7 @@ uniform sampler2D normal_tex;
 uniform sampler2D albedo_tex;
 uniform sampler2D fragPos_tex;
 uniform sampler2D ellipsoid_coordinates_tex;
+uniform sampler2D tangent_tex;
 
 //stored textures
 uniform sampler2D frequency_tex;
@@ -99,7 +100,8 @@ float ellipsoidDistance(vec3 fragPos, Ellipsoid ellipsoid) {
 
 vec3 calculateColor(vec3 fragPos, vec3 Normal) {
 	vec3 color = texture(albedo_tex, TexCoord).rgb;
-
+	vec3 tangent = texture(tangent_tex, TexCoord).rgb;
+	vec3 bitangent = normalize(cross(tangent, Normal));
 	vec3 ret = vec3(0);
 	float alpha = 1;
 	int num_routers_per_freq[MAX_ROUTERS];
@@ -158,11 +160,11 @@ vec3 calculateColor(vec3 fragPos, vec3 Normal) {
 				}
 				if (display_names) {
 					vec3 modified_coords = ellipsoidCoordinates(fragPos, Ellipsoids[i]);
-					vec2 projected_coords = vec2(TexCoord);
+					vec2 projected_coords = vec2(dot(tangent, modified_coords), dot(bitangent, modified_coords));
 					float theta = atan(projected_coords.y, projected_coords.x);
 					float norm_theta = max(theta / PI + 1, 0);
 					if (mod(norm_theta * num_contours, 2) < 1) {
-						vec2 index = vec2(1 - mod(norm_theta * num_contours, 2), mod(linear_term * log2(distance / extent), frequency) / (frequency * thickness));
+						vec2 index = vec2( mod(norm_theta * num_contours, 2), mod(linear_term * log2(distance / extent), frequency) / (frequency * thickness));
 						index.y = index.y / num_routers + i / float(num_routers);
 						alpha_new = texture(text_tex, index).r;
 					}
