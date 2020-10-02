@@ -31,15 +31,15 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 
 
 void standard_mouse_callback(GLFWwindow* window, double xpos, double ypos) {
-	
-
 	Window* win = static_cast<Window*>(glfwGetWindowUserPointer(window));
 	int lstate = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
 	int rstate = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT);
+	int mstate = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE);
+	win->currX = xpos;
+	win->currY = ypos;
 	if ((ImGui::GetCurrentContext() != NULL) && ImGui::GetIO().WantCaptureMouse) return;
 	if (lstate == GLFW_PRESS )
 	{
-
 		if (win->firstMouse) // this bool variable is initially set to true
 		{
 			win->lastX = xpos;
@@ -92,6 +92,7 @@ void standard_mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 	}
 	else {
 		win->firstMouse = true;
+
 	}
 	if (win->button_pressed) {
 		float currentFrame = glfwGetTime();
@@ -157,6 +158,9 @@ void Window::standardInputProcessor(GLFWwindow* window) { //Go to processInputFu
 			lightPositions.emplace_back(camera->getPosition());
 		}
 		//signal = true;
+	}if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS) {
+		signal = true;
+		std::cout << glm::to_string(glm::vec2(currX, currY)) << std::endl;
 	}
 	else {
 		pressed = false;
@@ -224,10 +228,11 @@ void Window::SetCamera(Camera* _camera) {
 
 //Process each input frame, by default uses standard input processor
 void Window::ProcessFrame(bool useStandard) {
+	glfwPollEvents();//get polled events
 	glfwMakeContextCurrent(window); //focus on the new window
 	standardInputProcessor(window); //get keypresses etc.
 	glfwSwapBuffers(window); //dual buffer swap
-	glfwPollEvents();//get polled events
+	
 }
 
 //allow custom input processing function, standard process by default not used

@@ -70,6 +70,8 @@ uniform mat4 ellipsoid_transform;
 
 uniform vec3 radius_stretch, viewPos;
 
+uniform vec3 selectedPos;
+
 vec2 rotateVector(float theta, vec2 inp) {
 	float rad = radians(theta);
 	float cosTheta = cos(rad);
@@ -103,6 +105,12 @@ vec3 calculateColor(vec3 fragPos, vec3 Normal) {
 	vec3 tangent = texture(tangent_tex, TexCoord).rgb;
 	vec3 bitangent = normalize(cross(tangent, Normal));
 	vec3 ret = vec3(0);
+	vec3 selectedFragPos = selectedPos.bgr;
+	float dist = distance(fragPos, selectedFragPos);
+	if (dist < .05) {
+		color = vec3(1, 0, 0);
+		return color;
+	}
 	float alpha = 1;
 	int num_routers_per_freq[MAX_ROUTERS];
 	int router_counter[MAX_ROUTERS];

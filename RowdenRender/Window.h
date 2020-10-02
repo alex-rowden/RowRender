@@ -23,7 +23,7 @@ public:
 	void setResized(bool resize) { resized = resize; }
 	bool getResized() { return resized; }
 	GLFWwindow* getWindow();
-	float lastX = 400, lastY = 300;
+	float lastX = 400, lastY = 300, currX, currY;
 	float x_offset = 0;
 	float y_offset = 0;
 	bool button_pressed = false;

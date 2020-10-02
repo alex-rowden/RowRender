@@ -25,7 +25,10 @@ bool nearest_router_on = false;
 bool jittered = true;
 
 struct gBuffer {
-	GLuint frame_buffer, normal_tex, tangent_tex, color_tex, frag_pos_tex, color_array_tex,  ellipsoid_coordinates_tex, depth_render_buf;
+	GLuint frame_buffer, normal_tex, tangent_tex, 
+		color_tex, frag_pos_tex, color_array_tex,  ellipsoid_coordinates_tex,
+		depth_render_buf;
+	GLuint pboIDs[2];
 	Texture2D color_texture, frag_pos_texture, tangent_texture, normal_texture, ellipsoid_coordinates_texture;
 };
 
@@ -146,6 +149,13 @@ void createFramebuffer(glm::vec2 resolution, gBuffer* buffer) {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, buffer->frag_pos_tex, 0);
 	
+	glGenBuffers(2, buffer->pboIDs);
+	glBindBuffer(GL_PIXEL_PACK_BUFFER, buffer->pboIDs[0]);
+	glBufferData(GL_PIXEL_PACK_BUFFER, resolution.x * resolution.y * 4 * sizeof(float), 0, GL_STREAM_READ);
+	glBindBuffer(GL_PIXEL_PACK_BUFFER, buffer->pboIDs[1]);
+	glBufferData(GL_PIXEL_PACK_BUFFER, resolution.x * resolution.y * 4 * sizeof(float), 0, GL_STREAM_READ);
+	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+
 	glGenTextures(1, &buffer->ellipsoid_coordinates_tex);
 	glBindTexture(GL_TEXTURE_2D, buffer->ellipsoid_coordinates_tex);
 	buffer->ellipsoid_coordinates_texture = Texture2D();
@@ -428,6 +438,8 @@ int AVWilliamsWifiVisualization() {
 	bool display_names = false;
 	float constant = 1, linear = .9, quadratic = .98;
 	int num_routers = 6;
+	int odd_or_even_frame = 0;
+
 
 	//load avw wifi data
 	AVWWifiData wifi(deferred_shader);
@@ -523,9 +535,13 @@ int AVWilliamsWifiVisualization() {
 	float linear_term = 1, thickness = .1, distance_mask = 0;
 	bool bin_orientations = false;
 	bool group_frequencies = false;
+	bool send_data = false, polling_pbo = false;
 
-
-
+	glm::vec4* fragPosArray = (glm::vec4*)malloc(sizeof(glm::vec4) * resolution.x * resolution.y);
+	if (!fragPosArray) {
+		std::cerr << "Malloc Error" << std::endl;
+	}
+	GLsync block = 0;
 	while (!glfwWindowShouldClose(w.getWindow())) {
 		//clear default framebuffer
 		if (use_vr) {
@@ -566,19 +582,40 @@ int AVWilliamsWifiVisualization() {
 			render(quad, &ground_shader);
 
 			//render building model
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, buffer[i].frame_buffer);
+			glBindFramebuffer(GL_FRAMEBUFFER, buffer[i].frame_buffer);
+		
+			if (i == 0 && w.signal) {
+				glReadBuffer(GL_COLOR_ATTACHMENT2);
+				glBindBuffer(GL_PIXEL_PACK_BUFFER, buffer->pboIDs[odd_or_even_frame]);
+				glReadPixels(0, 0, resolution.x, resolution.y, GL_BGRA, GL_FLOAT, 0);
+				block = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+				//odd_or_even_frame = (odd_or_even_frame + 1) % 2;
+				glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+				polling_pbo = true;
+				w.signal = false;
+			}else if (i == 0 && polling_pbo && glClientWaitSync(block, GL_SYNC_FLUSH_COMMANDS_BIT, 0)) {
+				glBindBuffer(GL_PIXEL_PACK_BUFFER, buffer->pboIDs[int(odd_or_even_frame)]);
+				fragPosArray = (glm::vec4*)glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
+
+				//fragPosArray = (glm::vec4*)src;
+
+				if (fragPosArray) {
+					glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+				}
+				polling_pbo = false;
+				send_data = true;
+			}
+			
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, eyes[i].frame_buffer);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 			model_shader.Use();
 			model_shader.SetUniform4fv("model", avw_transform);
 			model_shader.SetUniform3fv("normalMatrix", glm::mat3(glm::transpose(glm::inverse(avw_transform))));
 			model_shader.SetUniform4fv("camera", ViewMat );
-			Lights modelLights = setPointLights(totalLights, constant, linear, quadratic);
 			model_shader.SetUniform4fv("projection", ProjectionMat);
-			
-			
-			
+			Lights modelLights = setPointLights(totalLights, constant, linear, quadratic);
 			model_shader.SetUniform1f("distance_mask", distance_mask);
-
 			model_shader.SetUniform3f("viewPos", camera.getPosition());
 			
 			//glDepthMask(GL_FALSE);
@@ -613,6 +650,11 @@ int AVWilliamsWifiVisualization() {
 			deferred_shader.SetUniform1f("v_stretch", v_stretch);
 			deferred_shader.SetUniform1f("delta_theta", 180.f / wifi.getActiveFreqs(freqs).size());
 			deferred_shader.SetUniform1i("num_contours", num_dashes);
+			if (send_data) {
+				glm::vec2 index = glm::ivec2(w.currX, (resolution.y - w.currY));
+				deferred_shader.SetUniform3f("selectedPos", fragPosArray[int(index.y * resolution.x + index.x)]);
+				send_data = false;
+			}
 			deferred_shader.SetLights(modelLights, camera.getPosition(), numLights);
 
 			glBindFramebuffer(GL_FRAMEBUFFER, eyes[i].frame_buffer);
