@@ -21,6 +21,7 @@ public:
 	glm::vec3 getDirection() { return direction; }
 	glm::vec3 getProjectedDirection() { return (getProjection() * glm::vec4(direction, 1)); }
 	glm::vec3 getUp() { return up; }
+	glm::vec3 getRight() { return right; }
 	void setMoved(bool moved) { this->moved = moved; }
 	bool getMoved() { return moved; }
 private:

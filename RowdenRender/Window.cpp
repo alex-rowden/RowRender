@@ -160,7 +160,7 @@ void Window::standardInputProcessor(GLFWwindow* window) { //Go to processInputFu
 		//signal = true;
 	}if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS) {
 		signal = true;
-		std::cout << glm::to_string(glm::vec2(currX, currY)) << std::endl;
+		//std::cout << glm::to_string(glm::vec2(currX, currY)) << std::endl;
 	}
 	else {
 		pressed = false;

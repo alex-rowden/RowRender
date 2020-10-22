@@ -47,9 +47,9 @@ void VR_Wrapper::ProcessVREvent(const vr::VREvent_t& event) {
 				std::cout << "Run Ray Picking" << std::endl;
 				ray_picker_enable = true;
 			}if (ButtonCode2Button(event) == VR_Wrapper::Button::B) {
-				adjusted_height += 1.01;
+				//adjusted_height += 1.01;
 			}if (ButtonCode2Button(event) == VR_Wrapper::Button::A) {
-				adjusted_height -= 1.01;
+				//adjusted_height -= 1.01;
 			}
 		}
 	case vr::VREvent_ButtonTouch:
@@ -69,11 +69,11 @@ void VR_Wrapper::SaveControllerIDs() {
 			continue;
 
 		//Confirmed that the device in question is a connected controller
-
-		if (left_or_right(id) == EHand::Right) {
+		auto hand = left_or_right(id);
+		if (hand == EHand::Right) {
 			RightDeviceId = id;
 		}
-		else {
+		else if(hand == EHand::Left) {
 			LeftDeviceId = id;
 		}
 	}
@@ -168,6 +168,7 @@ VR_Wrapper::EHand VR_Wrapper::left_or_right(vr::TrackedDeviceIndex_t trackedDevi
 	ETrackedControllerRole role =
 		vr_pointer->GetControllerRoleForTrackedDeviceIndex(trackedDeviceIndex);
 	if (role == TrackedControllerRole_Invalid) {
+		return EHand::None;
 		// The controller is probably not visible to a base station.
 		//    Invalid role comes up more often than you might think.
 	}
@@ -187,10 +188,75 @@ VR_Wrapper::EHand VR_Wrapper::left_or_right(vr::TrackedDeviceIndex_t trackedDevi
 glm::mat4 VR_Wrapper::getControllerPose(uint32_t id) {
 	TrackedDevicePose_t trackedDevicePose;
 	VRControllerState_t controllerState;
-	vr_pointer->GetControllerStateWithPose(
+	/*
+	bool ret = vr_pointer->GetControllerStateWithPose(
 		TrackingUniverseSeated, id, &controllerState,
 		sizeof(controllerState), &trackedDevicePose);
-	return ConvertSteamVRMatrixToMatrix4(trackedDevicePose.mDeviceToAbsoluteTracking);
+		*/glm::mat4 controllerPose = hand[(int)left_or_right(id)].pose;
+	//if (!ret)
+	//	std::cerr << "Did not recieve tracking for controller " << id << std::endl;
+		return controllerPose;//ConvertSteamVRMatrixToMatrix4(trackedDevicePose.mDeviceToAbsoluteTracking);
+}
+
+void VR_Wrapper::setActionHandles()
+{
+	vr::VRInput()->GetActionSetHandle("/actions/demo", &m_actionSet);
+
+	auto ret = vr::VRInput()->GetInputSourceHandle("/user/hand/left", &hand[0].source);
+	ret = vr::VRInput()->GetActionHandle("/actions/demo/in/hand_left", &hand[0].pose_handle);
+	
+	vr::VRInput()->GetInputSourceHandle("/user/hand/right", &hand[1].source);
+	vr::VRInput()->GetActionHandle("/actions/demo/in/hand_right", &hand[1].pose_handle);
+	
+	ret = vr::VRInput()->GetActionHandle("/actions/demo/in/select", &trigger_right);
+
+	if (ret != vr::EVRInputError::VRInputError_None) {
+		std::cout << "boop " << ret << std::endl;
+	}
+}
+
+//straight up stolen from openvr sample
+bool GetDigitalActionState(vr::VRActionHandle_t action, vr::VRInputValueHandle_t* pDevicePath = nullptr)
+{
+	vr::InputDigitalActionData_t actionData;
+	vr::VRInput()->GetDigitalActionData(action, &actionData, sizeof(actionData), vr::k_ulInvalidInputValueHandle);
+	if (pDevicePath)
+	{
+		*pDevicePath = vr::k_ulInvalidInputValueHandle;
+		if (actionData.bActive)
+		{
+			vr::InputOriginInfo_t originInfo;
+			if (vr::VRInputError_None == vr::VRInput()->GetOriginTrackedDeviceInfo(actionData.activeOrigin, &originInfo, sizeof(originInfo)))
+			{
+				*pDevicePath = originInfo.devicePath;
+			}
+		}
+	}
+	return actionData.bActive && actionData.bState;
+}
+
+void VR_Wrapper::UpdateActionState() {
+	vr::VRActiveActionSet_t actionSet = { 0 };
+	actionSet.ulActionSet = m_actionSet;
+	if (vr::VRInput()->UpdateActionState(&actionSet, sizeof(actionSet), 1) != vr::EVRInputError::VRInputError_None) {
+		std::cerr << "error updating Action State" << std::endl;
+	}
+	ray_picker_enable = GetDigitalActionState(trigger_right);
+	for (int eHand = 0; eHand < 2; eHand++)
+	{
+		vr::InputPoseActionData_t poseData;
+		if (auto error = vr::VRInput()->GetPoseActionDataForNextFrame(hand[eHand].pose_handle, vr::TrackingUniverseStanding, &poseData, sizeof(poseData), vr::k_ulInvalidInputValueHandle) != vr::VRInputError_None
+			|| !poseData.bActive || !poseData.pose.bPoseIsValid)
+		{
+			//m_rHand[eHand].m_bShowController = false;
+			//std::cerr << "pose invalid " << error << std::endl;
+		}
+		else
+		{
+			//std::cout << "I got a good state" << std::endl;
+			hand[eHand].pose = ConvertSteamVRMatrixToMatrix4(poseData.pose.mDeviceToAbsoluteTracking);
+		}
+	}
 }
 
 void VR_Wrapper::handle_vr_input() {
@@ -199,6 +265,7 @@ void VR_Wrapper::handle_vr_input() {
 	{
 		ProcessVREvent(event);
 	}
+	UpdateActionState();
 	for (EHand eHand = EHand::Left; eHand <= EHand::Right; ((int&)eHand)++)
 	{
 		vr::InputPoseActionData_t poseData;
@@ -250,6 +317,13 @@ bool VR_Wrapper::initCompositor() {
 void VR_Wrapper::terminate() {
 	VR_Shutdown();
 	vr_pointer = NULL;
+}
+
+void VR_Wrapper::SetActionManifestPath(std::string path)
+{
+	if (vr::VRInput()->SetActionManifestPath(path.c_str()) != vr::EVRInputError::VRInputError_None) {
+		std::cerr << "Error setting action manifest path" << std::endl;
+	}
 }
 
 void VR_Wrapper::composite(EVREye eye, GLuint tex) {
@@ -319,6 +393,10 @@ void VR_Wrapper::updateHMDPoseMatrix() {
 		}
 	}
 
+}
+
+glm::vec3 VR_Wrapper::getCameraPosition() {
+	return glm::vec3((DevicePose[vr::k_unTrackedDeviceIndex_Hmd])* glm::vec4(0, 0, 0, 1));
 }
 
 glm::mat4 VR_Wrapper::getViewMatrix(Hmd_Eye eye) {

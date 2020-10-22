@@ -18,6 +18,7 @@ void Camera::setDirection(glm::vec3 dir) {
 
 glm::mat4 Camera::getView() {
 	return glm::lookAt(position, position + direction, up);
+	//return glm::mat4(1);
 }
 
 glm::mat4 Camera::getProjection() {

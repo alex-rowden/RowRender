@@ -19,6 +19,7 @@ ShaderProgram::ShaderProgram(std::vector<Shaders> shaders) {
 		case Shaders::DEFFERED_RENDER_VERT:
 		case Shaders::DEFFERED_RENDER_ELLIPSOID_VERT:
 		case Shaders::SSAO_VERT:
+		case Shaders::QUAD_RENDER_VERT:
 			glAttachShader(shaderProgram, vertexShader);
 			break;
 		case Shaders::FRAGMENT:
@@ -39,6 +40,7 @@ ShaderProgram::ShaderProgram(std::vector<Shaders> shaders) {
 		case Shaders::DEFFERED_RENDER_ELLIPSOID_FRAG:
 		case Shaders::PREPASS_SHADER:
 		case Shaders::SSAO_FRAG:
+		case Shaders::QUAD_RENDER_FRAG:
 			glAttachShader(shaderProgram, fragmentShader);
 			break;
 		}
@@ -349,6 +351,12 @@ void ShaderProgram::program_error_check(Shaders shader) {
 		case Shaders::SSAO_FRAG:
 			filename = "ssao_frag.glsl";
 			break;
+		case Shaders::QUAD_RENDER_VERT:
+			filename = "quad_shader.vert";
+			break;
+		case Shaders::QUAD_RENDER_FRAG:
+			filename = "quad_render.frag";
+			break;
 		default:
 			throw "Not a valid shader";
 		}
@@ -454,6 +462,12 @@ void ShaderProgram::importShaderFile(Shaders shader, std::string *ShaderString) 
 		break;
 	case Shaders::SSAO_VERT:
 		filename = "ssao_vert.glsl";
+		break;
+	case Shaders::QUAD_RENDER_FRAG:
+		filename = "quad_shader.frag";
+		break;
+	case Shaders::QUAD_RENDER_VERT:
+		filename = "quad_shader.vert";
 		break;
 	default:
 		throw "Not a valid shader";
@@ -609,6 +623,14 @@ void ShaderProgram::shader_error_check(Shaders shader) {
 		shader_name = "SSAO_FRAGMENT_SHADER";
 		shader_adr = &fragmentShader;
 		break;
+	case Shaders::QUAD_RENDER_VERT:
+		shader_name = "QUAD_VERTEX_SHADER";
+		shader_adr = &vertexShader;
+		break;
+	case Shaders::QUAD_RENDER_FRAG:
+		shader_name = "QUAD_FRAGMENT_SHADER";
+		shader_adr = &fragmentShader;
+		break;
 	default:
 		throw("Missing definition for shader in shader_error_check");
 	}
@@ -642,6 +664,7 @@ void ShaderProgram::SetupShader(Shaders shader) {
 	case Shaders::DEFFERED_RENDER_VERT:
 	case Shaders::DEFFERED_RENDER_ELLIPSOID_VERT:
 	case Shaders::SSAO_VERT:
+	case Shaders::QUAD_RENDER_VERT:
 		vertexShader = glCreateShader(GL_VERTEX_SHADER);
 		glShaderSource(vertexShader, 1, &shader_source, NULL);
 		glCompileShader(vertexShader);
@@ -664,6 +687,7 @@ void ShaderProgram::SetupShader(Shaders shader) {
 	case Shaders::DEFFERED_RENDER_ELLIPSOID_FRAG:
 	case Shaders::PREPASS_SHADER:
 	case Shaders::SSAO_FRAG:
+	case Shaders::QUAD_RENDER_FRAG:
 		fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 		glShaderSource(fragmentShader, 1, &shader_source, NULL);
 		glCompileShader(fragmentShader);

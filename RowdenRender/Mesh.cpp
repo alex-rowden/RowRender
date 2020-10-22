@@ -241,6 +241,7 @@ void Mesh::setTexture(Texture2D texture, int index) {
 	bool found = false;
 	for (int i = 0; i < textures.size(); i++) {
 		if (texture.name == textures[i].name) {
+			glDeleteTextures(1, textures[i].getIDP());
 			textures[i] = texture;
 			found = true;
 		}
@@ -250,7 +251,7 @@ void Mesh::setTexture(Texture2D texture, int index) {
 }
 
 void Mesh::Render(ShaderProgram *shader, int offset) {
-
+								  
 	unsigned int diffuseNr = 1;
 	unsigned int specularNr = 1;
 	if (textures.size() == 0) {

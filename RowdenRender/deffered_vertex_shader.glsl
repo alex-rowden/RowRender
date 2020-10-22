@@ -15,7 +15,7 @@ uniform mat4 projection;
 void main() {
 	
 	vec4 fragPos4 = (camera * model * vec4(aPos, 1));
-	FragPos = fragPos4.xyz;
+	FragPos = fragPos4.xyz/fragPos4.w;
 	gl_Position = projection * fragPos4;
 	TexCoord = aTexCoord;
 	Normal = normalMatrix * aNormal;

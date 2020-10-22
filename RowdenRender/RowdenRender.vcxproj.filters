@@ -99,6 +99,9 @@
     <ClCompile Include="DataBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="LineIntegralConvolution.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Window.h">
@@ -192,6 +195,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="DataBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LineIntegralConvolution.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -306,6 +312,18 @@
       <Filter>Source Files\Shaders</Filter>
     </None>
     <None Include="deffered_vertex_ellipsoid_shader.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="actions.json">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="bindings_generic.json">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="quad_shader.vert">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="quad_shader.frag">
       <Filter>Source Files\Shaders</Filter>
     </None>
   </ItemGroup>

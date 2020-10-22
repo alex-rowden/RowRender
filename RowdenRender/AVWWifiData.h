@@ -36,6 +36,8 @@ private:
 public:
 	glm::mat4 ellipsoid_transform;
 	glm::vec3 radius_stretch;
+	glm::vec3 ellipsoidCoordinates(glm::vec3 fragPos, Ellipsoid ellipsoid);
+	float ellipsoidDistance(glm::vec3 fragPos, glm::mat4 ellipsoid_transform, Ellipsoid ellipsoid);
 	AVWWifiData();
 	AVWWifiData(ShaderProgram);
 	void pruneEntries();
@@ -57,6 +59,7 @@ public:
 	std::vector<std::string>getAvailablesMacs() { return available_macs; }
 	std::vector<int> getAvailableFreqs() { return available_freqs; }
 	std::vector<int> getActiveFreqs(std::vector<bool>);
+	void setRenderText(std::vector<std::string>&text, glm::vec3 samplePosition, std::vector<bool> routers);
 	void setupStructures();
 	void setNearestNRouters(int, glm::vec3, std::vector<bool>&, std::vector<bool>&, std::vector<bool>&);
 	void fillRouters(std::string wifiname, std::vector<bool> &routers, bool onoff);

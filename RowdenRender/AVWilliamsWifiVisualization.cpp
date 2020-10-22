@@ -6,6 +6,7 @@
 
 #include "VR_Wrapper.h"
 #include "DataBuffer.h"
+#include "LineIntegralConvolution.h"
 
 #include <random>
 #include <fstream>
@@ -13,6 +14,8 @@
 #include <chrono>
 #include <time.h>
 #include <numeric>
+
+#include <glm/gtx/matrix_decompose.hpp>
 
 #include <glm/gtc/matrix_access.hpp>
 
@@ -50,7 +53,7 @@ void maxSeperatedColors(int n, std::vector<glm::vec4>& out, bool ordered = true)
 		while (v > 360) {
 			v = v - 360;
 		}
-		out[i] = glm::vec4(hsv2rgb(glm::vec3(v, .7f, 1.f)), 1);
+		out[i] = glm::vec4(hsv2rgb(glm::vec3(v, .5f, 1.f)), 1);
 	}
 }
 
@@ -212,7 +215,7 @@ void createEyeFramebuffer(glm::vec2 resolution, eyeBuffer* buffer) {
 	glBindTexture(GL_TEXTURE_2D, buffer->screen_tex);
 	buffer->screenTexture = Texture2D();
 	buffer->screenTexture.SetTextureID(buffer->screen_tex);
-	buffer->screenTexture.giveName("ScreenTexture");
+	//buffer->screenTexture.giveName("ScreenTexture");
 
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, resolution.x, resolution.y, 0, GL_RGBA, GL_FLOAT, 0);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -243,19 +246,17 @@ void createFramebuffers(glm::vec2 resolution, gBuffer *buffers, eyeBuffer *eyes,
 
 
 void rayPicker(glm::vec3 ray, glm::vec3 ray_coord, glm::vec3 camera_pos ,glm::vec3& intersection) {
-	std::cout << glm::to_string(ray) << std::endl;
+	//std::cout << glm::to_string(ray_coord + camera_pos) << std::endl;
 	float plane_height = 0;
-	float z_coord = ray_coord.z + camera_pos.z;
-	if(z_coord > .92)
-		plane_height += 1.01;
-	if (z_coord > 1.92)
-		plane_height += 1.01;
-	if (z_coord > 2.92)
-		plane_height += 1.01;
+	float z_coord = ray_coord.z +camera_pos.z;
+	plane_height = floor(z_coord);
 
-	float t = (z_coord - plane_height) / ray.z;
-	std::cout << t << std::endl;
-	intersection = camera_pos + t * ray;
+	//std::cout << plane_height << std::endl;
+	//std::cout << z_coord << std::endl;
+
+	float t = (plane_height - z_coord) / ray.z;
+	//std::cout << t << std::endl;
+	intersection = ray_coord + camera_pos + t * ray;
 	//intersection = camera_pos + ray * .1f;
 	return;
 }
@@ -276,6 +277,8 @@ int AVWilliamsWifiVisualization() {
 		vr.initialize();
 		vr.resetZeroPose();
 		vr.initCompositor();
+		vr.SetActionManifestPath("C:\\Users\\ARR87\\Documents\\GitHub\\RowRender\\RowdenRender\\actions.json");
+		vr.setActionHandles();
 		camera_offset = vr.getSeatedZeroPoseToStandingPose();
 		resolution = vr.getRenderTargetSize();
 	}
@@ -308,8 +311,10 @@ int AVWilliamsWifiVisualization() {
 
 	//Enable Text Rendering
 	TextRenderer tr = TextRenderer();
+	TextRenderer popupText = TextRenderer();
 	int font_size = 64;
 	tr.SetCharacterSize(font_size);
+	popupText.SetCharacterSize(font_size);
 	float pixel_size = font_size * 109 / 72.0f;
 	int font_height = ceil(
 		pixel_size *
@@ -331,6 +336,7 @@ int AVWilliamsWifiVisualization() {
 	ShaderProgram volume_shader = ShaderProgram({ShaderProgram::Shaders::VOLUME_FRAG_3D, ShaderProgram::Shaders::VOLUME_VERT_3D});
 	ShaderProgram deferred_shader = ShaderProgram({ ShaderProgram::Shaders::DEFFERED_RENDER_ELLIPSOID_FRAG, ShaderProgram::Shaders::DEFFERED_RENDER_ELLIPSOID_VERT });
 	ShaderProgram render2quad = ShaderProgram({ ShaderProgram::Shaders::SCREEN_FRAG, ShaderProgram::Shaders::SCREEN_VERT });
+	ShaderProgram quad_shader = ShaderProgram({ ShaderProgram::Shaders::QUAD_RENDER_FRAG, ShaderProgram::Shaders::QUAD_RENDER_VERT });
 	
 	//Setup Skybox
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
@@ -352,14 +358,18 @@ int AVWilliamsWifiVisualization() {
 	//Setup AV Willams Model
 	Model AVW("./Content/Models/AVW_model.obj", true);
 	AVW.setModel(true);
-	Texture2D white = Texture2D(glm::vec4(1,1,1,.2));
+	Texture2D white = Texture2D(glm::vec4(1,1,1,1));
+	//white.giveName("texture_diffuse1");
 	AVW.getMeshes()[0]->setTexture(white, 0);
+	
 	//AVW.getMeshes()[0]->addTexture(text);
 	glm::mat4 avw_transform(1);
 	avw_transform = glm::rotate(avw_transform, glm::radians(90.f), glm::vec3(1, 0, 0));
 	glm::vec3 avw_scale(2, 1, 2);
 	avw_transform = glm::scale(avw_transform, avw_scale);
 
+	Texture2D popup_background("./Content/Textures/popup_background.png");
+	popup_background.setTexMinMagFilter(GL_NEAREST, GL_NEAREST);
 	//setup instance rendering
 	Model Sphere("./Content/Models/sphere.obj");
 	Sphere.setModel();
@@ -370,9 +380,9 @@ int AVWilliamsWifiVisualization() {
 	bool updated_routers = true;
 
 	//setup hand model
-	Model LeftHand("./Content/Models/cube/cube.obj");
+	Model LeftHand("./Content/Models/controller_l.fbx");
 	LeftHand.setModel();
-	Model RightHand("./Content/Models/cube/cube.obj");
+	Model RightHand("./Content/Models/controller_r.fbx");
 	RightHand.setModel();
 
 	Model Cylinder("./Content/Models/cylinder.obj");
@@ -384,8 +394,8 @@ int AVWilliamsWifiVisualization() {
 	glm::mat4 ground_transform(1);
 	ground_transform = glm::scale(ground_transform, glm::vec3(15, 19, 2));
 	ground_transform = glm::translate(ground_transform, glm::vec3(0, 0, -.101));
-	quad.getMeshes().at(0)->setTexture(Texture2D(glm::vec4(50, 50, 50, 255) * (1 / 255.0f)), 0);
-	//quad.getMeshes().at(0)->addTexture(text);
+	//quad.getMeshes().at(0)->setTexture(Texture2D(glm::vec4(50, 50, 50, 255) * (1 / 255.0f)), 0);
+	quad.getMeshes().at(0)->setTexture(popup_background, 0);
 	
 
 	//Setup volume rendering
@@ -403,8 +413,8 @@ int AVWilliamsWifiVisualization() {
 
 	//Setup Camera
 	//Camera camera = Camera(glm::vec3(-11.54, 11.6, .4575),glm::vec3(-10.54, 11.6, .4575) , 60.0f, w.width / (float)w.height);
-	//Camera camera = Camera(glm::vec3(.467506, 11.501509, 2.478917),glm::vec3(.467506 - .970493, 11.501509 + .020823, 2.478917 - .240227) , 60.0f, w.width / (float)w.height);
-	Camera camera = Camera(glm::vec3(1.951824, 11.616767, 2.541506),glm::vec3(1.951824 - .932394, 11.616767 - .281266, 2.541506 - .227) , 60.0f, w.width / (float)w.height);
+	Camera camera = Camera(glm::vec3(.467506, 11.501509, 2.478917),glm::vec3(.467506 - .970493, 11.501509 + .020823, 2.478917 - .240227) , 60.0f, w.width / (float)w.height);
+	//Camera camera = Camera(glm::vec3(1.951824, 11.616767, 2.541506),glm::vec3(1.951824 - .932394, 11.616767 - .281266, 2.541506 - .227) , 60.0f, w.width / (float)w.height);
 	w.SetCamera(&camera);
 	w.setSpeed(1);
 
@@ -436,6 +446,7 @@ int AVWilliamsWifiVisualization() {
 	bool shade_instances = false;
 	bool contour_on = false;
 	bool display_names = false;
+	bool renderPopup = false;
 	float constant = 1, linear = .9, quadratic = .98;
 	int num_routers = 6;
 	int odd_or_even_frame = 0;
@@ -446,12 +457,12 @@ int AVWilliamsWifiVisualization() {
 	Ellipsoid ellipsoid;
 	wifi.loadEllipsoid("one_router.elipsoid", ellipsoid);
 	float radius = 1;
-	float frequency = 1.246;
+	float frequency = .973;
 	float extent = 1;
 	float z_boost = 1;
 	float theta = 0;
 	float u_stretch = 5.015;
-	float v_stretch = 4.659;
+	float v_stretch = 5.015;
 	int num_dashes = 6;
 
 	VolumeData volume;
@@ -472,23 +483,23 @@ int AVWilliamsWifiVisualization() {
 	wifi_tex.giveName("wifi_colors");
 	Sphere.getMeshes().at(0)->setTexture(wifi_tex, 0);
 
-	Texture2D frequency_texture = Texture2D("./Content/Textures/single_pill.png");
+	Texture2D frequency_texture = Texture2D("./Content/Textures/thicker_pill.png");
 	frequency_texture.giveName("frequency_tex");
 	frequency_texture.setTexMinMagFilter(GL_NEAREST, GL_NEAREST);
 	frequency_texture.setTexParameterWrap(GL_REPEAT);
-	AVW.getMeshes().at(0)->addTexture(frequency_texture);
+	//AVW.getMeshes().at(0)->addTexture(frequency_texture);
 	quad.getMeshes().at(0)->addTexture(frequency_texture);
 
 
-	std::vector<glm::vec4> heatmap = std::vector<glm::vec4>(2);
-	heatmap[0] = glm::vec4(1, 1, 1, 1);
-	heatmap[1] = glm::vec4(0, 0, 0, 1);
-	Texture2D heatmap_tex = Texture2D(&heatmap, 2, 1);
-	heatmap_tex.giveName("ellipsoid_tex");
-	heatmap_tex.setTexMinMagFilter(GL_LINEAR, GL_LINEAR);
-	heatmap_tex.setTexParameterWrap(GL_CLAMP_TO_BORDER, GL_CLAMP_TO_BORDER);
-	AVW.getMeshes().at(0)->addTexture(heatmap_tex);
-	AVW.getMeshes().at(0)->addTexture(wifi_tex);
+	//std::vector<glm::vec4> heatmap = std::vector<glm::vec4>(2);
+	//heatmap[0] = glm::vec4(1, 1, 1, 1);
+	//heatmap[1] = glm::vec4(0, 0, 0, 1);
+	//Texture2D heatmap_tex = Texture2D(&heatmap, 2, 1);
+	//heatmap_tex.giveName("ellipsoid_tex");
+	//heatmap_tex.setTexMinMagFilter(GL_LINEAR, GL_LINEAR);
+	//heatmap_tex.setTexParameterWrap(GL_CLAMP_TO_BORDER, GL_CLAMP_TO_BORDER);
+	//AVW.getMeshes().at(0)->addTexture(heatmap_tex);
+	//AVW.getMeshes().at(0)->addTexture(wifi_tex);
 
 
 	//Setup ImGUI variables
@@ -532,10 +543,26 @@ int AVWilliamsWifiVisualization() {
 	std::map<std::string, glm::vec4> saved_colors;
 	int old_num_colors = -1;
 
-	float linear_term = 1, thickness = .1, distance_mask = 0;
+	float linear_term = 1, thickness = .056, distance_mask = 0, billboard_scale = .4;
 	bool bin_orientations = false;
 	bool group_frequencies = false;
-	bool send_data = false, polling_pbo = false;
+	bool send_data = false, polling_pbo = false, lic_on = true;
+	std::vector<std::string> popup_text;
+
+	int num_samples = 500000;
+	float learning_rate = .005;
+	float fall_off = .05;
+	glm::uvec2 lic_texture_res(1280, 770);
+	int old_num_samples = num_samples;
+	float old_fall_off = fall_off;
+
+	LineIntegralConvolution lic(lic_texture_res); 
+	lic.fillWithNoise(num_samples);
+	//lic.convolve(fall_off);
+	Texture2D noise = Texture2D(lic.getTexture().data(), lic_texture_res.y, lic_texture_res.x);
+	noise.setTexMinMagFilter(GL_LINEAR);
+	noise.giveName("noise_tex");
+	quad.getMeshes().at(0)->setTexture(noise);
 
 	glm::vec4* fragPosArray = (glm::vec4*)malloc(sizeof(glm::vec4) * resolution.x * resolution.y);
 	if (!fragPosArray) {
@@ -582,9 +609,9 @@ int AVWilliamsWifiVisualization() {
 			render(quad, &ground_shader);
 
 			//render building model
-			glBindFramebuffer(GL_FRAMEBUFFER, buffer[i].frame_buffer);
+			glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].frame_buffer);
 		
-			if (i == 0 && w.signal) {
+			if (i == 0 && w.signal && !polling_pbo) {
 				glReadBuffer(GL_COLOR_ATTACHMENT2);
 				glBindBuffer(GL_PIXEL_PACK_BUFFER, buffer->pboIDs[odd_or_even_frame]);
 				glReadPixels(0, 0, resolution.x, resolution.y, GL_BGRA, GL_FLOAT, 0);
@@ -592,7 +619,6 @@ int AVWilliamsWifiVisualization() {
 				//odd_or_even_frame = (odd_or_even_frame + 1) % 2;
 				glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 				polling_pbo = true;
-				w.signal = false;
 			}else if (i == 0 && polling_pbo && glClientWaitSync(block, GL_SYNC_FLUSH_COMMANDS_BIT, 0)) {
 				glBindBuffer(GL_PIXEL_PACK_BUFFER, buffer->pboIDs[int(odd_or_even_frame)]);
 				fragPosArray = (glm::vec4*)glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
@@ -603,6 +629,7 @@ int AVWilliamsWifiVisualization() {
 					glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
 				}
 				polling_pbo = false;
+				w.signal = false;
 				send_data = true;
 			}
 			
@@ -625,7 +652,6 @@ int AVWilliamsWifiVisualization() {
 			glDisable(GL_CULL_FACE);
 			//glDepthMask(GL_TRUE);
 			//glClear(GL_DEPTH_BUFFER_BIT);
-
 			
 			deferred_shader.Use();
 			deferred_shader.SetUniform1f("transparency", transparency);
@@ -637,31 +663,88 @@ int AVWilliamsWifiVisualization() {
 
 			deferred_shader.SetUniform3f("radius_stretch", wifi.radius_stretch);
 			deferred_shader.SetUniform1f("extent", extent);
-			deferred_shader.SetUniform1f("frequency", 1 / frequency);
+			deferred_shader.SetUniform1f("frequency", frequency);
 			deferred_shader.SetUniform1f("linear_term", linear_term);
 			deferred_shader.SetUniform1f("thickness", thickness);
 			deferred_shader.SetUniform1b("contour_on", contour_on);
 			deferred_shader.SetUniform1b("display_names", display_names);
+			deferred_shader.SetUniform1b("lic_on", lic_on);
 			deferred_shader.SetUniform1i("num_point_lights", numLights);
 			deferred_shader.SetUniform3f("viewPos", camera.getPosition());
 			deferred_shader.SetUniform1b("group_frequencies", group_frequencies);
 			deferred_shader.SetUniform1i("num_frequencies", wifi.getActiveFreqs(freqs).size());
-			deferred_shader.SetUniform1f("u_stretch", u_stretch);
-			deferred_shader.SetUniform1f("v_stretch", v_stretch);
+			deferred_shader.SetUniform1f("u_stretch", 10*u_stretch);
+			deferred_shader.SetUniform1f("v_stretch", 10*v_stretch);
 			deferred_shader.SetUniform1f("delta_theta", 180.f / wifi.getActiveFreqs(freqs).size());
 			deferred_shader.SetUniform1i("num_contours", num_dashes);
+			deferred_shader.SetUniform1f("learning_rate", learning_rate);
+			glm::vec3 selectedPos;
 			if (send_data) {
 				glm::vec2 index = glm::ivec2(w.currX, (resolution.y - w.currY));
-				deferred_shader.SetUniform3f("selectedPos", fragPosArray[int(index.y * resolution.x + index.x)]);
+				selectedPos = fragPosArray[int(index.y * resolution.x + index.x)];
+				selectedPos = glm::vec3(selectedPos.b, selectedPos.g, selectedPos.r);
+				deferred_shader.SetUniform3f("selectedPos", selectedPos);
+				renderPopup = wifi.getNumActiveRouters(routers) > 0;
+				wifi.setRenderText(popup_text, selectedPos, routers);
+				std::cout << glm::to_string(selectedPos) << std::endl;
 				send_data = false;
+				for (int i = 0; i < popup_text.size(); i++) {
+					popupText.RenderText(glm::uvec2(0, font_height * popup_text.size() - (i + 1) * font_height),
+						glm::uvec2(2560, popup_text.size() * font_height),
+						popup_text.at(i), i == 0);
+				}
+				
+				Texture2D text(popupText.tex, popupText.height, popupText.width);
+				text.giveName("quad_texture");
+				text.setTexMinMagFilter(GL_LINEAR, GL_LINEAR);
+				quad.getMeshes().at(0)->setTexture(text);
+				//std::cout << glm::to_string(fragPosArray[int(index.y * resolution.x + index.x)]) << std::endl;
 			}
 			deferred_shader.SetLights(modelLights, camera.getPosition(), numLights);
 
 			glBindFramebuffer(GL_FRAMEBUFFER, eyes[i].frame_buffer);
 			//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			glDepthMask(GL_FALSE);
-			render(quad, &deferred_shader);
+ 			render(quad, &deferred_shader);
 			glDepthMask(GL_TRUE);
+
+			if (num_samples != old_num_samples) {
+				//lic(glm::uvec2(64, 256));
+				lic.clear();
+				lic.fillWithNoise( num_samples);
+				//lic.convolve(fall_off);
+				noise = Texture2D(lic.getTexture().data(), lic_texture_res.y, lic_texture_res.x);
+				noise.setTexMinMagFilter(GL_LINEAR);
+				noise.giveName("noise_tex");
+				quad.getMeshes().at(0)->setTexture(noise);
+				old_num_samples = num_samples;
+				
+			}
+			
+			if (renderPopup) {
+				glm::mat4 quad_transform(1);
+				glm::vec3 pos = glm::lerp(selectedPos, camera.getPosition(), .1f);
+				quad_transform = glm::translate(quad_transform, pos);
+				//quad_transform = ProjectionMat * ViewMat * quad_transform;
+				//glm::mat3 submatrix = glm::transpose(glm::mat3(quad_transform));
+				//clear rotational compontent
+				//quad_transform[0][1] = 0;
+				//quad_transform[0][2] = 0;
+				//quad_transform[1][0] = 0;
+				//quad_transform[1][2] = 0;
+				//quad_transform[2][0] = 0;
+				//quad_transform[2][1] = 0;
+
+				//CameraRight_worldspace = { ViewMatrix[0][0], ViewMatrix[1][0], ViewMatrix[2][0] }
+				//	CameraUp_worldspace = { ViewMatrix[0][1], ViewMatrix[1][1], ViewMatrix[2][1] }
+				quad_shader.SetUniform4fv("camera", ViewMat);
+				quad_shader.SetUniform4fv("projection", ProjectionMat);
+				quad_shader.SetUniform3f("quad_center", pos);
+				quad_shader.SetUniform2f("billboardSize", glm::vec2(popupText.width/(float)resolution.x, popupText.height/(float)resolution.y) * billboard_scale);
+				quad_shader.SetUniform1i("num_routers", wifi.getNumActiveRouters(routers));
+				quad_shader.SetUniform4fv("model", quad_transform);
+				render(quad, &quad_shader);
+			}
 
 			if (updated_routers) {
 				wifi.updateRouterStructure(routers, wifinames, freqs, deferred_shader, nearest_router_on);
@@ -754,29 +837,50 @@ int AVWilliamsWifiVisualization() {
 				render(Sphere, &instance_shader);
 			if (use_vr) {
 				ground_shader.Use();
-				ground_shader.SetUniform4fv("camera", vr.getViewMatrix(curr_eye) * camera_offset);
-				ground_shader.SetUniform4fv("model", vr.getControllerPose(vr.LeftDeviceId) * glm::scale(glm::mat4(1), .1f * glm::vec3(1)));
+				ground_shader.SetUniform4fv("camera", vr.getViewMatrix(curr_eye));
+				glm::mat4 controller_rotation = glm::rotate(glm::mat4(1), glm::radians(90.0f), glm::vec3(1, 0, 0)) * glm::rotate(glm::mat4(1), glm::radians(60.0f), glm::vec3(1, 0, 0));
+				ground_shader.SetUniform4fv("model", vr.getControllerPose(vr.LeftDeviceId) * controller_rotation * glm::scale(glm::mat4(1), .01f * glm::vec3(-1, -1, 1)));
 				render(LeftHand, &ground_shader);
-				glm::mat4 right_hand_transform = vr.getControllerPose(vr.RightDeviceId) * glm::scale(glm::mat4(1), .1f * glm::vec3(1));
-				ground_shader.SetUniform4fv("model", right_hand_transform);
+				glm::mat4 right_hand_transform = vr.getControllerPose(vr.RightDeviceId)  * controller_rotation * glm::scale(glm::mat4(1), 1.0f * glm::vec3(-1, -1, 1));
+				ground_shader.SetUniform4fv("model", right_hand_transform * glm::scale(glm::mat4(1), .01f * glm::vec3(1,1,1)));
 				render(RightHand, &ground_shader);
 				if (i == 0) {
 					if (vr.ray_picker_enable) {
-						//glm::vec4 forward = glm::rotate(glm::mat4(1), glm::radians(90.0f), glm::vec3(1, 0, 0)) * glm::vec4(0, 0, 1, 0);
-						rayPicker(glm::normalize(vr.getControllerPose(vr.RightDeviceId) * glm::vec4(0,0,1,0)), glm::vec3(vr.getControllerPose(vr.RightDeviceId) * glm::vec4(0, 0, 0, 1)), camera.getPosition(), vr.teleport_position);
-						std::cout << "Teleport to: " << glm::to_string(vr.teleport_position) << std::endl;
-						vr.teleport_position.z = camera.getPosition().z;
-						camera.setPosition(vr.teleport_position);
+						//glm::vec3 forward = vr.getControllerPose(vr.RightDeviceId) *controller_rotation* glm::vec4(-1, 0, 0,0);
+						glm::vec3 forward, pos2;
+						glm::quat  orientation;
+						glm::vec3 skew, scale;
+						glm::vec4 perspective;
+						//std::cout << glm::to_string(forward) << std::endl;
+						//std::cout << glm::to_string(camera.getDirection()) << std::endl;;
+						glm::vec3 position;
+
+						glm::decompose(vr.getControllerPose(vr.RightDeviceId), scale, orientation, position, skew, perspective);
+						auto inv_view = glm::inverse(camera_offset * camera.getView());
+						position = glm::vec3(inv_view * glm::vec4(position, 1));
+						//std::cout << glm::to_string(glm::vec3(inv_view * glm::vec4(0, 0, 1, 0))) << std::endl;
+				
+						forward = glm::conjugate(orientation) * glm::vec3(inv_view * glm::vec4(0, 0,-1, 0));
+						//position = glm::vec3(position.b, position.r, -position.g);
+						rayPicker(forward, position, glm::vec3(0), vr.teleport_position);
+						//std::cout << "Teleport to: " << glm::to_string(vr.teleport_position) << std::endl;
+						//vr.teleport_position.z = camera.getPosition().z;
+						//camera.setPosition(vr.teleport_position);
+						
+						//vr.teleport_position = glm::vec3(1, 1, 1) * position;
+						//std::cout << glm::to_string(vr.teleport_position) << std::endl;
+						deferred_shader.SetUniform3f("selectedPos", glm::vec3(vr.teleport_position.r, vr.teleport_position.g, vr.teleport_position.b));
+						//std::cout << "Ray Picker" << std::endl;
 						vr.ray_picker_enable = false;
 					}
 				}
 				right_hand_transform = right_hand_transform * 
-					glm::rotate(glm::mat4(1), glm::radians(-90.0f), glm::vec3(1, 0, 0)) *
-					glm::scale(glm::mat4(1), glm::vec3(.1, 10, .1));
-				ground_shader.SetUniform4fv("model", right_hand_transform);
+					glm::rotate(glm::mat4(1), glm::radians(-90.0f), glm::vec3(1, 0, 0)) * 
+					glm::scale(glm::mat4(1), glm::vec3(-1, -100, -1));
+				ground_shader.SetUniform4fv("model", right_hand_transform * glm::scale(glm::mat4(1), .01f * glm::vec3(1, 1, 1)));
 
 				render(Cylinder, &ground_shader);
-				vr.composite(curr_eye, buffer[i].color_tex);
+				vr.composite(curr_eye, eyes[i].screen_tex);
 			}
 		}
 		glFlush(); 
@@ -807,16 +911,21 @@ int AVWilliamsWifiVisualization() {
 			ImGui::SliderFloat("constant", &constant, 0, 1);
 			ImGui::SliderFloat("linear", &linear, 0, 1);
 			ImGui::SliderFloat("quadratic", &quadratic, 0, 1);
+			ImGui::SliderFloat("fall_off", &fall_off, 0, .1);
+			ImGui::SliderFloat("Rate", &learning_rate, 0, .1);
+			ImGui::SliderInt("num_samples", &num_samples, 128000, 1024000);
+			ImGui::SliderFloat("BillBoard Scale", &billboard_scale, 0, 1);
 			ImGui::SliderFloat3("Bounding Box Scale", glm::value_ptr(bounding_cube_scale), 5, 35);
 			ImGui::SliderFloat3("Bounding Box Offset", glm::value_ptr(bounding_cube_translate), -10, 10);
 			ImGui::Checkbox("Shade Instances", &shade_instances);
-			ImGui::Checkbox("Bin Orientations", &bin_orientations);
-			ImGui::Checkbox("Group Frequencies", &group_frequencies);
+			ImGui::Checkbox("Line Integral Convolution", &lic_on);
+			//ImGui::Checkbox("Bin Orientations", &bin_orientations);
+			//ImGui::Checkbox("Group Frequencies", &group_frequencies);
 			ImGui::Checkbox("Display Names", &display_names);
 			ImGui::Checkbox("Jittered Colors", &jittered);
-			ImGui::SliderFloat("Extent", &extent, 0, 5);
-			ImGui::SliderFloat("Dash Frequency", &radius, 1, 5);
-			ImGui::SliderFloat("Contour Frequency", &frequency, .1, 10);
+			//ImGui::SliderFloat("Extent", &extent, 0, 5);
+			//ImGui::SliderFloat("Dash Frequency", &radius, 1, 5);
+			ImGui::SliderFloat("Contour Frequency", &frequency, 0, 1);
 			ImGui::SliderFloat("Theta", &theta, 0, 360);
 			ImGui::SliderFloat("u stretch", &u_stretch, 0, 10);
 			ImGui::SliderFloat("v stretch", &v_stretch, 0, 10);
@@ -891,6 +1000,16 @@ int AVWilliamsWifiVisualization() {
 					ImGui::Text(wifi.getRouterStrings().at(i).c_str());
 					ImGui::PopStyleColor();
 				}
+			ImGui::End();
+		}
+		if (renderPopup) {
+			ImGui::Begin("Ellipsoid Distances");
+			for (int i = 0; i < popup_text.size(); i++) {
+				glm::vec4 color = wifi_colors[i + wifi.getNumWifiNames()];
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(color.r, color.g, color.b, 1));
+				ImGui::Text(popup_text.at(i).c_str());
+				ImGui::PopStyleColor();
+			}
 			ImGui::End();
 		}
 		ImGui::Render();

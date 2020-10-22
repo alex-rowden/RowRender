@@ -3,6 +3,7 @@
 #define MAX_POINT_LIGHTS 80
 #define NR_DIR_LIGHTS 0
 #define MAX_ROUTERS 20
+#define NUM_STEPS 512
 const float PI = 3.1415926535897932384626433832795;
 
 in vec2 TexCoord;
@@ -19,6 +20,7 @@ uniform sampler2D frequency_tex;
 uniform sampler2D wifi_colors;
 uniform sampler2D text_tex;
 uniform sampler2D ellipsoid_tex;
+uniform sampler2D noise_tex;
  //uniform sampler2D tangent_tex;
 
 float ellipsoid_ration = 1613.3333 / 2040;
@@ -59,12 +61,12 @@ struct DirLight {
 
 uniform float ambient_coeff, diffuse_coeff, spec_coeff,
 u_stretch, v_stretch, linear_term, thickness,
-delta_theta, extent, frequency;
+delta_theta, extent, frequency, learning_rate;
 
 uniform int shininess, num_point_lights, num_frequencies,
 num_routers, num_contours;
 
-uniform bool group_frequencies, display_names;
+uniform bool group_frequencies, display_names, lic_on;
 
 uniform mat4 ellipsoid_transform;
 
@@ -105,7 +107,7 @@ vec3 calculateColor(vec3 fragPos, vec3 Normal) {
 	vec3 tangent = texture(tangent_tex, TexCoord).rgb;
 	vec3 bitangent = normalize(cross(tangent, Normal));
 	vec3 ret = vec3(0);
-	vec3 selectedFragPos = selectedPos.bgr;
+	vec3 selectedFragPos = selectedPos.rgb;
 	float dist = distance(fragPos, selectedFragPos);
 	if (dist < .05) {
 		color = vec3(1, 0, 0);
@@ -114,7 +116,7 @@ vec3 calculateColor(vec3 fragPos, vec3 Normal) {
 	float alpha = 1;
 	int num_routers_per_freq[MAX_ROUTERS];
 	int router_counter[MAX_ROUTERS];
-	for (int i = 0; i < num_frequencies; i++) {
+	for (int i = 0; i < min(num_frequencies, num_routers); i++) {
 		num_routers_per_freq[i] = 0;
 		router_counter[i] = 0;
 	}
@@ -129,7 +131,7 @@ vec3 calculateColor(vec3 fragPos, vec3 Normal) {
 	for (int i = 0; i < num_routers; i++) {
 		float distance = ellipsoidDistance(fragPos, Ellipsoids[i]);
 		if (distance <= extent) {
-			float alpha_new = 1 - distance / extent;
+			float alpha_new = 1;
 
 			//if (abs(dot(Normal, vec3(1,0,0)))> 1e-4)
 			//	mask = texture(crosshair_tex, vec2(distance / extent * frequency, radius * atan(modified_coords.z / modified_coords.y))).r;
@@ -145,7 +147,7 @@ vec3 calculateColor(vec3 fragPos, vec3 Normal) {
 				vec2 index = texture(ellipsoid_coordinates_tex, TexCoord).rg;//(vec2(dot(tangent, modified_coords), dot(bitangent, modified_coords)) + vec2(1)) / 2.0f;
 				index = rotateVector(Ellipsoids[i].r.w * delta_theta, index);
 				float offset = .5;
-				if (abs(fract(index.g) - .5) < 1 / 6.0f) {
+				if (abs(fract(index.g) - .5) < 1 / 4.0f) {
 					offset = 0;
 				}
 				int router_num = int((fract(index.r + offset) - ellipsoid_offset) * 1 / ellipsoid_ration * num_routers_per_freq[int(Ellipsoids[i].r.w)]);
@@ -159,30 +161,69 @@ vec3 calculateColor(vec3 fragPos, vec3 Normal) {
 			else if (-dot(Normal, vec3(0, 0, 1)) > 1e-6) {
 				alpha_new = 0;
 			}
-			else if (mod(linear_term * log2(distance / extent), frequency) > frequency * thickness) {
-				alpha_new = 0;
-			}
-			else {
-				if (abs(mod(linear_term * log2(distance / extent), frequency) / (frequency * thickness) - .5) > .2) {
+			else if (!lic_on){
+				if (mod(linear_term * log2(distance / extent), frequency) < 1 - frequency * thickness) {
 					alpha_new = 0;
 				}
-				if (display_names) {
-					vec3 modified_coords = ellipsoidCoordinates(fragPos, Ellipsoids[i]);
-					vec2 projected_coords = vec2(dot(tangent, modified_coords), dot(bitangent, modified_coords));
-					float theta = atan(projected_coords.y, projected_coords.x);
-					float norm_theta = max(theta / PI + 1, 0);
-					if (mod(norm_theta * num_contours, 2) < 1) {
-						vec2 index = vec2( mod(norm_theta * num_contours, 2), mod(linear_term * log2(distance / extent), frequency) / (frequency * thickness));
-						index.y = index.y / num_routers + i / float(num_routers);
-						alpha_new = texture(text_tex, index).r;
+				else {
+					if (abs(.5 - mod(linear_term * log2(distance / extent), frequency) / (frequency)) < thickness) {
+						alpha_new = 0;
 					}
+					if (display_names) {
+						vec3 modified_coords = ellipsoidCoordinates(fragPos, Ellipsoids[i]);
+						vec2 projected_coords = vec2(dot(tangent, modified_coords), dot(bitangent, modified_coords));
+						float theta = atan(projected_coords.y, projected_coords.x);
+						float norm_theta = max(theta / PI + 1, 0);
+						if (mod(norm_theta * num_contours, 2) < 1) {
+							vec2 index = vec2(mod(norm_theta * num_contours, 2), mod(linear_term * log2(distance / extent), frequency) / (frequency * thickness));
+							index.y = index.y / num_routers + i / float(num_routers);
+							alpha_new = texture(text_tex, index).r;
+						}
+					}
+				}
+			}
+			else {
+				if (distance / extent < .01) {
+					alpha_new = 0;
+				}
+				else {
+					vec3 modified_coords = ellipsoidCoordinates(fragPos, Ellipsoids[i]);
+					vec3 ellipsoid_coords = fragPos - modified_coords;
+					vec3 projected_coords = vec3(dot(tangent, ellipsoid_coords), dot(bitangent, ellipsoid_coords), dot(Normal, ellipsoid_coords));
+					vec3 projected_frag = vec3(dot(tangent, fragPos), dot(bitangent, fragPos), dot(Normal, fragPos));
+					float norm;
+					float val;
+
+					vec2 uvt = texture(ellipsoid_coordinates_tex, TexCoord).rg;;
+					for (int j = 0; j < NUM_STEPS; j++) {
+						//float mask = 1;//(0.5 + 0.4 * cos(2. * 3.1415 * (i - NUM_STEPS/ 2.) / NUM_STEPS));
+						val += texture(noise_tex, uvt).r;
+						//norm += mask;
+
+						//float magnitude = length(projected_frag - projected_coords);
+						vec3 force = ((projected_frag - projected_coords));
+
+						uvt += learning_rate / 10.0f * force.xy;
+						//modified_coords += learning_rate * -;
+						projected_frag += learning_rate / 10.0f * force;
+
+					}
+					alpha_new = 1.2 * (val / NUM_STEPS);
+					//float theta = atan(projected_coords.y, projected_coords.x);
+					//float norm_theta = max(theta / PI + 1, 0);
+					//vec2 index = vec2(theta / (2.0f * PI),  distance / extent - .01);
+					//if (index.y > 0)
+						//alpha_new = texture(noise_tex, index).r;
+					//else {
+					//	alpha_new = 0;
+					//}
 				}
 			}
 			ret = alpha_new * (alpha * color) + ret;
 			alpha = (1 - alpha_new) * alpha;
 		}
 	}
-
+ 
 	ret = alpha * color + ret;
 
 	return ret;

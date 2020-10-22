@@ -10,6 +10,26 @@ void tokenizer(std::string str, const char* delim, std::vector<std::string>& out
 	}
 }
 
+glm::vec3 AVWWifiData::ellipsoidCoordinates(glm::vec3 fragPos, Ellipsoid ellipsoid) {
+	glm::vec3 modified_coords = glm::vec3(ellipsoid.mu);
+	modified_coords = glm::vec3(ellipsoid_transform * glm::vec4(glm::vec3(modified_coords), 1));
+	modified_coords = (fragPos - modified_coords);
+
+	return modified_coords;
+}
+
+float AVWWifiData::ellipsoidDistance(glm::vec3 fragPos, glm::mat4 ellipsoid_transform, Ellipsoid ellipsoid) {
+	glm::vec3 modified_coords = glm::mat3(ellipsoid.axis) * ellipsoidCoordinates(fragPos, ellipsoid);
+	modified_coords = (modified_coords * modified_coords) / (9.0f * abs(glm::mat3(ellipsoid.axis) * abs(radius_stretch * glm::vec3(ellipsoid.r))));
+
+	float distance = 0;
+	for (int i = 0; i < 3; i++) {
+		distance += modified_coords[i];
+	} 
+	return sqrt(distance);
+}
+
+
 AVWWifiData::AVWWifiData()
 {
 	std::cerr << "Wifi data must be linked to shader program" << std::endl;
@@ -78,6 +98,22 @@ std::vector<int> AVWWifiData::getActiveFreqs(std::vector<bool> freqs) {
 			out.emplace_back(frequencies.at(i));
 	}
 	return out;
+}
+
+void AVWWifiData::setRenderText(std::vector<std::string>&text, glm::vec3 samplePosition, std::vector<bool> router_bools) {
+	text.clear();
+	text = std::vector<std::string>(getNumActiveRouters(router_bools));
+	for (int i = 0; i < getNumActiveRouters(router_bools); i++) {
+		std::string router_string = router_strings.at(i);
+		auto router = routers[i];
+		auto first_delim = router_string.find(":");
+		auto second_delim = router_string.find(":", first_delim);
+		std::string prefix = router_string.substr(0, second_delim);
+		float inv_dist = 1 - ellipsoidDistance(samplePosition, router);
+		if (inv_dist < 0)
+			inv_dist = 0;
+		text[i] = prefix + ":" + std::to_string( inv_dist * 100) + "%";
+	}
 }
 
 void AVWWifiData::setNearestNRouters(int n, glm::vec3 position, std::vector<bool>& wifinames, std::vector<bool>& routers, std::vector<bool>&freqs) {
@@ -260,6 +296,7 @@ void AVWWifiData::loadWifi(std::string filename, std::string floor) {
 void AVWWifiData::updateRouterStructure(std::vector<bool>router_bools, std::vector<bool> wifinames, std::vector<bool> freqs, ShaderProgram model_shader, bool nearest_router) {
 	int wifinum = 0;
 	int i = 0;
+	delete[] routers;
 	routers = new Ellipsoid[getNumActiveRouters(router_bools)];
 	router_strings.empty();
 	router_strings.resize(getNumActiveRouters(router_bools));

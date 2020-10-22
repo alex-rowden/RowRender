@@ -1,0 +1,32 @@
+{
+      "default_bindings": [
+         {
+            "controller_type" : "generic",
+            "binding_url" : "bindings_generic.json"
+         }
+ 
+      ], 
+  "actions": [
+    {
+      "name": "/actions/demo/in/hand_right",
+      "type": "pose"
+    },
+    {
+      "name": "/actions/demo/in/hand_left",
+      "type": "pose"
+    },
+    {
+      "name": "/actions/demo/in/select",
+      "type":  "boolean"
+    }
+
+  ],
+    "localization" : [
+        {
+            "language_tag": "en_US",
+            "/actions/demo/in/hand_right" : "Right Hand Pose",
+            "/actions/demo/in/hand_left" : "Left Hand Pose"
+          
+        }
+    ]
+}
