@@ -430,25 +430,39 @@ int AVWilliamsWifiVisualization() {
 	//modelLights.addPointLight(glm::vec3(0, 15, -15), .7, glm::vec3(1));
 	//modelLights.addPointLight(glm::vec3(0,0,0), .2, glm::vec3(1,1,1));
 
+	std::map<std::string, float> deferred_shading_floats = {
+		{"ambient_coeff", .2f},
+		{"spec_coeff", .0},
+		{"diffuse_coeff", .7f},
+	}, instance_shading_floats = {
+		{"ambient_coeff", .3f},
+		{"spec_coeff", .4},
+		{"diffuse_coeff", .3f},
+	};
+	std::map<std::string, int> deferred_shading_ints = { 
+		{"shininess", 32} 
+	}, instance_shading_ints = {
+		{"shininess", 16}
+	};
 	
 
 	//send light params to model shader
-	deferred_shader.SetUniform1f("ambient_coeff", .2);
-	deferred_shader.SetUniform1f("spec_coeff", 0);
-	deferred_shader.SetUniform1f("diffuse_coeff", .7);
-	deferred_shader.SetUniform1i("shininess", 32);
+	deferred_shader.SetUniforms(deferred_shading_floats);
+	deferred_shader.SetUniforms(deferred_shading_ints);
 
 	//send light params to instance shader
-	instance_shader.SetUniform1f("ambient_coeff", .3);
-	instance_shader.SetUniform1f("spec_coeff", .4);
-	instance_shader.SetUniform1f("diffuse_coeff", .3);
-	instance_shader.SetUniform1i("shininess", 16);
+	instance_shader.SetUniforms(instance_shading_floats);
+	instance_shader.SetUniforms(instance_shading_ints);
+
 	bool shade_instances = false;
 	bool contour_on = false;
 	bool display_names = false;
 	bool renderPopup = false;
+	bool texton_background = false;
+	bool invert_color_rep = false;
+	bool frequency_bands = true;
 	float constant = 1, linear = .9, quadratic = .98;
-	int num_routers = 6;
+	int num_routers = 1;
 	int odd_or_even_frame = 0;
 
 
@@ -461,8 +475,8 @@ int AVWilliamsWifiVisualization() {
 	float extent = 1;
 	float z_boost = 1;
 	float theta = 0;
-	float u_stretch = 5.015;
-	float v_stretch = 5.015;
+	float u_stretch = 1;
+	float v_stretch = 1;
 	int num_dashes = 6;
 
 	VolumeData volume;
@@ -483,9 +497,9 @@ int AVWilliamsWifiVisualization() {
 	wifi_tex.giveName("wifi_colors");
 	Sphere.getMeshes().at(0)->setTexture(wifi_tex, 0);
 
-	Texture2D frequency_texture = Texture2D("./Content/Textures/thicker_pill.png");
+	Texture2D frequency_texture = Texture2D("./Content/Textures/texton_paper_aspect.png");
 	frequency_texture.giveName("frequency_tex");
-	frequency_texture.setTexMinMagFilter(GL_NEAREST, GL_NEAREST);
+	frequency_texture.setTexMinMagFilter(GL_LINEAR, GL_LINEAR);
 	frequency_texture.setTexParameterWrap(GL_REPEAT);
 	//AVW.getMeshes().at(0)->addTexture(frequency_texture);
 	quad.getMeshes().at(0)->addTexture(frequency_texture);
@@ -569,6 +583,32 @@ int AVWilliamsWifiVisualization() {
 		std::cerr << "Malloc Error" << std::endl;
 	}
 	GLsync block = 0;
+	deferred_shading_floats.clear();
+	deferred_shading_floats = {
+				{ "extent", extent },
+				{ "frequency", frequency },
+				{ "linear_term", linear_term },
+				{ "thickness", thickness },
+				{ "u_stretch", 10 * u_stretch },
+				{ "v_stretch", 10 * v_stretch },
+				{ "delta_theta", 180.f / wifi.getActiveFreqs(freqs).size() },
+				{ "learning_rate", learning_rate },
+				{ "distance_mask", distance_mask }
+	};
+	std::map<std::string, bool> deferred_shading_bools = {
+		{"contour_on", contour_on},
+		{ "display_names", display_names },
+		{ "lic_on", lic_on },
+		{ "group_frequencies", group_frequencies },
+		{ "texton_background", texton_background },
+		{ "invert_colors", invert_color_rep },
+		{ "frequency_bands", frequency_bands },
+	};
+	deferred_shading_ints = {
+		{"num_point_lights", numLights},
+		{"num_frequencies", wifi.getActiveFreqs(freqs).size()},
+		{"num_contours", num_dashes}
+	};
 	while (!glfwWindowShouldClose(w.getWindow())) {
 		//clear default framebuffer
 		if (use_vr) {
@@ -587,30 +627,30 @@ int AVWilliamsWifiVisualization() {
 			if (use_vr) {
 				ProjectionMat = vr.getProjectionMatrix(curr_eye);
 				ViewMat = vr.getViewMatrix(curr_eye) * camera_offset * ViewMat;
-				
+
 			}
 			glBindFramebuffer(GL_FRAMEBUFFER, eyes[i].frame_buffer);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			//render skybox
 			skybox_shader.Use();
-			skybox_shader.SetUniform4fv("projection", ProjectionMat);
-			skybox_shader.SetUniform4fv("view", glm::mat4(glm::mat3(ViewMat)));
+			skybox_shader.SetUniform("projection", ProjectionMat);
+			skybox_shader.SetUniform("view", glm::mat4(glm::mat3(ViewMat)));
 
 			glDepthMask(GL_FALSE);
 			render(skybox, &skybox_shader);
 			glDepthMask(GL_TRUE);
 
 			//render ground plane
-			ground_shader.SetUniform4fv("projection", ProjectionMat);
-			ground_shader.SetUniform4fv("camera", ViewMat);
-			ground_shader.SetUniform4fv("model", ground_transform);
-			ground_shader.SetUniform1i("heatmap", 0);
+			ground_shader.SetUniform("projection", ProjectionMat);
+			ground_shader.SetUniform("camera", ViewMat);
+			ground_shader.SetUniform("model", ground_transform);
+			ground_shader.SetUniform("heatmap", 0);
 			render(quad, &ground_shader);
 
 			//render building model
 			glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].frame_buffer);
-		
+
 			if (i == 0 && w.signal && !polling_pbo) {
 				glReadBuffer(GL_COLOR_ATTACHMENT2);
 				glBindBuffer(GL_PIXEL_PACK_BUFFER, buffer->pboIDs[odd_or_even_frame]);
@@ -619,7 +659,8 @@ int AVWilliamsWifiVisualization() {
 				//odd_or_even_frame = (odd_or_even_frame + 1) % 2;
 				glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 				polling_pbo = true;
-			}else if (i == 0 && polling_pbo && glClientWaitSync(block, GL_SYNC_FLUSH_COMMANDS_BIT, 0)) {
+			}
+			else if (i == 0 && polling_pbo && glClientWaitSync(block, GL_SYNC_FLUSH_COMMANDS_BIT, 0)) {
 				glBindBuffer(GL_PIXEL_PACK_BUFFER, buffer->pboIDs[int(odd_or_even_frame)]);
 				fragPosArray = (glm::vec4*)glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
 
@@ -632,19 +673,18 @@ int AVWilliamsWifiVisualization() {
 				w.signal = false;
 				send_data = true;
 			}
-			
+
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, eyes[i].frame_buffer);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			model_shader.Use();
-			model_shader.SetUniform4fv("model", avw_transform);
-			model_shader.SetUniform3fv("normalMatrix", glm::mat3(glm::transpose(glm::inverse(avw_transform))));
-			model_shader.SetUniform4fv("camera", ViewMat );
-			model_shader.SetUniform4fv("projection", ProjectionMat);
+			model_shader.SetUniform("model", avw_transform);
+			model_shader.SetUniform("normalMatrix", glm::mat3(glm::transpose(glm::inverse(avw_transform))));
+			model_shader.SetUniform("camera", ViewMat);
+			model_shader.SetUniform("projection", ProjectionMat);
 			Lights modelLights = setPointLights(totalLights, constant, linear, quadratic);
-			model_shader.SetUniform1f("distance_mask", distance_mask);
-			model_shader.SetUniform3f("viewPos", camera.getPosition());
-			
+			model_shader.SetUniform("viewPos", camera.getPosition());
+
 			//glDepthMask(GL_FALSE);
 			glEnable(GL_CULL_FACE);
 			glCullFace(GL_BACK);
@@ -652,38 +692,28 @@ int AVWilliamsWifiVisualization() {
 			glDisable(GL_CULL_FACE);
 			//glDepthMask(GL_TRUE);
 			//glClear(GL_DEPTH_BUFFER_BIT);
-			
+
 			deferred_shader.Use();
-			deferred_shader.SetUniform1f("transparency", transparency);
 			deferred_shader.SetEllipsoid(ellipsoid);
+			deferred_shader.SetUniforms(deferred_shading_floats);
+			deferred_shader.SetUniforms(deferred_shading_ints);
+			deferred_shader.SetUniforms(deferred_shading_bools);
+
 			wifi_transform = glm::translate(glm::mat4(1), wifi_translate);
 			wifi.ellipsoid_transform = wifi_transform * glm::scale(glm::mat4(1), wifi_scale);
-			deferred_shader.SetUniform4fv("ellipsoid_transform", wifi.ellipsoid_transform);
+			deferred_shader.SetUniform("ellipsoid_transform", wifi.ellipsoid_transform);
 			wifi.radius_stretch = wifi_scale * glm::vec3(1, 1, z_boost);
+			
 
-			deferred_shader.SetUniform3f("radius_stretch", wifi.radius_stretch);
-			deferred_shader.SetUniform1f("extent", extent);
-			deferred_shader.SetUniform1f("frequency", frequency);
-			deferred_shader.SetUniform1f("linear_term", linear_term);
-			deferred_shader.SetUniform1f("thickness", thickness);
-			deferred_shader.SetUniform1b("contour_on", contour_on);
-			deferred_shader.SetUniform1b("display_names", display_names);
-			deferred_shader.SetUniform1b("lic_on", lic_on);
-			deferred_shader.SetUniform1i("num_point_lights", numLights);
-			deferred_shader.SetUniform3f("viewPos", camera.getPosition());
-			deferred_shader.SetUniform1b("group_frequencies", group_frequencies);
-			deferred_shader.SetUniform1i("num_frequencies", wifi.getActiveFreqs(freqs).size());
-			deferred_shader.SetUniform1f("u_stretch", 10*u_stretch);
-			deferred_shader.SetUniform1f("v_stretch", 10*v_stretch);
-			deferred_shader.SetUniform1f("delta_theta", 180.f / wifi.getActiveFreqs(freqs).size());
-			deferred_shader.SetUniform1i("num_contours", num_dashes);
-			deferred_shader.SetUniform1f("learning_rate", learning_rate);
+			deferred_shader.SetUniform("radius_stretch", wifi.radius_stretch);
+			deferred_shader.SetUniform("viewPos", camera.getPosition());
+			
 			glm::vec3 selectedPos;
 			if (send_data) {
 				glm::vec2 index = glm::ivec2(w.currX, (resolution.y - w.currY));
 				selectedPos = fragPosArray[int(index.y * resolution.x + index.x)];
 				selectedPos = glm::vec3(selectedPos.b, selectedPos.g, selectedPos.r);
-				deferred_shader.SetUniform3f("selectedPos", selectedPos);
+				deferred_shader.SetUniform("selectedPos", selectedPos);
 				renderPopup = wifi.getNumActiveRouters(routers) > 0;
 				wifi.setRenderText(popup_text, selectedPos, routers);
 				std::cout << glm::to_string(selectedPos) << std::endl;
@@ -700,7 +730,7 @@ int AVWilliamsWifiVisualization() {
 				quad.getMeshes().at(0)->setTexture(text);
 				//std::cout << glm::to_string(fragPosArray[int(index.y * resolution.x + index.x)]) << std::endl;
 			}
-			deferred_shader.SetLights(modelLights, camera.getPosition(), numLights);
+			deferred_shader.SetLights(modelLights, camera.getPosition(), deferred_shading_ints["num_point_lights"]);
 
 			glBindFramebuffer(GL_FRAMEBUFFER, eyes[i].frame_buffer);
 			//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -725,24 +755,12 @@ int AVWilliamsWifiVisualization() {
 				glm::mat4 quad_transform(1);
 				glm::vec3 pos = glm::lerp(selectedPos, camera.getPosition(), .1f);
 				quad_transform = glm::translate(quad_transform, pos);
-				//quad_transform = ProjectionMat * ViewMat * quad_transform;
-				//glm::mat3 submatrix = glm::transpose(glm::mat3(quad_transform));
-				//clear rotational compontent
-				//quad_transform[0][1] = 0;
-				//quad_transform[0][2] = 0;
-				//quad_transform[1][0] = 0;
-				//quad_transform[1][2] = 0;
-				//quad_transform[2][0] = 0;
-				//quad_transform[2][1] = 0;
-
-				//CameraRight_worldspace = { ViewMatrix[0][0], ViewMatrix[1][0], ViewMatrix[2][0] }
-				//	CameraUp_worldspace = { ViewMatrix[0][1], ViewMatrix[1][1], ViewMatrix[2][1] }
-				quad_shader.SetUniform4fv("camera", ViewMat);
-				quad_shader.SetUniform4fv("projection", ProjectionMat);
-				quad_shader.SetUniform3f("quad_center", pos);
-				quad_shader.SetUniform2f("billboardSize", glm::vec2(popupText.width/(float)resolution.x, popupText.height/(float)resolution.y) * billboard_scale);
-				quad_shader.SetUniform1i("num_routers", wifi.getNumActiveRouters(routers));
-				quad_shader.SetUniform4fv("model", quad_transform);
+				quad_shader.SetUniform("camera", ViewMat);
+				quad_shader.SetUniform("projection", ProjectionMat);
+				quad_shader.SetUniform("quad_center", pos);
+				quad_shader.SetUniform("billboardSize", glm::vec2(popupText.width/(float)resolution.x, popupText.height/(float)resolution.y) * billboard_scale);
+				quad_shader.SetUniform("num_routers", wifi.getNumActiveRouters(routers));
+				quad_shader.SetUniform("model", quad_transform);
 				render(quad, &quad_shader);
 			}
 
@@ -823,26 +841,26 @@ int AVWilliamsWifiVisualization() {
 			std::vector<float> wifi_color_indices = wifi.getColorIndices();
 			if (shade_instances)
 				Sphere.getMeshes().at(0)->SetInstanceTransforms(wifi_transforms, wifi_color_indices);
-			instance_shader.SetUniform4fv("projection", ProjectionMat);
-			instance_shader.SetUniform4fv("view", ViewMat);
+			instance_shader.SetUniform("projection", ProjectionMat);
+			instance_shader.SetUniform("view", ViewMat);
 			//wifi_transform = glm::scale(glm::mat4(1), wifi_scale);
 
-			instance_shader.SetUniform4fv("transform", wifi_transform);
-			instance_shader.SetUniform4fv("model_transform", glyph_transform);
-			instance_shader.SetUniform3fv("normalMat", glm::mat3(1));
+			instance_shader.SetUniform("transform", wifi_transform);
+			instance_shader.SetUniform("model_transform", glyph_transform);
+			instance_shader.SetUniform("normalMat", glm::mat3(1));
 			instance_shader.SetLights(lights);
-			instance_shader.SetUniform3f("viewPos", camera.getPosition());
+			instance_shader.SetUniform("viewPos", camera.getPosition());
 			glBindFramebuffer(GL_FRAMEBUFFER, eyes[i].frame_buffer);
 			if (wifi_transforms.size() > 0 && shade_instances)
 				render(Sphere, &instance_shader);
 			if (use_vr) {
 				ground_shader.Use();
-				ground_shader.SetUniform4fv("camera", vr.getViewMatrix(curr_eye));
+				ground_shader.SetUniform("camera", vr.getViewMatrix(curr_eye));
 				glm::mat4 controller_rotation = glm::rotate(glm::mat4(1), glm::radians(90.0f), glm::vec3(1, 0, 0)) * glm::rotate(glm::mat4(1), glm::radians(60.0f), glm::vec3(1, 0, 0));
-				ground_shader.SetUniform4fv("model", vr.getControllerPose(vr.LeftDeviceId) * controller_rotation * glm::scale(glm::mat4(1), .01f * glm::vec3(-1, -1, 1)));
+				ground_shader.SetUniform("model", vr.getControllerPose(vr.LeftDeviceId) * controller_rotation * glm::scale(glm::mat4(1), .01f * glm::vec3(-1, -1, 1)));
 				render(LeftHand, &ground_shader);
 				glm::mat4 right_hand_transform = vr.getControllerPose(vr.RightDeviceId)  * controller_rotation * glm::scale(glm::mat4(1), 1.0f * glm::vec3(-1, -1, 1));
-				ground_shader.SetUniform4fv("model", right_hand_transform * glm::scale(glm::mat4(1), .01f * glm::vec3(1,1,1)));
+				ground_shader.SetUniform("model", right_hand_transform * glm::scale(glm::mat4(1), .01f * glm::vec3(1,1,1)));
 				render(RightHand, &ground_shader);
 				if (i == 0) {
 					if (vr.ray_picker_enable) {
@@ -858,26 +876,22 @@ int AVWilliamsWifiVisualization() {
 						glm::decompose(vr.getControllerPose(vr.RightDeviceId), scale, orientation, position, skew, perspective);
 						auto inv_view = glm::inverse(camera_offset * camera.getView());
 						position = glm::vec3(inv_view * glm::vec4(position, 1));
-						//std::cout << glm::to_string(glm::vec3(inv_view * glm::vec4(0, 0, 1, 0))) << std::endl;
 				
 						forward = glm::conjugate(orientation) * glm::vec3(inv_view * glm::vec4(0, 0,-1, 0));
 						//position = glm::vec3(position.b, position.r, -position.g);
 						rayPicker(forward, position, glm::vec3(0), vr.teleport_position);
-						//std::cout << "Teleport to: " << glm::to_string(vr.teleport_position) << std::endl;
 						//vr.teleport_position.z = camera.getPosition().z;
 						//camera.setPosition(vr.teleport_position);
 						
 						//vr.teleport_position = glm::vec3(1, 1, 1) * position;
-						//std::cout << glm::to_string(vr.teleport_position) << std::endl;
-						deferred_shader.SetUniform3f("selectedPos", glm::vec3(vr.teleport_position.r, vr.teleport_position.g, vr.teleport_position.b));
-						//std::cout << "Ray Picker" << std::endl;
+						deferred_shader.SetUniform("selectedPos", glm::vec3(vr.teleport_position.r, vr.teleport_position.g, vr.teleport_position.b));
 						vr.ray_picker_enable = false;
 					}
 				}
 				right_hand_transform = right_hand_transform * 
 					glm::rotate(glm::mat4(1), glm::radians(-90.0f), glm::vec3(1, 0, 0)) * 
 					glm::scale(glm::mat4(1), glm::vec3(-1, -100, -1));
-				ground_shader.SetUniform4fv("model", right_hand_transform * glm::scale(glm::mat4(1), .01f * glm::vec3(1, 1, 1)));
+				ground_shader.SetUniform("model", right_hand_transform * glm::scale(glm::mat4(1), .01f * glm::vec3(1, 1, 1)));
 
 				render(Cylinder, &ground_shader);
 				vr.composite(curr_eye, eyes[i].screen_tex);
@@ -898,41 +912,38 @@ int AVWilliamsWifiVisualization() {
 			ImGui::SliderFloat("transparency", &transparency, 0, 1);
 			ImGui::SliderInt("N", &num_routers, 1, 20);
 			if (ImGui::Button("Nearest N Routers")) {
+				std::fill(freqs.begin(), freqs.end(), true);
 				wifi.setNearestNRouters(num_routers, camera.getPosition(), wifinames, routers, freqs);
+				deferred_shading_floats["delta_theta"] = 180.f / wifi.getActiveFreqs(freqs).size();
 				updated_routers = true;
 				nearest_router_on = true;
-			}if (ImGui::Button("Reset")) {
-				std::fill(freqs.begin(), freqs.end(), true);
-				std::fill(routers.begin(), routers.end(), true);
-				std::fill(wifinames.begin(), wifinames.end(), true);
 			}
 			ImGui::SliderInt("Total Lights", &totalLights, 1, 200);
-			ImGui::SliderInt("Lights Shown", &numLights, 1, totalLights);
+			ImGui::SliderInt("Lights Shown", &deferred_shading_ints["num_point_lights"], 1, totalLights);
 			ImGui::SliderFloat("constant", &constant, 0, 1);
 			ImGui::SliderFloat("linear", &linear, 0, 1);
 			ImGui::SliderFloat("quadratic", &quadratic, 0, 1);
-			ImGui::SliderFloat("fall_off", &fall_off, 0, .1);
-			ImGui::SliderFloat("Rate", &learning_rate, 0, .1);
+			ImGui::SliderFloat("Rate", &deferred_shading_floats["learning_rate"], 0, .1);
 			ImGui::SliderInt("num_samples", &num_samples, 128000, 1024000);
 			ImGui::SliderFloat("BillBoard Scale", &billboard_scale, 0, 1);
 			ImGui::SliderFloat3("Bounding Box Scale", glm::value_ptr(bounding_cube_scale), 5, 35);
 			ImGui::SliderFloat3("Bounding Box Offset", glm::value_ptr(bounding_cube_translate), -10, 10);
 			ImGui::Checkbox("Shade Instances", &shade_instances);
-			ImGui::Checkbox("Line Integral Convolution", &lic_on);
+			ImGui::Checkbox("Line Integral Convolution", &deferred_shading_bools["lic_on"]);
+			ImGui::Checkbox("Invert Color Representation", &deferred_shading_bools["invert_colors"]);
+			ImGui::Checkbox("texton_background", &deferred_shading_bools["texton_background"]);
+			ImGui::Checkbox("frequency_bands", &deferred_shading_bools["frequency_bands"]);
 			//ImGui::Checkbox("Bin Orientations", &bin_orientations);
 			//ImGui::Checkbox("Group Frequencies", &group_frequencies);
-			ImGui::Checkbox("Display Names", &display_names);
+			ImGui::Checkbox("Display Names", &deferred_shading_bools["display_names"]);
 			ImGui::Checkbox("Jittered Colors", &jittered);
-			//ImGui::SliderFloat("Extent", &extent, 0, 5);
-			//ImGui::SliderFloat("Dash Frequency", &radius, 1, 5);
-			ImGui::SliderFloat("Contour Frequency", &frequency, 0, 1);
-			ImGui::SliderFloat("Theta", &theta, 0, 360);
-			ImGui::SliderFloat("u stretch", &u_stretch, 0, 10);
-			ImGui::SliderFloat("v stretch", &v_stretch, 0, 10);
-			ImGui::SliderFloat("Linear Term", &linear_term, 0, 1);
-			ImGui::SliderFloat("thickness", &thickness, 0, .1);
-			ImGui::SliderFloat("distance mask", &distance_mask, 0, 3);
-			ImGui::SliderInt("Number of Dashes", &num_dashes, 1, 20);
+			ImGui::SliderFloat("Contour Frequency", &deferred_shading_floats["frequency"], 0, 1);
+			ImGui::SliderFloat("u stretch", &deferred_shading_floats["u_stretch"], 0, 10);
+			ImGui::SliderFloat("v stretch", &deferred_shading_floats["v_stretch"], 0, 10);
+			ImGui::SliderFloat("Linear Term", &deferred_shading_floats["linear_term"], 0, 1);
+			ImGui::SliderFloat("thickness", &deferred_shading_floats["thickness"], 0, .1);
+			ImGui::SliderFloat("distance mask", &deferred_shading_floats["distance_mask"], 0, 3);
+			ImGui::SliderInt("Number of Dashes", &deferred_shading_ints["num_contours"], 1, 20);
 			//ImGui::SliderFloat("Z Boost", &z_boost, 1, 10);
 
 			if (ImGui::TreeNode("Wifi Names")) {

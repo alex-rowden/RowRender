@@ -116,32 +116,32 @@ void ShaderProgram::SetLights(Lights lights) {
 		Lights::PointLight light = lights.getPointLights().at(i);
 		
 		std::string light_preamble = "pointLights[" + std::to_string(i) + "].";
-		SetUniform3f((light_preamble + "position").c_str(), light.position);
+		SetUniform((light_preamble + "position").c_str(), light.position);
 
-		SetUniform1f((light_preamble + "constant").c_str(), light.constant);
-		SetUniform1f((light_preamble + "linear").c_str(), light.linear);
-		SetUniform1f((light_preamble + "quadratic").c_str(), light.quadratic);
+		SetUniform((light_preamble + "constant").c_str(), light.constant);
+		SetUniform((light_preamble + "linear").c_str(), light.linear);
+		SetUniform((light_preamble + "quadratic").c_str(), light.quadratic);
 
-		SetUniform3f((light_preamble + "ambient").c_str(), light.ambient);
-		SetUniform3f((light_preamble + "diffuse").c_str(), light.diffuse);
-		SetUniform3f((light_preamble + "specular").c_str(), light.specular);
+		SetUniform((light_preamble + "ambient").c_str(), light.ambient);
+		SetUniform((light_preamble + "diffuse").c_str(), light.diffuse);
+		SetUniform((light_preamble + "specular").c_str(), light.specular);
 
 	}for (int i = 0; i < lights.getDirLights().size(); i++) {
 		Lights::DirLight light = lights.getDirLights().at(i);
 		
 		std::string light_preamble = "dirLights[" + std::to_string(i) + "].";
-		SetUniform3f((light_preamble + "direction").c_str(), light.direction);
+		SetUniform((light_preamble + "direction").c_str(), light.direction);
 
-		SetUniform3f((light_preamble + "color").c_str(), light.color);
+		SetUniform((light_preamble + "color").c_str(), light.color);
 
 	}
-	SetUniform1i("num_point_lights", lights.getPointLights().size());
+	SetUniform("num_point_lights", (int)lights.getPointLights().size());
 }
 
 void ShaderProgram::SetEllipsoid(Ellipsoid ellipse) {
-	SetUniform3f("ellipsoid.mu", ellipse.mu);
-	SetUniform3fv("ellipsoid.axes", ellipse.axis);
-	SetUniform3f("ellipsoid.r", ellipse.r);
+	SetUniform("ellipsoid.mu", ellipse.mu);
+	SetUniform("ellipsoid.axes", ellipse.axis);
+	SetUniform("ellipsoid.r", ellipse.r);
 }
 
 void ShaderProgram::SetGaussians(std::vector<Gaussian> gaus) {
@@ -149,94 +149,95 @@ void ShaderProgram::SetGaussians(std::vector<Gaussian> gaus) {
 	for (int i = 0; i < gaus.size(); i++) {
 
 		std::string gauss_preamble = "gaussians[" + std::to_string(i) + "].";
-		SetUniform1f((gauss_preamble + "x_coord").c_str(), gaus[i].x_coord * 50);
-		SetUniform1f((gauss_preamble + "y_coord").c_str(), gaus[i].y_coord * 50);
-		SetUniform1f((gauss_preamble + "sigma").c_str(), gaus[i].sigma * 10 );
-		SetUniform1f((gauss_preamble + "amplitude").c_str(), gaus[i].amplitude);
+		SetUniform((gauss_preamble + "x_coord").c_str(), gaus[i].x_coord * 50);
+		SetUniform((gauss_preamble + "y_coord").c_str(), gaus[i].y_coord * 50);
+		SetUniform((gauss_preamble + "sigma").c_str(), gaus[i].sigma * 10 );
+		SetUniform((gauss_preamble + "amplitude").c_str(), gaus[i].amplitude);
 	}
 }
 
-void ShaderProgram::SetUniform4f(const char *name, glm::vec4 vec) {
-	int location = glGetUniformLocation(shaderProgram, name);
+
+void ShaderProgram::SetUniform(std::string name, glm::vec4 vec) {
+	int location = glGetUniformLocation(shaderProgram, name.c_str());
 	glUseProgram(shaderProgram);
 	glUniform4f(location, vec.x, vec.y, vec.z, vec.w);
 }
-void ShaderProgram::SetUniform3f(const char* name, glm::vec3 vec) {
-	int location = glGetUniformLocation(shaderProgram, name);
+void ShaderProgram::SetUniform(std::string name, glm::vec3 vec) {
+	int location = glGetUniformLocation(shaderProgram, name.c_str());
 	glUseProgram(shaderProgram);
 	glUniform3f(location, vec.x, vec.y, vec.z);
 }
-void ShaderProgram::SetUniform2f(const char* name, glm::vec2 vec) {
-	int location = glGetUniformLocation(shaderProgram, name);
+void ShaderProgram::SetUniform(std::string name, glm::vec2 vec) {
+	int location = glGetUniformLocation(shaderProgram, name.c_str());
 	glUseProgram(shaderProgram);
 	glUniform2f(location, vec.x, vec.y);
 }
-void ShaderProgram::SetUniform1f(const char* name, float val) {
-	int location = glGetUniformLocation(shaderProgram, name);
+void ShaderProgram::SetUniform(std::string name, float val) {
+	int location = glGetUniformLocation(shaderProgram, name.c_str());
 	glUseProgram(shaderProgram);
 	glUniform1f(location, val);
 }
 
-void ShaderProgram::SetUniform4i(const char* name, glm::ivec4 vec) {
-	int location = glGetUniformLocation(shaderProgram, name);
+void ShaderProgram::SetUniform(std::string name, glm::ivec4 vec) {
+	int location = glGetUniformLocation(shaderProgram, name.c_str());
 	glUseProgram(shaderProgram);
 	glUniform4i(location, vec.x, vec.y, vec.z, vec.w);
 }
-void ShaderProgram::SetUniform3i(const char* name, glm::ivec3 vec) {
-	int location = glGetUniformLocation(shaderProgram, name);
+void ShaderProgram::SetUniform(std::string name, glm::ivec3 vec) {
+	int location = glGetUniformLocation(shaderProgram, name.c_str());
 	glUseProgram(shaderProgram);
 	glUniform3i(location, vec.x, vec.y, vec.z);
 }
-void ShaderProgram::SetUniform2i(const char* name, glm::ivec2 vec) {
-	int location = glGetUniformLocation(shaderProgram, name);
+void ShaderProgram::SetUniform(std::string name, glm::ivec2 vec) {
+	int location = glGetUniformLocation(shaderProgram, name.c_str());
 	glUseProgram(shaderProgram);
 	glUniform2i(location, vec.x, vec.y);
 }
-void ShaderProgram::SetUniform1i(const char* name, int val) {
-	int location = glGetUniformLocation(shaderProgram, name);
+void ShaderProgram::SetUniform(std::string name, int val) {
+	int location = glGetUniformLocation(shaderProgram, name.c_str());
 	glUseProgram(shaderProgram);
 	glUniform1i(location, val);
 }
 
-void ShaderProgram::SetUniform4ui(const char* name, glm::uvec4 vec) {
-	int location = glGetUniformLocation(shaderProgram, name);
+void ShaderProgram::SetUniform(std::string name, glm::uvec4 vec) {
+	int location = glGetUniformLocation(shaderProgram, name.c_str());
 	glUseProgram(shaderProgram);
 	glUniform4ui(location, vec.x, vec.y, vec.z, vec.w);
 }
-void ShaderProgram::SetUniform3ui(const char* name, glm::uvec3 vec) {
-	int location = glGetUniformLocation(shaderProgram, name);
+void ShaderProgram::SetUniform(std::string name, glm::uvec3 vec) {
+	int location = glGetUniformLocation(shaderProgram, name.c_str());
 	glUseProgram(shaderProgram);
 	glUniform3ui(location, vec.x, vec.y, vec.z);
 }
-void ShaderProgram::SetUniform2ui(const char* name, glm::uvec2 vec) {
-	int location = glGetUniformLocation(shaderProgram, name);
+void ShaderProgram::SetUniform(std::string name, glm::uvec2 vec) {
+	int location = glGetUniformLocation(shaderProgram, name.c_str());
 	glUseProgram(shaderProgram);
 	glUniform2ui(location, vec.x, vec.y);
 }
-void ShaderProgram::SetUniform1ui(const char* name, unsigned int val) {
-	int location = glGetUniformLocation(shaderProgram, name);
+void ShaderProgram::SetUniform(std::string name, unsigned int val) {
+	int location = glGetUniformLocation(shaderProgram, name.c_str());
 	glUseProgram(shaderProgram);
 	glUniform1ui(location, val);
 }
 
-void ShaderProgram::SetUniform4fv(const char* name, glm::mat4 mat, GLint transpose) {
-	int location = glGetUniformLocation(shaderProgram, name);
+void ShaderProgram::SetUniform(std::string name, glm::mat4 mat, GLint transpose) {
+	int location = glGetUniformLocation(shaderProgram, name.c_str());
 	glUseProgram(shaderProgram);
 	glUniformMatrix4fv(location, 1, transpose, glm::value_ptr(mat));
 }
-void ShaderProgram::SetUniform3fv(const char* name, glm::mat3 mat, GLint transpose) {
-	int location = glGetUniformLocation(shaderProgram, name);
+void ShaderProgram::SetUniform(std::string name, glm::mat3 mat, GLint transpose) {
+	int location = glGetUniformLocation(shaderProgram, name.c_str());
 	glUseProgram(shaderProgram);
 	glUniformMatrix3fv(location, 1, transpose, glm::value_ptr(mat));
 }
-void ShaderProgram::SetUniform2fv(const char* name, glm::mat2 mat, GLint transpose) {
-	int location = glGetUniformLocation(shaderProgram, name);
+void ShaderProgram::SetUniform(std::string name, glm::mat2 mat, GLint transpose) {
+	int location = glGetUniformLocation(shaderProgram, name.c_str());
 	glUseProgram(shaderProgram);
 	glUniformMatrix2fv(location, 1, transpose, glm::value_ptr(mat));
 }
 
-void ShaderProgram::SetUniform1b(const char* name, bool in) {
-	int location = glGetUniformLocation(shaderProgram, name);
+void ShaderProgram::SetUniform(std::string name, bool in) {
+	int location = glGetUniformLocation(shaderProgram, name.c_str());
 	glUseProgram(shaderProgram);
 	if (in)
 		glUniform1i(location, 1);

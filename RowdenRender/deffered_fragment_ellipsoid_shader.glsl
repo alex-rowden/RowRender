@@ -3,7 +3,7 @@
 #define MAX_POINT_LIGHTS 80
 #define NR_DIR_LIGHTS 0
 #define MAX_ROUTERS 20
-#define NUM_STEPS 512
+#define NUM_STEPS 128
 const float PI = 3.1415926535897932384626433832795;
 
 in vec2 TexCoord;
@@ -23,7 +23,7 @@ uniform sampler2D ellipsoid_tex;
 uniform sampler2D noise_tex;
  //uniform sampler2D tangent_tex;
 
-float ellipsoid_ration = 1613.3333 / 2040;
+float ellipsoid_ration = 1400.0f / 1600.0f;
 float ellipsoid_offset = (1 - ellipsoid_ration) / 2.0;
 
 out vec4 FragColor;
@@ -66,7 +66,8 @@ delta_theta, extent, frequency, learning_rate;
 uniform int shininess, num_point_lights, num_frequencies,
 num_routers, num_contours;
 
-uniform bool group_frequencies, display_names, lic_on;
+uniform bool group_frequencies, display_names, lic_on,
+texton_background, invert_colors, frequency_bands;
 
 uniform mat4 ellipsoid_transform;
 
@@ -102,6 +103,54 @@ float ellipsoidDistance(vec3 fragPos, Ellipsoid ellipsoid) {
 	return sqrt(distance);
 }
 
+float paintTextons(vec3 fragPos, int i, int num_routers_per_freq, int router_counter) {
+	vec3 modified_coords = ellipsoidCoordinates(fragPos, Ellipsoids[i]);
+
+	vec2 index = texture(ellipsoid_coordinates_tex, TexCoord).rg;//(vec2(dot(tangent, modified_coords), dot(bitangent, modified_coords)) + vec2(1)) / 2.0f;
+	index = rotateVector(Ellipsoids[i].r.w * delta_theta, index);
+	float offset = .5;
+	if (abs(fract(index.g) - .5) < 1 / 4.0f) {
+		offset = 0;
+	}
+	int router_num = int((fract(index.r + offset) - ellipsoid_offset) * 1 / ellipsoid_ration * num_routers_per_freq);
+	float mask = texture(frequency_tex, index).r;
+	//alpha_new = mask;
+	if (router_num > router_counter)
+		mask = 0;
+	return mask;
+}
+
+float renderLIC(vec3 fragPos, vec3 tangent, vec3 bitangent, vec3 Normal, float distance, int i) {
+	float alpha_new = 0;
+	vec3 modified_coords = ellipsoidCoordinates(fragPos, Ellipsoids[i]);
+	vec3 ellipsoid_coords = fragPos - modified_coords;
+	vec3 projected_coords = vec3(dot(tangent, ellipsoid_coords), dot(bitangent, ellipsoid_coords), dot(Normal, ellipsoid_coords));
+	vec3 projected_frag = vec3(dot(tangent, fragPos), dot(bitangent, fragPos), dot(Normal, fragPos));
+	float norm;
+	float val;
+
+	vec2 uvt = texture(ellipsoid_coordinates_tex, TexCoord).rg;;
+	for (int j = 0; j < NUM_STEPS; j++) {
+		//float mask = 1;//(0.5 + 0.4 * cos(2. * 3.1415 * (i - NUM_STEPS/ 2.) / NUM_STEPS));
+		val += texture(noise_tex, uvt).r;
+		//norm += mask;
+
+		float magnitude = length((projected_frag - projected_coords).xy);
+		vec3 force = (projected_frag - projected_coords) / (magnitude);
+
+		uvt += learning_rate / 10.0f * force.xy;
+		//modified_coords += learning_rate * -;
+		projected_frag += learning_rate / 10.0f * force;
+
+	}
+	alpha_new = 1.8 * val / NUM_STEPS;
+	alpha_new *= alpha_new;
+	alpha_new *= (1 - .9 * distance / extent);
+	alpha_new = min(alpha_new, 1);
+	return alpha_new;
+}
+
+
 vec3 calculateColor(vec3 fragPos, vec3 Normal) {
 	vec3 color = texture(albedo_tex, TexCoord).rgb;
 	vec3 tangent = texture(tangent_tex, TexCoord).rgb;
@@ -116,58 +165,58 @@ vec3 calculateColor(vec3 fragPos, vec3 Normal) {
 	float alpha = 1;
 	int num_routers_per_freq[MAX_ROUTERS];
 	int router_counter[MAX_ROUTERS];
-	for (int i = 0; i < min(num_frequencies, num_routers); i++) {
-		num_routers_per_freq[i] = 0;
-		router_counter[i] = 0;
-	}
+	float distances[MAX_ROUTERS];
+	if (texton_background || dot(Normal, vec3(0, 0, 1)) > .1) {
+		for (int i = 0; i < min(num_frequencies, num_routers); i++) {
+			num_routers_per_freq[i] = 0;
+			router_counter[i] = 0;
+			distances[i] = 0;
+		}
 
-	for (int i = 0; i < num_routers; i++) {
-		float distance = ellipsoidDistance(fragPos, Ellipsoids[i]);
-		if (distance <= extent) {
-			num_routers_per_freq[int(Ellipsoids[i].r.w)] += 1;
+		for (int i = 0; i < num_routers; i++) {
+			distances[i] = ellipsoidDistance(fragPos, Ellipsoids[i]);
+			if (distances[i] <= extent) {
+				num_routers_per_freq[int(Ellipsoids[i].r.w)] += 1;
+			}
 		}
 	}
 
 	for (int i = 0; i < num_routers; i++) {
-		float distance = ellipsoidDistance(fragPos, Ellipsoids[i]);
+		float distance = 0;
+		if(!texton_background || dot(Normal, vec3(0, 0, 1)) > .1)
+			distance = ellipsoidDistance(fragPos, Ellipsoids[i]);
+		else
+			distance = distances[i];
 		if (distance <= extent) {
 			float alpha_new = 1;
 
-			//if (abs(dot(Normal, vec3(1,0,0)))> 1e-4)
-			//	mask = texture(crosshair_tex, vec2(distance / extent * frequency, radius * atan(modified_coords.z / modified_coords.y))).r;
-			//if (abs(dot(Normal, vec3(0, 1, 0))) > 1e-4)
-			//	mask = texture(crosshair_tex, vec2(distance / extent * frequency, radius * atan(modified_coords.x / modified_coords.z))).r;
+			float color_ind = Ellipsoids[i].mu.w;
+			if (invert_colors)
+				color_ind = Ellipsoids[i].r.w/float(num_routers);
+			vec3 color = texture(wifi_colors, vec2(0, color_ind)).rgb;
 
-			vec3 color = texture(wifi_colors, vec2(0, Ellipsoids[i].mu.w)).rgb;
-
-			if ((dot(Normal, vec3(0, 0, 1))) > 1e-6) {
-				
-				vec3 modified_coords = ellipsoidCoordinates(fragPos, Ellipsoids[i]);
-
-				vec2 index = texture(ellipsoid_coordinates_tex, TexCoord).rg;//(vec2(dot(tangent, modified_coords), dot(bitangent, modified_coords)) + vec2(1)) / 2.0f;
-				index = rotateVector(Ellipsoids[i].r.w * delta_theta, index);
-				float offset = .5;
-				if (abs(fract(index.g) - .5) < 1 / 4.0f) {
-					offset = 0;
-				}
-				int router_num = int((fract(index.r + offset) - ellipsoid_offset) * 1 / ellipsoid_ration * num_routers_per_freq[int(Ellipsoids[i].r.w)]);
-				float mask = texture(frequency_tex, index).r;
-				alpha_new = mask;
-				if (router_num > router_counter[int(Ellipsoids[i].r.w)])
-					alpha_new = 0;
+			if (!texton_background && (dot(Normal, vec3(0, 0, 1))) > 1e-6) {
+				alpha_new = paintTextons(fragPos, i, num_routers_per_freq[int(Ellipsoids[i].r.w)], router_counter[int(Ellipsoids[i].r.w)]);
 				router_counter[int(Ellipsoids[i].r.w)]++;
-
+			}
+			else if ((dot(Normal, vec3(0, 0, 1))) > 1e-6) {
+				continue;
 			}
 			else if (-dot(Normal, vec3(0, 0, 1)) > 1e-6) {
 				alpha_new = 0;
 			}
 			else if (!lic_on){
-				if (mod(linear_term * log2(distance / extent), frequency) < 1 - frequency * thickness) {
+				float iso_band = mod(linear_term * log2(distance / extent), frequency);
+				if (iso_band < 1 - frequency * thickness) {
 					alpha_new = 0;
 				}
 				else {
-					if (abs(.5 - mod(linear_term * log2(distance / extent), frequency) / (frequency)) < thickness) {
-						alpha_new = 0;
+					if (frequency_bands) {
+						iso_band = (iso_band - (1 - frequency * thickness))/(frequency * thickness);
+						int freq_number = int(Ellipsoids[i].r.w);
+						if (mod(iso_band * (2 * freq_number + 1), 2) > 1) {
+							alpha_new = 0;
+						}
 					}
 					if (display_names) {
 						vec3 modified_coords = ellipsoidCoordinates(fragPos, Ellipsoids[i]);
@@ -187,42 +236,30 @@ vec3 calculateColor(vec3 fragPos, vec3 Normal) {
 					alpha_new = 0;
 				}
 				else {
-					vec3 modified_coords = ellipsoidCoordinates(fragPos, Ellipsoids[i]);
-					vec3 ellipsoid_coords = fragPos - modified_coords;
-					vec3 projected_coords = vec3(dot(tangent, ellipsoid_coords), dot(bitangent, ellipsoid_coords), dot(Normal, ellipsoid_coords));
-					vec3 projected_frag = vec3(dot(tangent, fragPos), dot(bitangent, fragPos), dot(Normal, fragPos));
-					float norm;
-					float val;
-
-					vec2 uvt = texture(ellipsoid_coordinates_tex, TexCoord).rg;;
-					for (int j = 0; j < NUM_STEPS; j++) {
-						//float mask = 1;//(0.5 + 0.4 * cos(2. * 3.1415 * (i - NUM_STEPS/ 2.) / NUM_STEPS));
-						val += texture(noise_tex, uvt).r;
-						//norm += mask;
-
-						//float magnitude = length(projected_frag - projected_coords);
-						vec3 force = ((projected_frag - projected_coords));
-
-						uvt += learning_rate / 10.0f * force.xy;
-						//modified_coords += learning_rate * -;
-						projected_frag += learning_rate / 10.0f * force;
-
-					}
-					alpha_new = 1.2 * (val / NUM_STEPS);
-					//float theta = atan(projected_coords.y, projected_coords.x);
-					//float norm_theta = max(theta / PI + 1, 0);
-					//vec2 index = vec2(theta / (2.0f * PI),  distance / extent - .01);
-					//if (index.y > 0)
-						//alpha_new = texture(noise_tex, index).r;
-					//else {
-					//	alpha_new = 0;
-					//}
+					alpha_new = renderLIC(fragPos, tangent, bitangent, Normal, distance, i);
 				}
 			}
+			
 			ret = alpha_new * (alpha * color) + ret;
 			alpha = (1 - alpha_new) * alpha;
 		}
 	}
+	
+	if (texton_background) {
+		float alpha_new = 1;
+		for (int i = 0; i < num_routers; i++){
+			float distance = ellipsoidDistance(fragPos, Ellipsoids[i]);
+			if (distance > extent)
+				continue;
+			vec3 color = texture(wifi_colors, vec2(0, Ellipsoids[i].mu.w)).rgb;;
+			alpha_new = paintTextons(fragPos, i, num_routers_per_freq[int(Ellipsoids[i].r.w)], router_counter[int(Ellipsoids[i].r.w)]);
+			router_counter[int(Ellipsoids[i].r.w)]++;
+			ret = alpha_new * (alpha * color) + ret;
+			alpha = (1 - alpha_new) * alpha;
+		}
+	}
+
+	
  
 	ret = alpha * color + ret;
 
@@ -242,9 +279,7 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, v
 
 	float attenuation = 1.0 / (light.constant + light.linear * distance +
 		light.quadratic * (distance * distance));
-	//Calculate color
 
-	// combine results
 
 	vec3 ambient = light.ambient * color;
 	vec3 diffuse = light.diffuse * diff * color;
@@ -264,18 +299,12 @@ vec3 CalcDirLight(DirLight light, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 
 	// specular shading
 	vec3 reflectDir = reflect(-lightDir, normal);
 	float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
-	// attenuation
-	//float distance = length(light.position - fragPos);
-	//float attenuation = 1.0 / (light.constant + light.linear * distance +
-	//	light.quadratic * (distance * distance));
-	// combine results
+
 
 	vec3 ambient = light.color * color;
 	vec3 diffuse = light.color * diff * color;
 	vec3 specular = light.color * spec * vec3(1, 1, 1);
-	//ambient *= attenuation;
-	//diffuse *= attenuation;
-	//specular *= attenuation;
+
 	return (ambient * ambient_coeff + diffuse * diffuse_coeff + specular * spec_coeff);
 }
 
@@ -293,7 +322,7 @@ void main()
 	vec3 viewDir = normalize(viewPos - FragPos);
 	vec3 ret = vec3(0, 0, 0);
 	vec3 color = calculateColor(FragPos, norm);
-
+	
 
 	for (int i = 0; i < num_point_lights; i++) {
 		ret += CalcPointLight(pointLights[i], norm, FragPos, viewDir, color);

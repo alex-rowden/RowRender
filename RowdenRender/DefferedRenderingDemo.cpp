@@ -211,12 +211,12 @@ int DefferedRenderingDemo() {
 	//setup lights
 	Lights lights = Lights();
 	lights.addPointLight(glm::vec3(2, 2, 2), 1, .9, .2, glm::vec3(1), glm::vec3(1), glm::vec3(1));
-	prepass_shader.SetUniform1i("num_point_lights", 1);
+	prepass_shader.SetUniform("num_point_lights", 1);
 
-	prepass_shader.SetUniform1f("ambient_coeff", .2);
-	prepass_shader.SetUniform1f("spec_coeff", .2);
-	prepass_shader.SetUniform1f("diffuse_coeff", .6);
-	prepass_shader.SetUniform1i("shininess", 32);
+	prepass_shader.SetUniform("ambient_coeff", .2f);
+	prepass_shader.SetUniform("spec_coeff", .2f);
+	prepass_shader.SetUniform("diffuse_coeff", .6f);
+	prepass_shader.SetUniform("shininess", 32);
 
 	//setUp SSAO Kernel
 	std::uniform_real_distribution<float> randomFloats(0.0, 1.0); // random floats between [0.0, 1.0]
@@ -235,7 +235,7 @@ int DefferedRenderingDemo() {
 		sample = glm::normalize(sample);
 		sample *= randomFloats(generator);
 		//ssaoKernel.push_back(sample);
-		ssao_shader.SetUniform3f(("samples[" + std::to_string(i) + "]").c_str(), sample);
+		ssao_shader.SetUniform(("samples[" + std::to_string(i) + "]").c_str(), sample);
 	}
 	std::vector<glm::vec3> ssaoNoise;
 	for (unsigned int i = 0; i < 16; i++)
@@ -266,10 +266,10 @@ int DefferedRenderingDemo() {
 
 		//render cube
 		deffered_rendering_shader.Use();
-		deffered_rendering_shader.SetUniform4fv("model", glm::mat4(1));
-		deffered_rendering_shader.SetUniform3fv("normalMatrix", glm::mat3(1));
-		deffered_rendering_shader.SetUniform4fv("camera", camera.getView());
-		deffered_rendering_shader.SetUniform4fv("projection", camera.getProjection());
+		deffered_rendering_shader.SetUniform("model", glm::mat4(1));
+		deffered_rendering_shader.SetUniform("normalMatrix", glm::mat3(1));
+		deffered_rendering_shader.SetUniform("camera", camera.getView());
+		deffered_rendering_shader.SetUniform("projection", camera.getProjection());
 		
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_BACK);
@@ -286,11 +286,11 @@ int DefferedRenderingDemo() {
 		
 
 		ssao_shader.Use();
-		ssao_shader.SetUniform1i("kernelSize", 64);
-		ssao_shader.SetUniform1f("radius", .5);
-		ssao_shader.SetUniform1f("bias", .025);
-		ssao_shader.SetUniform4fv("projection", camera.getProjection());
-		ssao_shader.SetUniform2f("resolution", resolution);
+		ssao_shader.SetUniform("kernelSize", 64);
+		ssao_shader.SetUniform("radius", .5f);
+		ssao_shader.SetUniform("bias", .025f);
+		ssao_shader.SetUniform("projection", camera.getProjection());
+		ssao_shader.SetUniform("resolution", resolution);
 
 		render(Quad, &ssao_shader);
 
@@ -298,7 +298,7 @@ int DefferedRenderingDemo() {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		prepass_shader.Use();
 		prepass_shader.SetLights(lights);
-		prepass_shader.SetUniform3f("viewPos", camera.getPosition());
+		prepass_shader.SetUniform("viewPos", camera.getPosition());
 		//glDisable(GL_DEPTH_TEST);
 		render(Quad, &prepass_shader);
 

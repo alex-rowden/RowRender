@@ -9,7 +9,7 @@ public:
 	void fillWithNoise(unsigned int numSamples);
 	void fillWithStatifiedNoise(glm::uvec2 strata, unsigned int num_samples);
 	std::vector<float> getTexture() { return texture; }
-	void convolve(float falloff = .1, float min_arc_ratio = .5);
+	void convolve(float falloff = .05, float min_arc_ratio = .5);
 	void clear() { texture.clear(); texture.resize(resolution.x * resolution.y); noise_samples.clear(); }
 private:
 	

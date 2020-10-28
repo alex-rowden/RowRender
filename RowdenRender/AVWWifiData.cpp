@@ -347,7 +347,7 @@ void AVWWifiData::updateRouterStructure(std::vector<bool>router_bools, std::vect
 	glBindBuffer(GL_UNIFORM_BUFFER, uniformBuffer);
 	glBufferData(GL_UNIFORM_BUFFER, i * sizeof(Ellipsoid), routers, GL_DYNAMIC_DRAW);
 	glBindBufferBase(GL_UNIFORM_BUFFER, bindingPoint, uniformBuffer);
-	model_shader.SetUniform1i("num_routers", i);
+	model_shader.SetUniform("num_routers", i);
 }
 
 

@@ -329,18 +329,18 @@ int CampusWifiVisualization() {
 	float zNear = .1;
 	float zFar = 500;
 
-	volume_shader.SetUniform1f("zNear", zNear);
-	volume_shader.SetUniform1f("zFar", zFar);
+	volume_shader.SetUniform("zNear", zNear);
+	volume_shader.SetUniform("zFar", zFar);
 
 	float ambientStrength = .3f;
 	glm::vec3 lightDir = normalize(glm::vec3(0, 0.5, 0.5));
 	float specularStrength = .3;
 	float diffuseStrength = .4;
 	float shininess = 128;
-	volume_shader.SetUniform1f("shininess", shininess);
-	volume_shader.SetUniform1f("ambientStrength", ambientStrength);
-	volume_shader.SetUniform1f("specularStrength", specularStrength);
-	volume_shader.SetUniform1f("diffuseStrength", diffuseStrength);
+	volume_shader.SetUniform("shininess", shininess);
+	volume_shader.SetUniform("ambientStrength", ambientStrength);
+	volume_shader.SetUniform("specularStrength", specularStrength);
+	volume_shader.SetUniform("diffuseStrength", diffuseStrength);
 
 	
 
@@ -472,10 +472,10 @@ int CampusWifiVisualization() {
 	lights.addDirLight(glm::vec3(1, 0, .2), gold);
 	//lights.addDirLight(glm::vec3(1, 0, 0), purple);
 	//lights.addPointLight(glm::vec3(0, 50, 0), 1, 0.0, 0, gold, gold, glm::vec3(1, 1, 1));
-	sp.SetUniform1f("ambient_coeff", .5);
-	sp.SetUniform1f("spec_coeff", .1);
-	sp.SetUniform1f("diffuse_coeff", .4);
-	sp.SetUniform1i("shininess", 32);
+	sp.SetUniform("ambient_coeff", .5f);
+	sp.SetUniform("spec_coeff", .1f);
+	sp.SetUniform("diffuse_coeff", .4f);
+	sp.SetUniform("shininess", 32);
 
 	glm::mat4 campusTransform;
 	std::vector<glm::vec3> positions;
@@ -577,7 +577,7 @@ int CampusWifiVisualization() {
 	RayTraced.getMeshes().at(0)->addTexture(back_hit);
 
 	//volume_shader.SetUniform1i("numTex", wifi.numSlices);
-	volume_shader.SetUniform1i("numTex", MIN(wifi.numSlices, 5));
+	volume_shader.SetUniform("numTex", MIN(wifi.numSlices, 5));
 	float volume_z = 20;
 	int framesSinceMoved = 0;
 
@@ -657,36 +657,36 @@ int CampusWifiVisualization() {
 			framesSinceMoved = 0;
 		}
 
-		volume_shader.SetUniform2f("IsoValRange", glm::vec2(center - width / 2.0f, center + width / 2.0f));
-		volume_shader.SetUniform1f("StepSize", effectiveStepSize);
-		volume_shader.SetUniform1f("increment", increment);
-		volume_shader.SetUniform1f("base_opac", base_opac);
-		volume_shader.SetUniform3f("color1", color1);
-		volume_shader.SetUniform3f("color2", color2);
-		volume_shader.SetUniform3f("color3", color3);
-		volume_shader.SetUniform3f("color4", color4);
-		volume_shader.SetUniform3f("color5", color5);
-		volume_shader.SetUniform3f("shade_color", intersection_color);
-		volume_shader.SetUniform1f("fcp", fcp);
+		volume_shader.SetUniform("IsoValRange", glm::vec2(center - width / 2.0f, center + width / 2.0f));
+		volume_shader.SetUniform("StepSize", effectiveStepSize);
+		volume_shader.SetUniform("increment", increment);
+		volume_shader.SetUniform("base_opac", base_opac);
+		volume_shader.SetUniform("color1", color1);
+		volume_shader.SetUniform("color2", color2);
+		volume_shader.SetUniform("color3", color3);
+		volume_shader.SetUniform("color4", color4);
+		volume_shader.SetUniform("color5", color5);
+		volume_shader.SetUniform("shade_color", intersection_color);
+		volume_shader.SetUniform("fcp", fcp);
 
-		volume_shader.SetUniform1f("bubble_min", bubble_bottom);
-		volume_shader.SetUniform1f("bubble_max", bubble_top);
-		volume_shader.SetUniform1f("min_opac", bubble_min_opac);
-		volume_shader.SetUniform1f("max_opac", bubble_max_opac);
-		volume_shader.SetUniform1f("shade_opac", shade_opac);
+		volume_shader.SetUniform("bubble_min", bubble_bottom);
+		volume_shader.SetUniform("bubble_max", bubble_top);
+		volume_shader.SetUniform("min_opac", bubble_min_opac);
+		volume_shader.SetUniform("max_opac", bubble_max_opac);
+		volume_shader.SetUniform("shade_opac", shade_opac);
 		if (color_aug)
-			volume_shader.SetUniform1f("enable_intersection", 1);
+			volume_shader.SetUniform("enable_intersection", 1);
 		else
-			volume_shader.SetUniform1f("enable_intersection", 0);
+			volume_shader.SetUniform("enable_intersection", 0);
 
-		volume_shader.SetUniform1f("spec_term", spec_term);
-		volume_shader.SetUniform1f("bubble_term", sil_term);
-		volume_shader.SetUniform1f("step_mod", step_mod);
-		volume_shader.SetUniform1f("tune", tune);
+		volume_shader.SetUniform("spec_term", spec_term);
+		volume_shader.SetUniform("bubble_term", sil_term);
+		volume_shader.SetUniform("step_mod", step_mod);
+		volume_shader.SetUniform("tune", tune);
 
 		box_min.z = box_z_min;
-		volume_shader.SetUniform3f("box_min", box_min);
-		volume_shader.SetUniform3f("box_max", box_min + glm::vec3(100, 100.f, volume_z));
+		volume_shader.SetUniform("box_min", box_min);
+		volume_shader.SetUniform("box_max", box_min + glm::vec3(100, 100.f, volume_z));
 
 		if (center + width / 2.0f != max_iso_val) {
 			iso_change = true;
@@ -698,7 +698,7 @@ int CampusWifiVisualization() {
 				enabledColors |= 1 << i;
 			}
 		}
-		volume_shader.SetUniform1i("enabledVolumes", enabledColors);
+		volume_shader.SetUniform("enabledVolumes", enabledColors);
 
 		camera.fov = fov;
 		clock_t per_frame = clock();
@@ -754,11 +754,11 @@ int CampusWifiVisualization() {
 		campusTransform = glm::translate(glm::mat4(1), glm::vec3(0, 0, 0) - campus_dim / 2.0f);
 		campusTransform = glm::scale(campusTransform, campus_dim);
 		int volume_map = 0;
-		campus_map_sp.SetUniform1i("heatmap", 0);
+		campus_map_sp.SetUniform("heatmap", 0);
 		for (volume_map = 0; volume_map < 6; volume_map++) {
 			if (enable_color[volume_map] && show_heatmap) {
 				volume_data[volume_map].name = "texture_diffuse";
-				campus_map_sp.SetUniform1i("heatmap", 1);
+				campus_map_sp.SetUniform("heatmap", 1);
 				campusMap.getMeshes().at(0)->setTexture(volume_data[volume_map], 0);
 				campusMap.getMeshes().at(0)->setTexture(volume_data[volume_map], 1);
 				break;
@@ -768,8 +768,8 @@ int CampusWifiVisualization() {
 
 
 
-		skybox_shader.SetUniform4fv("projection", camera.getProjection(zNear, zFar));
-		skybox_shader.SetUniform4fv("view", glm::mat4(glm::mat3(camera.getView())));
+		skybox_shader.SetUniform("projection", camera.getProjection(zNear, zFar));
+		skybox_shader.SetUniform("view", glm::mat4(glm::mat3(camera.getView())));
 
 		glDepthMask(GL_FALSE);
 		render(skybox, &skybox_shader);
@@ -778,22 +778,22 @@ int CampusWifiVisualization() {
 			std::cout << "Render Skybox " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
 		}
-		sp.SetUniform4fv("model", transformation);
-		sp.SetUniform3fv("normalMatrix", glm::mat3(glm::transpose(glm::inverse( transformation))));
-		sp.SetUniform4fv("camera", camera.getView());
-		sp.SetUniform4fv("projection", camera.getProjection(zNear, zFar));
+		sp.SetUniform("model", transformation);
+		sp.SetUniform("normalMatrix", glm::mat3(glm::transpose(glm::inverse( transformation))));
+		sp.SetUniform("camera", camera.getView());
+		sp.SetUniform("projection", camera.getProjection(zNear, zFar));
 		sp.SetLights(lights);
-		sp.SetUniform3f("view", camera.getPosition());
-		sp.SetUniform1f("transparency", 1.0f);
+		sp.SetUniform("view", camera.getPosition());
+		sp.SetUniform("transparency", 1.0f);
 		render(model, &sp);
 		if (BENCHMARK) {
 			std::cout << "Render Campus Model " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
 			start = clock();
 		}
-		campus_map_sp.SetUniform4fv("model", campusTransform);
-		campus_map_sp.SetUniform4fv("camera", camera.getView());
-		campus_map_sp.SetUniform4fv("projection", camera.getProjection(zNear, zFar));
-		campus_map_sp.SetUniform1f("increment", increment);
+		campus_map_sp.SetUniform("model", campusTransform);
+		campus_map_sp.SetUniform("camera", camera.getView());
+		campus_map_sp.SetUniform("projection", camera.getProjection(zNear, zFar));
+		campus_map_sp.SetUniform("increment", increment);
 		render(campusMap, &campus_map_sp);
 		//volume_data[volume_map].name = "volume" + std::to_string(volume_map+1);
 		if (BENCHMARK) {
@@ -801,9 +801,9 @@ int CampusWifiVisualization() {
 			start = clock();
 		}
 		instance_shader.Use();
-		instance_shader.SetUniform4fv("projection", camera.getProjection(zNear, zFar));
-		instance_shader.SetUniform4fv("view", camera.getView());
-		instance_shader.SetUniform4fv("transform", glm::scale(glm::translate(glm::mat4(1), glm::vec3(239.5, 135, -.5) - glm::vec3(campus_dim.x, campus_dim.y, 0)), glm::vec3(0.001892837130*.99, 0.00184324591, .001163 * .75 * 1.25)));
+		instance_shader.SetUniform("projection", camera.getProjection(zNear, zFar));
+		instance_shader.SetUniform("view", camera.getView());
+		instance_shader.SetUniform("transform", glm::scale(glm::translate(glm::mat4(1), glm::vec3(239.5, 135, -.5) - glm::vec3(campus_dim.x, campus_dim.y, 0)), glm::vec3(0.001892837130*.99, 0.00184324591, .001163 * .75 * 1.25)));
 		render(Tree, &instance_shader);
 		if (BENCHMARK) {
 			std::cout << "Render Trees " << ((double)(clock() - start)) / CLOCKS_PER_SEC << " seconds" << std::endl;
@@ -838,36 +838,36 @@ int CampusWifiVisualization() {
 		glm::vec3 volume_bottom = glm::vec3(6.258 , -3.083 , volume_z / 2.0f - .5);
 		glm::mat4 translate = glm::translate(glm::mat4(1), w.translate + volume_bottom);
 		
-		front_shader.SetUniform4fv("model", translate * scale);
-		front_shader.SetUniform4fv("camera", camera.getView());
-		front_shader.SetUniform4fv("projection", camera.getProjection(fcp, zFar));
+		front_shader.SetUniform("model", translate * scale);
+		front_shader.SetUniform("camera", camera.getView());
+		front_shader.SetUniform("projection", camera.getProjection(fcp, zFar));
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_BACK);
-		front_shader.SetUniform1i("front", 1);
+		front_shader.SetUniform("front", 1);
 		render(volume_cube, &front_shader);
 		glClear( GL_DEPTH_BUFFER_BIT);
 		back_shader.Use();
 
-		back_shader.SetUniform4fv("model", translate * scale);
-		back_shader.SetUniform4fv("camera", camera.getView());
-		back_shader.SetUniform4fv("projection", camera.getProjection(fcp, zFar));
+		back_shader.SetUniform("model", translate * scale);
+		back_shader.SetUniform("camera", camera.getView());
+		back_shader.SetUniform("projection", camera.getProjection(fcp, zFar));
 		glCullFace(GL_FRONT);
-		back_shader.SetUniform1i("front", -1);
+		back_shader.SetUniform("front", -1);
 		render(volume_cube, &back_shader);
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glDisable(GL_CULL_FACE);
 		volume_shader.Use();
-		volume_shader.SetUniform3f("viewPos", camera.getPosition());
+		volume_shader.SetUniform("viewPos", camera.getPosition());
 		lightDir = camera.getDirection();
-		volume_shader.SetUniform3f("LightDir", lightDir);
+		volume_shader.SetUniform("LightDir", lightDir);
 		
 		glm::vec3 HalfwayVec = glm::normalize(camera.getDirection() + lightDir);
-		volume_shader.SetUniform3f("HalfwayVec", HalfwayVec);
+		volume_shader.SetUniform("HalfwayVec", HalfwayVec);
 	
-		volume_shader.SetUniform3f("forward", camera.getDirection());
-		volume_shader.SetUniform3f("volume_size", volume_scale);
-		volume_shader.SetUniform3f("volume_bottom", volume_bottom);
+		volume_shader.SetUniform("forward", camera.getDirection());
+		volume_shader.SetUniform("volume_size", volume_scale);
+		volume_shader.SetUniform("volume_bottom", volume_bottom);
 		render(RayTraced, &volume_shader);
 		glBindFramebuffer(GL_FRAMEBUFFER, fb);
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
