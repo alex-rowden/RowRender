@@ -418,6 +418,8 @@ int AVWilliamsWifiVisualization() {
 	w.SetCamera(&camera);
 	w.setSpeed(1);
 
+
+
 	//Setup Light
 	Lights lights = Lights();
 	lights.addDirLight(glm::vec3(-1, .2, .2), glm::vec3(1, 1, 1));
@@ -454,15 +456,9 @@ int AVWilliamsWifiVisualization() {
 	instance_shader.SetUniforms(instance_shading_floats);
 	instance_shader.SetUniforms(instance_shading_ints);
 
-	bool shade_instances = false;
-	bool contour_on = false;
-	bool display_names = false;
-	bool renderPopup = false;
-	bool texton_background = false;
-	bool invert_color_rep = false;
-	bool frequency_bands = true;
+	
 	float constant = 1, linear = .9, quadratic = .98;
-	int num_routers = 1;
+	
 	int odd_or_even_frame = 0;
 
 
@@ -470,14 +466,7 @@ int AVWilliamsWifiVisualization() {
 	AVWWifiData wifi(deferred_shader);
 	Ellipsoid ellipsoid;
 	wifi.loadEllipsoid("one_router.elipsoid", ellipsoid);
-	float radius = 1;
-	float frequency = .973;
-	float extent = 1;
-	float z_boost = 1;
-	float theta = 0;
-	float u_stretch = 1;
-	float v_stretch = 1;
-	int num_dashes = 6;
+	
 
 	VolumeData volume;
 
@@ -496,10 +485,14 @@ int AVWilliamsWifiVisualization() {
 	std::vector<glm::mat4> wifi_transforms;
 	wifi_tex.giveName("wifi_colors");
 	Sphere.getMeshes().at(0)->setTexture(wifi_tex, 0);
-
 	Texture2D frequency_texture = Texture2D("./Content/Textures/texton_paper_aspect.png");
 	frequency_texture.giveName("frequency_tex");
-	frequency_texture.setTexMinMagFilter(GL_LINEAR, GL_LINEAR);
+	float an = 0.0f;
+	
+	glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY, &an); 
+	std::cout << an << std::endl;
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY, an);
+	frequency_texture.setTexMinMagFilter(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR);
 	frequency_texture.setTexParameterWrap(GL_REPEAT);
 	//AVW.getMeshes().at(0)->addTexture(frequency_texture);
 	quad.getMeshes().at(0)->addTexture(frequency_texture);
@@ -558,23 +551,23 @@ int AVWilliamsWifiVisualization() {
 	int old_num_colors = -1;
 
 	float linear_term = 1, thickness = .056, distance_mask = 0, billboard_scale = .4;
-	bool bin_orientations = false;
-	bool group_frequencies = false;
-	bool send_data = false, polling_pbo = false, lic_on = true;
+	
+	bool send_data = false, polling_pbo = false, renderPopup = false;
 	std::vector<std::string> popup_text;
 
-	int num_samples = 500000;
-	float learning_rate = .005;
-	float fall_off = .05;
-	glm::uvec2 lic_texture_res(1280, 770);
+	int num_routers = 1;
+	int num_samples = 102400;
+	
+	glm::uvec2 lic_texture_res(2048 , 2048);
 	int old_num_samples = num_samples;
-	float old_fall_off = fall_off;
 
 	LineIntegralConvolution lic(lic_texture_res); 
 	lic.fillWithNoise(num_samples);
 	//lic.convolve(fall_off);
 	Texture2D noise = Texture2D(lic.getTexture().data(), lic_texture_res.y, lic_texture_res.x);
-	noise.setTexMinMagFilter(GL_LINEAR);
+	noise.setTexMinMagFilter(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY, an);
+	
 	noise.giveName("noise_tex");
 	quad.getMeshes().at(0)->setTexture(noise);
 
@@ -585,30 +578,41 @@ int AVWilliamsWifiVisualization() {
 	GLsync block = 0;
 	deferred_shading_floats.clear();
 	deferred_shading_floats = {
-				{ "extent", extent },
-				{ "frequency", frequency },
-				{ "linear_term", linear_term },
-				{ "thickness", thickness },
-				{ "u_stretch", 10 * u_stretch },
-				{ "v_stretch", 10 * v_stretch },
+				{ "extent", 1 },
+				{ "frequency", .973 },
+				{ "linear_term", 1 },
+				{ "thickness", .056 },
+				{ "u_stretch", 10 },
+				{ "v_stretch", 10 },
 				{ "delta_theta", 180.f / wifi.getActiveFreqs(freqs).size() },
-				{ "learning_rate", learning_rate },
-				{ "distance_mask", distance_mask }
+				{ "learning_rate", .05 },
+				{ "distance_mask", 0 },
+				{ "alpha_boost", 20 },
+				{ "density", .965 },
+				{"frag_pos_scale", 100},
+				{"cling", .9},
 	};
 	std::map<std::string, bool> deferred_shading_bools = {
-		{"contour_on", contour_on},
-		{ "display_names", display_names },
-		{ "lic_on", lic_on },
-		{ "group_frequencies", group_frequencies },
-		{ "texton_background", texton_background },
-		{ "invert_colors", invert_color_rep },
-		{ "frequency_bands", frequency_bands },
+		{ "contour_on", false},
+		{ "display_names", false },
+		{ "lic_on", true },
+		{ "group_frequencies", false },
+		{ "texton_background", false },
+		{ "invert_colors", false },
+		{ "frequency_bands", false },
+		{ "shade_instances", false},
+		{ "anti_aliasing", true},
+		{ "use_mask", false}
 	};
 	deferred_shading_ints = {
-		{"num_point_lights", numLights},
+		{"num_point_lights", 20},
 		{"num_frequencies", wifi.getActiveFreqs(freqs).size()},
-		{"num_contours", num_dashes}
+		{"num_contours", 6}
 	};
+	const int num_antialiased_textures = 2;
+	Texture2D antialiased_textures[num_antialiased_textures] = {
+		frequency_texture, noise};
+
 	while (!glfwWindowShouldClose(w.getWindow())) {
 		//clear default framebuffer
 		if (use_vr) {
@@ -684,6 +688,7 @@ int AVWilliamsWifiVisualization() {
 			model_shader.SetUniform("projection", ProjectionMat);
 			Lights modelLights = setPointLights(totalLights, constant, linear, quadratic);
 			model_shader.SetUniform("viewPos", camera.getPosition());
+			model_shader.SetUniform("distance_mask", deferred_shading_floats["distance_mask"]);
 
 			//glDepthMask(GL_FALSE);
 			glEnable(GL_CULL_FACE);
@@ -702,7 +707,7 @@ int AVWilliamsWifiVisualization() {
 			wifi_transform = glm::translate(glm::mat4(1), wifi_translate);
 			wifi.ellipsoid_transform = wifi_transform * glm::scale(glm::mat4(1), wifi_scale);
 			deferred_shader.SetUniform("ellipsoid_transform", wifi.ellipsoid_transform);
-			wifi.radius_stretch = wifi_scale * glm::vec3(1, 1, z_boost);
+			wifi.radius_stretch = wifi_scale;
 			
 
 			deferred_shader.SetUniform("radius_stretch", wifi.radius_stretch);
@@ -744,9 +749,12 @@ int AVWilliamsWifiVisualization() {
 				lic.fillWithNoise( num_samples);
 				//lic.convolve(fall_off);
 				noise = Texture2D(lic.getTexture().data(), lic_texture_res.y, lic_texture_res.x);
-				noise.setTexMinMagFilter(GL_LINEAR);
+				glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY, an);
+				noise.setTexMinMagFilter(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR);
 				noise.giveName("noise_tex");
+				antialiased_textures[1] = noise;
 				quad.getMeshes().at(0)->setTexture(noise);
+				
 				old_num_samples = num_samples;
 				
 			}
@@ -835,11 +843,11 @@ int AVWilliamsWifiVisualization() {
 			//render wifi instances
 			instance_shader.Use();
 			wifi_transforms.clear();
-			if (shade_instances)
+			if (deferred_shading_bools["shade_instances"])
 				wifi_transforms = wifi.getTransforms(wifinames, routers, wifi_scale);
 
 			std::vector<float> wifi_color_indices = wifi.getColorIndices();
-			if (shade_instances)
+			if (deferred_shading_bools["shade_instances"])
 				Sphere.getMeshes().at(0)->SetInstanceTransforms(wifi_transforms, wifi_color_indices);
 			instance_shader.SetUniform("projection", ProjectionMat);
 			instance_shader.SetUniform("view", ViewMat);
@@ -851,7 +859,7 @@ int AVWilliamsWifiVisualization() {
 			instance_shader.SetLights(lights);
 			instance_shader.SetUniform("viewPos", camera.getPosition());
 			glBindFramebuffer(GL_FRAMEBUFFER, eyes[i].frame_buffer);
-			if (wifi_transforms.size() > 0 && shade_instances)
+			if (wifi_transforms.size() > 0 && deferred_shading_bools["shade_instances"])
 				render(Sphere, &instance_shader);
 			if (use_vr) {
 				ground_shader.Use();
@@ -923,16 +931,39 @@ int AVWilliamsWifiVisualization() {
 			ImGui::SliderFloat("constant", &constant, 0, 1);
 			ImGui::SliderFloat("linear", &linear, 0, 1);
 			ImGui::SliderFloat("quadratic", &quadratic, 0, 1);
-			ImGui::SliderFloat("Rate", &deferred_shading_floats["learning_rate"], 0, .1);
-			ImGui::SliderInt("num_samples", &num_samples, 128000, 1024000);
+			if(deferred_shading_bools["lic_on"])
+				ImGui::SliderFloat("Alpha_Boost", &deferred_shading_floats["alpha_boost"], 1, 30);
+			//ImGui::SliderFloat("extent", &deferred_shading_floats["extent"], 0, 3);
+			ImGui::SliderFloat("Density", &deferred_shading_floats["density"], 0, 1);
+			ImGui::SliderFloat("Fragment Position Scale", &deferred_shading_floats["frag_pos_scale"], 0, 100);
+			ImGui::SliderFloat("Rate", &deferred_shading_floats["learning_rate"], 0, .9);
+			ImGui::SliderFloat("Cling", &deferred_shading_floats["cling"], 0, 1);
+			ImGui::SliderInt("num_samples", &num_samples, 12800, 102400 * 16);
 			ImGui::SliderFloat("BillBoard Scale", &billboard_scale, 0, 1);
 			ImGui::SliderFloat3("Bounding Box Scale", glm::value_ptr(bounding_cube_scale), 5, 35);
 			ImGui::SliderFloat3("Bounding Box Offset", glm::value_ptr(bounding_cube_translate), -10, 10);
-			ImGui::Checkbox("Shade Instances", &shade_instances);
+			ImGui::Checkbox("Shade Instances", &deferred_shading_bools["shade_instances"]);
 			ImGui::Checkbox("Line Integral Convolution", &deferred_shading_bools["lic_on"]);
 			ImGui::Checkbox("Invert Color Representation", &deferred_shading_bools["invert_colors"]);
 			ImGui::Checkbox("texton_background", &deferred_shading_bools["texton_background"]);
 			ImGui::Checkbox("frequency_bands", &deferred_shading_bools["frequency_bands"]);
+			if (deferred_shading_bools["lic_on"])
+				ImGui::Checkbox("Use LIC Mask", &deferred_shading_bools["use_mask"]);
+			if(ImGui::Checkbox("Antialiasing", &deferred_shading_bools["anti_aliasing"])) {
+				for (int i = 0; i < num_antialiased_textures; i++) {
+					Texture2D texture = antialiased_textures[i];
+					texture.Bind();
+					if (deferred_shading_bools["anti_aliasing"]) {
+						glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY, an);
+						texture.setTexMinMagFilter(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR);
+					}
+					else {
+						glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY, 1.0f);
+						texture.setTexMinMagFilter(GL_LINEAR, GL_LINEAR);
+					}
+				}
+			}
+			
 			//ImGui::Checkbox("Bin Orientations", &bin_orientations);
 			//ImGui::Checkbox("Group Frequencies", &group_frequencies);
 			ImGui::Checkbox("Display Names", &deferred_shading_bools["display_names"]);
