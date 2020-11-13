@@ -3,7 +3,7 @@
 #define MAX_POINT_LIGHTS 80
 #define NR_DIR_LIGHTS 0
 #define MAX_ROUTERS 20
-#define NUM_STEPS 64
+#define NUM_STEPS 60
 
 const float PI = 3.1415926535897932384626433832795;
 const float K = -16/(PI * PI);
@@ -25,6 +25,9 @@ uniform sampler2D ellipsoid_tex;
 uniform sampler2D noise_tex;
  //uniform sampler2D tangent_tex;
 
+uniform mat4 camera;
+uniform mat4 projection;
+
 float ellipsoid_ration = 1400.0f / 1600.0f;
 float ellipsoid_offset = (1 - ellipsoid_ration) / 2.0;
 
@@ -37,9 +40,7 @@ struct Ellipsoid {
 
 };
 
-layout(std140) uniform EllipsoidBlock{
-	Ellipsoid Ellipsoids[MAX_ROUTERS];
-};
+
 
 struct PointLight {
 	vec3 position;
@@ -52,7 +53,7 @@ struct PointLight {
 	vec3 diffuse;
 	vec3 specular;
 };
-uniform PointLight pointLights[MAX_POINT_LIGHTS];
+
 
 struct DirLight {
 	vec3 direction;
@@ -64,19 +65,26 @@ struct DirLight {
 uniform float ambient_coeff, diffuse_coeff, spec_coeff,
 u_stretch, v_stretch, linear_term, thickness,
 delta_theta, extent, frequency, learning_rate, alpha_boost, density,
-frag_pos_scale, cling;
+frag_pos_scale, cling, tunable;
 
 uniform int shininess, num_point_lights, num_frequencies,
 num_routers, num_contours;
 
 uniform bool group_frequencies, display_names, lic_on,
-texton_background, invert_colors, frequency_bands, use_mask;
+texton_background, invert_colors, frequency_bands, use_mask,
+screen_space_lic, cull_discontinuities, procedural_noise;
 
 uniform mat4 ellipsoid_transform;
 
 uniform vec3 radius_stretch, viewPos;
 
 uniform vec3 selectedPos;
+
+layout(std140) uniform EllipsoidBlock{
+	Ellipsoid Ellipsoids[MAX_ROUTERS];
+};
+
+uniform PointLight pointLights[MAX_POINT_LIGHTS];
 
 vec2 rotateVector(float theta, vec2 inp) {
 	float rad = radians(theta);
@@ -150,15 +158,18 @@ double dsin(double x)
 }
 
 //"stolen" from thebookofshaders.com
+
 float rand(float n) { return step(fract(sin(n) * 43758.5453123), density); }
 //float rand(float p) { p = fract(p * 0.011); p *= p + 7.5; p *= p + p; return step(fract(p), density); }
 
-double rand(double n) { return step(fract(dsin(n) * 43758.5453123), density); }
+//double rand(double n) { return step(fract(dsin(n) * 43758.5453123), density); }
+
 float rand(vec2 st) {
 	return step(fract(sin(dot(st.xy,
 		vec2(12.9898, 78.233))) *
 		43758.5453123), density);
 }
+
 float rand(vec3 p3)
 {
 	p3 = fract(p3 * .1031);
@@ -171,17 +182,21 @@ float noise(float p) {
 	return step(mix(rand(fl), rand(fl + 1.0), fc), density);
 }
 
+
 float noise(vec2 n) {
-	vec2 i = floor(n);
-	vec2 f = fract(n);
-	float a = step(rand(i), density);
-	float b = step(rand(i + vec2(1.0, 0.0)), density);
-	float c = step(rand(i + vec2(0.0, 1.0)), density);
-	float d = step(rand(i + vec2(1.0, 1.0)), density);
-	vec2 u = smoothstep(0., 1., f);
-	return mix(a, b, u.x) +
-		(c - a) * u.y * (1.0 - u.x) +
-		(d - b) * u.x * u.y;
+	if (procedural_noise) {
+		vec2 i = floor(n);
+		vec2 f = fract(n);
+		float a = rand(i);
+		float b = rand(i + vec2(1.0, 0.0));
+		float c = rand(i + vec2(0.0, 1.0));
+		float d = rand(i + vec2(1.0, 1.0));
+		vec2 u = smoothstep(0., 1., f);
+		return mix(a, b, u.x) +
+			(c - a) * u.y * (1.0 - u.x) +
+			(d - b) * u.x * u.y;
+	}
+	return texture(noise_tex, n).r;
 }
 
 float noise(vec3 x) {
@@ -218,61 +233,131 @@ vec3 projectCoords(vec3 a, vec3 tangent, vec3 bitangent, vec3 normal) {
 	return vec3(dot(tangent, a), dot(bitangent, a), dot(normal, a));
 }
 
-float renderLIC(vec3 fragPos, vec3 tangent, vec3 bitangent, vec3 Normal, float distance, int i) {
+vec2 getScreenCoords(vec3 fragPos) {
+	vec4 screenSpaceCoords = projection * camera * vec4(fragPos.xyz, 1);
+	screenSpaceCoords /= screenSpaceCoords.w;
+	vec2 fakeTex = screenSpaceCoords.xy * .5 + vec2(.5);
+	return fakeTex;
+}
+
+float calculateMask(int dir, int j) {
+	float mask = 0;
+	if (use_mask) {
+		mask = cos(2. * 3.1415 * (NUM_STEPS - j) / (NUM_STEPS));
+		return (0.5 + 0.5 * mask);
+	}return NUM_STEPS - dir * j;
+}
+
+float renderLIC(vec3 fragPos, vec3 tangent, vec3 bitangent, vec3 Normal, float ellipsoidal_distance, int i) {
 	float alpha_new = 0;
+	float scale = 1;
+	if (screen_space_lic && !procedural_noise)
+		scale = .1;
+	else if (screen_space_lic && procedural_noise)
+		scale = 100;
+	else if (!screen_space_lic && procedural_noise)
+		scale = 10;
 	vec3 modified_coords = ellipsoidCoordinates(fragPos, Ellipsoids[i]);
 	vec3 ellipsoid_coords = fragPos - modified_coords;
 	
-	mat3 wallToWorldCoords = mat3(tangent, bitangent, Normal);
-	mat3 worldToWallCoords = transpose(wallToWorldCoords);
+	
 
-	vec3 projected_coords = worldToWallCoords * ellipsoid_coords.xyz;
-	vec3 projected_frag = worldToWallCoords * fragPos.xyz;
-
+	//vec3 projected_coords = worldToWallCoords * ellipsoid_coords.xyz;
+	//vec3 projected_frag = worldToWallCoords * fragPos.xyz;
+	vec3 oldFragPos = fragPos, oldTangent = tangent, oldNormal = Normal, oldBitangent = bitangent;
 	float norm;
 	float val;
 
-	//vec3 uvt = texture(ellipsoid_coordinates_tex, TexCoord).rgb;
-	vec3 uvt = fragPos.xyz;
+	vec2 uv;
+	vec3 uvt;
+
+	vec3 projected_frag, projected_coords, newFragPos;
+	
+	//vec3 uvt = fragPos.xyz;
 	//uvt.z = uvt.z / 10.0f;
 	//uvt.xy = TexCoord;
 	//return noise(frag_pos_scale * uvt.rgb);
+	
+	for (int dir = -1; dir < 2; dir+=2) {
+		fragPos = oldFragPos;
+		uvt = fragPos;
+		Normal = oldNormal;
+		tangent = oldTangent;
+		bitangent = oldBitangent;
+		mat3 wallToWorldCoords = mat3(tangent, bitangent, Normal);
+		mat3 worldToWallCoords = transpose(wallToWorldCoords);
+		uv = TexCoord;
+		int j = 0;
+		if (dir > 0)
+			j = 1;
+		for (j; j < NUM_STEPS / 2; j++) {
+			if (screen_space_lic) {
+				uvt = texture(ellipsoid_coordinates_tex, uv).xyz;
+			}
+			
 
-	for (int j = 0; j < NUM_STEPS; j++) {
-		float mask = j ;
-		if (use_mask) {
-			mask = (0.5 + 0.4 * cos(2. * 3.1415 * (j - NUM_STEPS / 2.) / NUM_STEPS));
+			//projected_frag = worldToWallCoords * fragPos.xyz;
+			//projected_coords = worldToWallCoords * ellipsoid_coords.xyz;
+
+			float mask = calculateMask(dir, j);// ;
+			//mask *= mask;
+			if (procedural_noise)
+				val += noise(frag_pos_scale * scale * uvt.rgb) * mask;
+			else
+				val += noise(frag_pos_scale * scale * uvt.rg) * mask;
+			norm += mask;
+			//vec3 direction = (fragPos - ellipsoid_coords);
+			//vec3 projected_direction = (projected_frag - projected_coords);
+			vec3 projected_direction = worldToWallCoords * (fragPos - ellipsoid_coords).xyz;
+			projected_direction.z *= cling;
+			
+
+			vec3 direction = wallToWorldCoords * projected_direction.xyz;
+			//vec3 direction = projected_direction.xyz;
+			//float theta = atan(modified_proj.y, modified_proj.x) + PI;
+			//float mod_rate = learning_rate + K * (theta * theta + PI / 2.0 * theta);
+			float magnitude = length(direction);
+			if (magnitude < .01) {
+				break;
+			}
+			vec3 force = dir * (direction) / (magnitude);
+			//uvt += force * mod_rate;
+			//projected_frag += force/3.0 * mod_rate;
+
+			//vec3 a = slerp(force, tangent, cling);
+			//vec3 b = slerp(force, bitangent, 0); 
+			//force = tangent;
+
+
+			//uvt += learning_rate * .1 * force/5.0;
+			fragPos += learning_rate * .1 * force / 5.0;
+			//projected_frag += learning_rate * .1 * force / 5.0;
+			//projected_frag = worldToWallCoords * fragPos.xyz;
+			if (screen_space_lic) {
+				uv = getScreenCoords(fragPos);
+				if (uv.x > 1 || uv.y > 1 || uv.x < 0 || uv.y < 0)
+					break;
+				newFragPos = texture(fragPos_tex, uv).rgb;
+				if (cull_discontinuities && distance(newFragPos, fragPos) > tunable) {
+					break;
+				}
+				fragPos = newFragPos;
+				tangent = texture(tangent_tex, uv).rgb;
+				if (distance(tangent, oldTangent) < 1e-6) {
+					Normal = texture (normal_tex, uv).rgb;
+					bitangent = cross(Normal, tangent);
+					wallToWorldCoords = mat3(tangent, bitangent, Normal);
+					worldToWallCoords = transpose(wallToWorldCoords);
+				}
+			}
+			else {
+				uvt = fragPos;
+			}
+			
+			//projected_frag = 
+
 		}
-		val += step(noise(frag_pos_scale * uvt.rgb), .5) * mask;
-		norm += mask;
-		//vec3 direction = (fragPos - ellipsoid_coords);
-		vec3 projected_direction = (projected_frag - projected_coords);
-		projected_direction.z *= cling;
-		
-		vec3 direction = wallToWorldCoords * projected_direction.xyz;
-		//vec3 direction = projected_direction.xyz;
-		//float theta = atan(modified_proj.y, modified_proj.x) + PI;
-		//float mod_rate = learning_rate + K * (theta * theta + PI / 2.0 * theta);
-		float magnitude = length(direction);
-		if (magnitude < .01) {
-			break;
-		}
-		vec3 force =  (direction)/(magnitude);
-		//uvt += force * mod_rate;
-		//projected_frag += force/3.0 * mod_rate;
-
-		//vec3 a = slerp(force, tangent, cling);
-		//vec3 b = slerp(force, bitangent, 0); 
-		//force = tangent;
-		
-
-		uvt += learning_rate * .1 * force/5.0;
-		//fragPos += learning_rate *.1* force/5.0;
-		//projected_frag += learning_rate * .1 * force / 5.0;
-		projected_frag = worldToWallCoords * fragPos.xyz;
-
-
-	}  
+	}
 	alpha_new = float(alpha_boost * val / norm);
 	
 	//alpha_new = sqrt(alpha_new);
@@ -304,7 +389,7 @@ vec3 calculateColor(vec3 fragPos, vec3 Normal) {
 	int num_routers_per_freq[MAX_ROUTERS];
 	int router_counter[MAX_ROUTERS];
 	float distances[MAX_ROUTERS];
-	if (texton_background || dot(Normal, vec3(0, 0, 1)) == 0) {
+	if (texton_background || dot(Normal, vec3(0, 0, 1)) !=0) {
 		for (int i = 0; i < min(num_frequencies, num_routers); i++) {
 			num_routers_per_freq[i] = 0;
 			router_counter[i] = 0;
@@ -344,8 +429,9 @@ vec3 calculateColor(vec3 fragPos, vec3 Normal) {
 				alpha_new = 0;
 			}
 			else if (!lic_on){
+				//(abs(mod(linear_term * log2(distance / extent), frequency) / (frequency * thickness) - .5) > .2)
 				float iso_band = mod(linear_term * log2(distance / extent), frequency);
-				if (iso_band < 1 - frequency * thickness) {
+				if (iso_band > frequency * thickness) {
 					alpha_new = 0;
 				}
 				else {
@@ -451,11 +537,11 @@ void main()
 	vec3 norm = normalize(texture(normal_tex, TexCoord).rgb);
 	//tangent = normalize(texture(tangent_tex, TexCoord).rgb);
 	//bitangent = normalize(cross(norm, tangent));
-	vec4 FragPos4 = texture(fragPos_tex, TexCoord).rgba;
-	float mask = FragPos4.a;
+	vec4 FragPos4 = texture(fragPos_tex, TexCoord).xyzw;
+	float mask = FragPos4.w;
 	if (mask < 1)
 		discard;
-	vec3 FragPos = FragPos4.rgb;
+	vec3 FragPos = FragPos4.xyz;
 
 	vec3 viewDir = normalize(viewPos - FragPos);
 	vec3 ret = vec3(0, 0, 0);

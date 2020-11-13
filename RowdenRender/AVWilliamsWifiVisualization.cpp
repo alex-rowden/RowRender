@@ -566,6 +566,7 @@ int AVWilliamsWifiVisualization() {
 	//lic.convolve(fall_off);
 	Texture2D noise = Texture2D(lic.getTexture().data(), lic_texture_res.y, lic_texture_res.x);
 	noise.setTexMinMagFilter(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR);
+	noise.setTexParameterWrap(GL_REPEAT);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY, an);
 	
 	noise.giveName("noise_tex");
@@ -578,19 +579,20 @@ int AVWilliamsWifiVisualization() {
 	GLsync block = 0;
 	deferred_shading_floats.clear();
 	deferred_shading_floats = {
-				{ "extent", 1 },
-				{ "frequency", .973 },
-				{ "linear_term", 1 },
-				{ "thickness", .056 },
-				{ "u_stretch", 10 },
-				{ "v_stretch", 10 },
-				{ "delta_theta", 180.f / wifi.getActiveFreqs(freqs).size() },
-				{ "learning_rate", .05 },
-				{ "distance_mask", 0 },
-				{ "alpha_boost", 20 },
-				{ "density", .965 },
-				{"frag_pos_scale", 100},
-				{"cling", .9},
+		{ "extent", 1 },
+		{ "frequency", .973 },
+		{ "linear_term", 1 },
+		{ "thickness", .056 },
+		{ "u_stretch", 10 },
+		{ "v_stretch", 10 },
+		{ "delta_theta", 180.f / wifi.getActiveFreqs(freqs).size() },
+		{ "learning_rate", .05 },
+		{ "distance_mask", 0 },
+		{ "alpha_boost", 20 },
+		{ "density", .05 },
+		{"frag_pos_scale", 100},
+		{"cling", .9},
+		{"tunable", .001}
 	};
 	std::map<std::string, bool> deferred_shading_bools = {
 		{ "contour_on", false},
@@ -602,7 +604,9 @@ int AVWilliamsWifiVisualization() {
 		{ "frequency_bands", false },
 		{ "shade_instances", false},
 		{ "anti_aliasing", true},
-		{ "use_mask", false}
+		{ "use_mask", false},
+		{ "screen_space_lic", true},
+		{ "cull_discontinuities", false}
 	};
 	deferred_shading_ints = {
 		{"num_point_lights", 20},
@@ -703,6 +707,8 @@ int AVWilliamsWifiVisualization() {
 			deferred_shader.SetUniforms(deferred_shading_floats);
 			deferred_shader.SetUniforms(deferred_shading_ints);
 			deferred_shader.SetUniforms(deferred_shading_bools);
+			deferred_shader.SetUniform("camera", ViewMat);
+			deferred_shader.SetUniform("projection", ProjectionMat);
 
 			wifi_transform = glm::translate(glm::mat4(1), wifi_translate);
 			wifi.ellipsoid_transform = wifi_transform * glm::scale(glm::mat4(1), wifi_scale);
@@ -931,8 +937,7 @@ int AVWilliamsWifiVisualization() {
 			ImGui::SliderFloat("constant", &constant, 0, 1);
 			ImGui::SliderFloat("linear", &linear, 0, 1);
 			ImGui::SliderFloat("quadratic", &quadratic, 0, 1);
-			if(deferred_shading_bools["lic_on"])
-				ImGui::SliderFloat("Alpha_Boost", &deferred_shading_floats["alpha_boost"], 1, 30);
+			
 			//ImGui::SliderFloat("extent", &deferred_shading_floats["extent"], 0, 3);
 			ImGui::SliderFloat("Density", &deferred_shading_floats["density"], 0, 1);
 			ImGui::SliderFloat("Fragment Position Scale", &deferred_shading_floats["frag_pos_scale"], 0, 100);
@@ -947,9 +952,15 @@ int AVWilliamsWifiVisualization() {
 			ImGui::Checkbox("Invert Color Representation", &deferred_shading_bools["invert_colors"]);
 			ImGui::Checkbox("texton_background", &deferred_shading_bools["texton_background"]);
 			ImGui::Checkbox("frequency_bands", &deferred_shading_bools["frequency_bands"]);
-			if (deferred_shading_bools["lic_on"])
+			if (deferred_shading_bools["lic_on"]) {
 				ImGui::Checkbox("Use LIC Mask", &deferred_shading_bools["use_mask"]);
-			if(ImGui::Checkbox("Antialiasing", &deferred_shading_bools["anti_aliasing"])) {
+				ImGui::SliderFloat("Alpha_Boost", &deferred_shading_floats["alpha_boost"], 1, 30);
+				ImGui::SliderFloat("Tunable", &deferred_shading_floats["tunable"], .00001, .1);
+				ImGui::Checkbox("Screenspcace LIC", &deferred_shading_bools["screen_space_lic"]);
+				ImGui::Checkbox("Cull Discontinuities", &deferred_shading_bools["cull_discontinuities"]);
+				ImGui::Checkbox("Procedural Noise", &deferred_shading_bools["procedural_noise"]);
+
+			}if (ImGui::Checkbox("Antialiasing", &deferred_shading_bools["anti_aliasing"])) {
 				for (int i = 0; i < num_antialiased_textures; i++) {
 					Texture2D texture = antialiased_textures[i];
 					texture.Bind();
