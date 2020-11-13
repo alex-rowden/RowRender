@@ -108,11 +108,20 @@ Lights setPointLights(int num_lights, float intensity, float linear, float quadr
 	return ret;
 }
 
-void createFramebuffer(glm::vec2 resolution, gBuffer* buffer) {
-	glGenFramebuffers(1, &buffer->frame_buffer);
+void createFramebuffer(glm::vec2 resolution, gBuffer* buffer, bool resize) {
+	if (!resize) {
+		glGenFramebuffers(1, &buffer->frame_buffer);
+		glGenTextures(1, &buffer->normal_tex);
+		glGenTextures(1, &buffer->color_tex);
+		glGenTextures(1, &buffer->frag_pos_tex);
+		glGenBuffers(2, buffer->pboIDs);
+		glGenTextures(1, &buffer->ellipsoid_coordinates_tex);
+		glGenTextures(1, &buffer->tangent_tex);
+		glGenRenderbuffers(1, &buffer->depth_render_buf);
+	}
+		
 	glBindFramebuffer(GL_FRAMEBUFFER, buffer->frame_buffer);
-
-	glGenTextures(1, &buffer->normal_tex);
+	
 	glBindTexture(GL_TEXTURE_2D, buffer->normal_tex);
 	buffer->normal_texture = Texture2D();
 	buffer->normal_texture.SetTextureID(buffer->normal_tex);
@@ -125,7 +134,7 @@ void createFramebuffer(glm::vec2 resolution, gBuffer* buffer) {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, buffer->normal_tex, 0);	
 	
-	glGenTextures(1, &buffer->color_tex);
+	
 	glBindTexture(GL_TEXTURE_2D, buffer->color_tex);
 	buffer->color_texture = Texture2D();
 	buffer->color_texture.SetTextureID(buffer->color_tex);
@@ -138,7 +147,6 @@ void createFramebuffer(glm::vec2 resolution, gBuffer* buffer) {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, buffer->color_tex, 0);	
 	
-	glGenTextures(1, &buffer->frag_pos_tex);
 	glBindTexture(GL_TEXTURE_2D, buffer->frag_pos_tex);
 	buffer->frag_pos_texture = Texture2D();
 	buffer->frag_pos_texture.SetTextureID(buffer->frag_pos_tex);
@@ -152,14 +160,12 @@ void createFramebuffer(glm::vec2 resolution, gBuffer* buffer) {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, buffer->frag_pos_tex, 0);
 	
-	glGenBuffers(2, buffer->pboIDs);
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, buffer->pboIDs[0]);
 	glBufferData(GL_PIXEL_PACK_BUFFER, resolution.x * resolution.y * 4 * sizeof(float), 0, GL_STREAM_READ);
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, buffer->pboIDs[1]);
 	glBufferData(GL_PIXEL_PACK_BUFFER, resolution.x * resolution.y * 4 * sizeof(float), 0, GL_STREAM_READ);
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 
-	glGenTextures(1, &buffer->ellipsoid_coordinates_tex);
 	glBindTexture(GL_TEXTURE_2D, buffer->ellipsoid_coordinates_tex);
 	buffer->ellipsoid_coordinates_texture = Texture2D();
 	buffer->ellipsoid_coordinates_texture.SetTextureID(buffer->ellipsoid_coordinates_tex);
@@ -173,7 +179,6 @@ void createFramebuffer(glm::vec2 resolution, gBuffer* buffer) {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, buffer->ellipsoid_coordinates_tex, 0);
 	
-	glGenTextures(1, &buffer->tangent_tex);
 	glBindTexture(GL_TEXTURE_2D, buffer->tangent_tex);
 	buffer->tangent_texture = Texture2D();
 	buffer->tangent_texture.SetTextureID(buffer->tangent_tex);
@@ -195,7 +200,7 @@ void createFramebuffer(glm::vec2 resolution, gBuffer* buffer) {
 	
 	glDrawBuffers(numAttachments, DrawBuffers);
 
-	glGenRenderbuffers(1, &buffer->depth_render_buf);
+	
 	glBindRenderbuffer(GL_RENDERBUFFER, buffer->depth_render_buf);
 	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, resolution.x, resolution.y);
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, buffer->depth_render_buf);
@@ -207,11 +212,16 @@ void createFramebuffer(glm::vec2 resolution, gBuffer* buffer) {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void createEyeFramebuffer(glm::vec2 resolution, eyeBuffer* buffer) {
-	glGenFramebuffers(1, &buffer->frame_buffer);
+void createEyeFramebuffer(glm::vec2 resolution, eyeBuffer* buffer, bool resize) {
+	if (!resize) {
+		glGenFramebuffers(1, &buffer->frame_buffer);
+		glGenTextures(1, &buffer->screen_tex);
+		glGenRenderbuffers(1, &buffer->depth_render_buf);
+
+	}
 	glBindFramebuffer(GL_FRAMEBUFFER, buffer->frame_buffer);
 
-	glGenTextures(1, &buffer->screen_tex);
+	
 	glBindTexture(GL_TEXTURE_2D, buffer->screen_tex);
 	buffer->screenTexture = Texture2D();
 	buffer->screenTexture.SetTextureID(buffer->screen_tex);
@@ -224,7 +234,6 @@ void createEyeFramebuffer(glm::vec2 resolution, eyeBuffer* buffer) {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, buffer->screen_tex, 0);
 
-	glGenRenderbuffers(1, &buffer->depth_render_buf);
 	glBindRenderbuffer(GL_RENDERBUFFER, buffer->depth_render_buf);
 	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, resolution.x, resolution.y);
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, buffer->depth_render_buf);
@@ -236,11 +245,12 @@ void createEyeFramebuffer(glm::vec2 resolution, eyeBuffer* buffer) {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void createFramebuffers(glm::vec2 resolution, gBuffer *buffers, eyeBuffer *eyes, bool use_vr) {
-	createFramebuffer(resolution, &buffers[0]);
-	createEyeFramebuffer(resolution, &eyes[0]);
+void createFramebuffers(glm::vec2 resolution, gBuffer *buffers, eyeBuffer *eyes, bool use_vr, bool resize) {
+	
+	createFramebuffer(resolution, &buffers[0], resize);
+	createEyeFramebuffer(resolution, &eyes[0], resize);
 	if (use_vr)
-		createEyeFramebuffer(resolution, &eyes[1]);
+		createEyeFramebuffer(resolution, &eyes[1], resize);
 	eyes[0].screenTexture.giveName("screenTexture");
 }
 
@@ -530,7 +540,7 @@ int AVWilliamsWifiVisualization() {
 
 	gBuffer buffer[1];
 	eyeBuffer eyes[2];
-	createFramebuffers(resolution, buffer, eyes, use_vr);
+	createFramebuffers(resolution, buffer, eyes, use_vr, false);
 	quad.getMeshes().at(0)->addTexture(buffer[0].color_texture);
 	quad.getMeshes().at(0)->addTexture(buffer[0].frag_pos_texture);
 	quad.getMeshes().at(0)->addTexture(buffer[0].normal_texture);
@@ -590,9 +600,9 @@ int AVWilliamsWifiVisualization() {
 		{ "distance_mask", 0 },
 		{ "alpha_boost", 20 },
 		{ "density", .05 },
-		{"frag_pos_scale", 100},
-		{"cling", .9},
-		{"tunable", .001}
+		{ "frag_pos_scale", 100},
+		{ "cling", .9},
+		{ "tunable", .001}
 	};
 	std::map<std::string, bool> deferred_shading_bools = {
 		{ "contour_on", false},
@@ -618,6 +628,12 @@ int AVWilliamsWifiVisualization() {
 		frequency_texture, noise};
 
 	while (!glfwWindowShouldClose(w.getWindow())) {
+		if (w.getResized()) {
+			resolution.x = w.width;
+			resolution.y = w.height;
+			createFramebuffers(resolution, buffer, eyes, use_vr, true);
+			w.setResized(false);
+		}
 		//clear default framebuffer
 		if (use_vr) {
 			vr.SaveControllerIDs();
