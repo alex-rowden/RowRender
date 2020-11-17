@@ -3,15 +3,20 @@
 #include "DefferedRenderingDemo.h"
 #include <string>
 bool campus = false;
+bool vr = false;
 int main(int argc, char *argv[]) {
 	if (argc > 1) {
-		if (std::string(argv[1]) == "campus")
-			campus = true;
+		for (int i = 1; i < argc; i++) {
+			if (std::string(argv[i]) == "campus")
+				campus = true;
+			else if (std::string(argv[i]) == "vr")
+				vr = true;
+		}
 	}
 	if(campus)
-		return CampusWifiVisualization();
+		return CampusWifiVisualization(vr);
 	else if(true){
-		return AVWilliamsWifiVisualization();
+		return AVWilliamsWifiVisualization(vr);
 	}
 	else {
 		return DefferedRenderingDemo();

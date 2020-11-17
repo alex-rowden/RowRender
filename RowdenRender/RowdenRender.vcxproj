@@ -110,6 +110,7 @@
     <None Include="prepass_vert.glsl" />
     <None Include="quad_shader.frag" />
     <None Include="quad_shader.vert" />
+    <None Include="README.md" />
     <None Include="screen_fshader.glsl" />
     <None Include="screen_vshader.glsl" />
     <None Include="signed_distance_fragment.glsl" />

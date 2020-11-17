@@ -1,3 +1,3 @@
 #pragma once
 
-int AVWilliamsWifiVisualization();
+int AVWilliamsWifiVisualization(bool use_vr = false);

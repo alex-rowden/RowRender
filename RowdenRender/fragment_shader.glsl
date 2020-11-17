@@ -35,8 +35,8 @@ uniform float ambient_coeff, diffuse_coeff, spec_coeff;
 uniform int shininess;
 uniform int num_point_lights;
 
-#define NR_POINT_LIGHTS 120 
-//#define NR_DIR_LIGHTS 0
+//#define NR_POINT_LIGHTS 120 
+#define NR_DIR_LIGHTS 1
 
 struct PointLight {
 	vec3 position;
@@ -55,8 +55,8 @@ struct DirLight {
     vec3 color;
 };
 
-uniform PointLight pointLights[NR_POINT_LIGHTS];
-//uniform DirLight dirLights[NR_DIR_LIGHTS];
+//uniform PointLight pointLights[NR_POINT_LIGHTS];
+uniform DirLight dirLights[NR_DIR_LIGHTS];
 uniform vec3 viewPos;
 
 vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir)
@@ -108,9 +108,9 @@ void main()
 	vec3 viewDir = normalize(viewPos - FragPos);
 	vec3 color = vec3(0,0,0);
 	for (int i = 0; i < num_point_lights; i++) {
-		color += CalcPointLight(pointLights[i], norm, FragPos, viewDir);
-	}for (int i = 0; i < 0; i++) {
-		//color += CalcDirLight(dirLights[i], norm, FragPos, viewDir);
+		//color += CalcPointLight(pointLights[i], norm, FragPos, viewDir);
+	}for (int i = 0; i < 1; i++) {
+		color += CalcDirLight(dirLights[i], norm, FragPos, viewDir);
 	}
 	FragColor = vec4(color, 1);
 }

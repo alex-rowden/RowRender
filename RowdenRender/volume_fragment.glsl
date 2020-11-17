@@ -42,7 +42,7 @@ uniform vec3 color5;
 uniform vec3 color6;
 uniform vec3 shade_color;
 uniform float shade_opac;
-uniform float enable_intersection;
+uniform bool enable_intersection;
 uniform int numTex;
 uniform float zNear;
 uniform float zFar;
@@ -205,7 +205,7 @@ void main() {
 				inRange = true;
 				//last_sample = volume_sample;
 			}
-			if (shade_intersection && (enable_intersection > 0)) {
+			if (shade_intersection && enable_intersection) {
 				float shade_coeff = 1.0;
 				if (IsoValRange.y - IsoValRange.x > 0) {
 					shade_coeff = pow(1 - (abs(last_sample - (IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f))) / ((IsoValRange.y - IsoValRange.x) / 2.0f), 1);
@@ -220,7 +220,7 @@ void main() {
 			}
 			//volume_sample > IsoValRange.y;
 			if ((above && (volume_sample < (IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f))) || (!above && volume_sample > (IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f))) {
-				if(!(shade_intersection && (enable_intersection > 0)))
+				if(!(shade_intersection && enable_intersection))
 					opaque_self = base_opac;
 				
 				if ((above && (volume_sample > (IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f))) || (!above && volume_sample < (IsoValRange.x + (IsoValRange.y - IsoValRange.x) / 2.0f))) {
@@ -273,7 +273,7 @@ void main() {
 
 
 			}
-			if ( !(shade_intersection && (enable_intersection > 0)))
+			if ( !(shade_intersection && enable_intersection))
 				opaque_self = opaque_self + (bubble_term * bubble_coefficient + ((spec_term)*spec));// 0.5f);
 				
 																									//if (ShadingTerms.y > 0) {

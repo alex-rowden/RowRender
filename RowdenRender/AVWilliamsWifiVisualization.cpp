@@ -21,8 +21,6 @@
 
 using namespace vr;
 
-bool use_vr = false;
-
 GLuint fhp_tex, bhp_tex;
 bool nearest_router_on = false;
 bool jittered = true;
@@ -272,7 +270,7 @@ void rayPicker(glm::vec3 ray, glm::vec3 ray_coord, glm::vec3 camera_pos ,glm::ve
 }
 
 
-int AVWilliamsWifiVisualization() {
+int AVWilliamsWifiVisualization(bool use_vr) {
 
 	
 	//initialize glfw
@@ -939,9 +937,8 @@ int AVWilliamsWifiVisualization() {
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 		ImGui::Begin("Rendering Terms");
-			ImGui::SliderFloat("transparency", &transparency, 0, 1);
-			ImGui::SliderInt("N", &num_routers, 1, 20);
-			if (ImGui::Button("Nearest N Routers")) {
+			ImGui::SliderInt("Number of Routers", &num_routers, 1, 20);
+			if (ImGui::Button("Nearest Routers")) {
 				std::fill(freqs.begin(), freqs.end(), true);
 				wifi.setNearestNRouters(num_routers, camera.getPosition(), wifinames, routers, freqs);
 				deferred_shading_floats["delta_theta"] = 180.f / wifi.getActiveFreqs(freqs).size();

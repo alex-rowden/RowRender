@@ -1,3 +1,3 @@
 #pragma once
 
-int CampusWifiVisualization();
+int CampusWifiVisualization(bool use_vr = false);

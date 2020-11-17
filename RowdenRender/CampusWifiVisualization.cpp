@@ -202,7 +202,11 @@ bool overlap(glm::vec2 a, glm::vec2 b) {
 }
 
 
-int CampusWifiVisualization() {
+int CampusWifiVisualization(bool use_vr) {
+	if (use_vr) {
+		std::cerr << "VR Not Currently Supported" << std::endl;
+		return 1;
+	}
 	glm::vec2 resolution = glm::vec2(0, 0);
 	clock_t start = clock();
 	std::vector<short> normal_x, normal_y;
@@ -675,9 +679,9 @@ int CampusWifiVisualization() {
 		volume_shader.SetUniform("max_opac", bubble_max_opac);
 		volume_shader.SetUniform("shade_opac", shade_opac);
 		if (color_aug)
-			volume_shader.SetUniform("enable_intersection", 1);
+			volume_shader.SetUniform("enable_intersection", true);
 		else
-			volume_shader.SetUniform("enable_intersection", 0);
+			volume_shader.SetUniform("enable_intersection", false);
 
 		volume_shader.SetUniform("spec_term", spec_term);
 		volume_shader.SetUniform("bubble_term", sil_term);
@@ -754,11 +758,11 @@ int CampusWifiVisualization() {
 		campusTransform = glm::translate(glm::mat4(1), glm::vec3(0, 0, 0) - campus_dim / 2.0f);
 		campusTransform = glm::scale(campusTransform, campus_dim);
 		int volume_map = 0;
-		campus_map_sp.SetUniform("heatmap", 0);
+		campus_map_sp.SetUniform("heatmap", false);
 		for (volume_map = 0; volume_map < 6; volume_map++) {
 			if (enable_color[volume_map] && show_heatmap) {
 				volume_data[volume_map].name = "texture_diffuse";
-				campus_map_sp.SetUniform("heatmap", 1);
+				campus_map_sp.SetUniform("heatmap", true);
 				campusMap.getMeshes().at(0)->setTexture(volume_data[volume_map], 0);
 				campusMap.getMeshes().at(0)->setTexture(volume_data[volume_map], 1);
 				break;
