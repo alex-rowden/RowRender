@@ -600,7 +600,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 		{ "density", .05 },
 		{ "frag_pos_scale", 100},
 		{ "cling", .9},
-		{ "tunable", .001}
+		{ "tunable", .005}
 	};
 	std::map<std::string, bool> deferred_shading_bools = {
 		{ "contour_on", false},
@@ -952,27 +952,39 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			ImGui::SliderFloat("quadratic", &quadratic, 0, 1);
 			
 			//ImGui::SliderFloat("extent", &deferred_shading_floats["extent"], 0, 3);
-			ImGui::SliderFloat("Density", &deferred_shading_floats["density"], 0, 1);
-			ImGui::SliderFloat("Fragment Position Scale", &deferred_shading_floats["frag_pos_scale"], 0, 100);
-			ImGui::SliderFloat("Rate", &deferred_shading_floats["learning_rate"], 0, .9);
-			ImGui::SliderFloat("Cling", &deferred_shading_floats["cling"], 0, 1);
-			ImGui::SliderInt("num_samples", &num_samples, 12800, 102400 * 16);
+			
 			ImGui::SliderFloat("BillBoard Scale", &billboard_scale, 0, 1);
-			ImGui::SliderFloat3("Bounding Box Scale", glm::value_ptr(bounding_cube_scale), 5, 35);
-			ImGui::SliderFloat3("Bounding Box Offset", glm::value_ptr(bounding_cube_translate), -10, 10);
 			ImGui::Checkbox("Shade Instances", &deferred_shading_bools["shade_instances"]);
-			ImGui::Checkbox("Line Integral Convolution", &deferred_shading_bools["lic_on"]);
 			ImGui::Checkbox("Invert Color Representation", &deferred_shading_bools["invert_colors"]);
 			ImGui::Checkbox("texton_background", &deferred_shading_bools["texton_background"]);
-			ImGui::Checkbox("frequency_bands", &deferred_shading_bools["frequency_bands"]);
+			ImGui::Checkbox("Line Integral Convolution", &deferred_shading_bools["lic_on"]);
 			if (deferred_shading_bools["lic_on"]) {
+				ImGui::SliderFloat("Fragment Position Scale", &deferred_shading_floats["frag_pos_scale"], 0, 100);
+				ImGui::SliderFloat("Rate", &deferred_shading_floats["learning_rate"], 0, .9);
 				ImGui::Checkbox("Use LIC Mask", &deferred_shading_bools["use_mask"]);
 				ImGui::SliderFloat("Alpha_Boost", &deferred_shading_floats["alpha_boost"], 1, 30);
-				ImGui::SliderFloat("Tunable", &deferred_shading_floats["tunable"], .00001, .1);
 				ImGui::Checkbox("Screenspcace LIC", &deferred_shading_bools["screen_space_lic"]);
-				ImGui::Checkbox("Cull Discontinuities", &deferred_shading_bools["cull_discontinuities"]);
-				ImGui::Checkbox("Procedural Noise", &deferred_shading_bools["procedural_noise"]);
-
+				if (deferred_shading_bools["screen_space_lic"]) {
+					ImGui::SliderFloat("Tunable", &deferred_shading_floats["tunable"], .00001, .1);
+					ImGui::Checkbox("Hug Walls", &deferred_shading_bools["cull_discontinuities"]);
+				}
+					ImGui::Checkbox("Procedural Noise", &deferred_shading_bools["procedural_noise"]);
+				if (&deferred_shading_bools["procedural_noise"]) {
+					ImGui::SliderFloat("Density", &deferred_shading_floats["density"], 0, 1);
+				}
+				else {
+					ImGui::SliderInt("num_samples", &num_samples, 12800, 102400 * 16);
+				}
+			}
+			else {
+				ImGui::Checkbox("frequency_bands", &deferred_shading_bools["frequency_bands"]);
+				ImGui::Checkbox("Display Names", &deferred_shading_bools["display_names"]);
+				if (deferred_shading_bools["display_names"]) {
+					ImGui::SliderInt("Number of Dashes", &deferred_shading_ints["num_contours"], 1, 20);
+				}
+				ImGui::SliderFloat("Contour Frequency", &deferred_shading_floats["frequency"], 0, 1);
+				ImGui::SliderFloat("Linear Term", &deferred_shading_floats["linear_term"], 0, 1);
+				ImGui::SliderFloat("thickness", &deferred_shading_floats["thickness"], 0, .1);
 			}if (ImGui::Checkbox("Antialiasing", &deferred_shading_bools["anti_aliasing"])) {
 				for (int i = 0; i < num_antialiased_textures; i++) {
 					Texture2D texture = antialiased_textures[i];
@@ -990,15 +1002,13 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			
 			//ImGui::Checkbox("Bin Orientations", &bin_orientations);
 			//ImGui::Checkbox("Group Frequencies", &group_frequencies);
-			ImGui::Checkbox("Display Names", &deferred_shading_bools["display_names"]);
+			
 			ImGui::Checkbox("Jittered Colors", &jittered);
-			ImGui::SliderFloat("Contour Frequency", &deferred_shading_floats["frequency"], 0, 1);
+			
 			ImGui::SliderFloat("u stretch", &deferred_shading_floats["u_stretch"], 0, 10);
 			ImGui::SliderFloat("v stretch", &deferred_shading_floats["v_stretch"], 0, 10);
-			ImGui::SliderFloat("Linear Term", &deferred_shading_floats["linear_term"], 0, 1);
-			ImGui::SliderFloat("thickness", &deferred_shading_floats["thickness"], 0, .1);
+			
 			ImGui::SliderFloat("distance mask", &deferred_shading_floats["distance_mask"], 0, 3);
-			ImGui::SliderInt("Number of Dashes", &deferred_shading_ints["num_contours"], 1, 20);
 			//ImGui::SliderFloat("Z Boost", &z_boost, 1, 10);
 
 			if (ImGui::TreeNode("Wifi Names")) {

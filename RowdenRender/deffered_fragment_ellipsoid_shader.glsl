@@ -65,7 +65,7 @@ struct DirLight {
 uniform float ambient_coeff, diffuse_coeff, spec_coeff,
 u_stretch, v_stretch, linear_term, thickness,
 delta_theta, extent, frequency, learning_rate, alpha_boost, density,
-frag_pos_scale, cling, tunable;
+frag_pos_scale, tunable;
 
 uniform int shininess, num_point_lights, num_frequencies,
 num_routers, num_contours;
@@ -130,7 +130,7 @@ float paintTextons(vec3 fragPos, int i, int num_routers_per_freq, int router_cou
 		mask = 0;
 	return mask;
 }
-
+/*
 double dsin(double x)
 {
 	//minimax coefs for sin for 0..pi/2 range
@@ -156,6 +156,7 @@ double dsin(double x)
 
 	return (quadrant & 2) != 0 ? -r : r;
 }
+*/
 
 //"stolen" from thebookofshaders.com
 
