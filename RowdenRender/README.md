@@ -10,13 +10,13 @@ In order to preview the visualizations, you must unzip the directory onto your m
 ## Use
 ### Indoor Visualization
 The Indoor Visualization has many different settings in the Gui. Here is a rundown on how each of them function.
- 
-Number of Routers
-: The number of routers to be used in the Nearest Router Tool
+ <dl>
+<dt>Number of Routers</dt>
+<dd>The number of routers to be used in the Nearest Router Tool</dd>
 
-Nearest Routers
-: Button used to run the Nearest Router Routine. Displays the number of routers set above. These routers can be filtered using the "Wifinames" and "Frequencies" submenues.
+<dt>Nearest Routers</dt>
+<dd>Button used to run the Nearest Router Routine. Displays the number of routers set above. These routers can be filtered using the "Wifinames" and "Frequencies" submenues.</dd>
 
-Total Lights
-: The number of Virutal Lights to be placed in the virtual environment, this number will be culled before rendering. This effectively sets the light density.
+<dt>Total Lights</dt>
+<dd>The number of Virutal Lights to be placed in the virtual environment, this number will be culled before rendering. This effectively sets the light density.</dd>
 
