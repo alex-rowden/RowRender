@@ -27,8 +27,6 @@ The Indoor Visualization has many different settings in the Gui. Here is a rundo
 	<dd>Render spheres at the sample locations of the currently selected routers. These spheres are sized proportionately to signal strength.</dd>
 	<dt>Line Integral Convolution</dt>
 	<dd>Render a Line Integral Convolution plot for the router on the walls. Note: This is only currently supported for 1 router. If off, The wall visualization renders contour lines on the walls. This visualization technique works for Multiple Routers</dd>
-	<dt>Use LIC Mask</dt>
-	<dd>Mask used in Line Integral Convolution to decrease aliasing artifacts.</dd>
 	<dt>Alpha Boost</dt>
 	<dd>Controls the opacity of the Line Integral Convolution</dd>
 	<dt>Screenspace LIC</dt>
@@ -47,14 +45,24 @@ The Indoor Visualization has many different settings in the Gui. Here is a rundo
 	<dd>Used to scale the noise for Line Integral Convolution</dd>
 	<dt>Rate</dt>
 	<dd>Distance used on each step of the line integral convolution</dd>
+	<dt>Use LIC Mask</dt>
+	<dd>Mask used in Line Integral Convolution to decrease aliasing artifacts.</dd>
+	<dt>frequency_bands</dt>
+	<dd>Experimental visualization which uses patterns on the contour lines to visualize frequency in place (one representation rather than two).
 	<dt>Display Names</dt>
 	<dd>Toggle to control text rendering on contour bands</dt>
+	<dt>Number of Dashes</dt>
+	<dd>Number of times the text is rendered on a contour band.</dd>
+	<dt>Contour Frequency</dt>
+	<dd>Control the logarithmic frequency of contours</dd>
+	<dt>Linear Term</dt>
+	<dd>Fine tune the frequency of contours with a linear component</dd>
+	<dt>Thickness</dt>
+	<dd>The width of each contour line in ellipsoidal distance</dd>
 	<dt>Invert Color Representaiton</dt>
 	<dd>Color the wifi contour lines by frequency rather than by router.</dd>
 	<dt>texton_background</dt>
 	<dd>Render textons on the wall with the contour lines.</dd>
-	<dt>frequency_bands</dt>
-	<dd>Experimental visualization which uses patterns on the contour lines to visualize frequency in place (one representation rather than two).
 	<dt>Antialiasing</dt>
 	<dd>Toggle which turns on and off Anisotropic blending on the noise and texton textures.</dd>
 	<dt>Jittered Colors</dt>
