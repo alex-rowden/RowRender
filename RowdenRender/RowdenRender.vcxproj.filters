@@ -13,11 +13,11 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Source Files\Shaders">
-      <UniqueIdentifier>{9ee327e3-5ed8-4731-a4ef-666c6a0c8e67}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\Cuda Code">
       <UniqueIdentifier>{919c852a-c0df-4ef6-afb7-33203e3ea208}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Shaders">
+      <UniqueIdentifier>{dda7c311-d1d5-4ee6-95de-7f30666e6dbc}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -202,18 +202,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="vertex_shader.glsl">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="fragment_shader.glsl">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="light_frag.glsl">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="light_vert.glsl">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
     <None Include="box.cu">
       <Filter>Source Files\Cuda Code</Filter>
     </None>
@@ -223,111 +211,123 @@
     <None Include="tutorial.cu">
       <Filter>Source Files\Cuda Code</Filter>
     </None>
-    <None Include="fragment_shader_no_light.glsl">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="vertex_shader_no_light.glsl">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
     <None Include="volume_render.cu">
       <Filter>Source Files\Cuda Code</Filter>
     </None>
-    <None Include="screen_fshader.glsl">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="screen_vshader.glsl">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
     <None Include="..\WifiCampusDataParser\top_half.raw" />
-    <None Include="sky_fshader.glsl">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="sky_vshader.glsl">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="instance_vshader.glsl">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="instance_fshader.glsl">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="volume_fragment.glsl">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="volume_vertex.glsl">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="front_back_fshader.glsl">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="front_back_vshader.glsl">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="signed_distance_fragment.glsl">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="back_fshader.glsl">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="front_fshader.glsl">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="instance_vshader_color.glsl">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="instance_fshader_color.glsl">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="3d_volume_fragment.glsl">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="3d_volume_vertex.glsl">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="fragment_shader_ellipse.glsl">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="vertex_shader_ellipse.glsl">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="deffered_fragment_shader.glsl">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="deffered_vertex_shader.glsl">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="prepass_shader.glsl">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="prepass_vert.glsl">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="ssao_frag.glsl">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="ssao_vert.glsl">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="deffered_fragment_ellipsoid_shader.glsl">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="deffered_vertex_ellipsoid_shader.glsl">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
     <None Include="actions.json">
       <Filter>Source Files</Filter>
     </None>
     <None Include="bindings_generic.json">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="quad_shader.vert">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="quad_shader.frag">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
     <None Include="README.md">
       <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Shaders\3d_volume_fragment.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\3d_volume_vertex.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\back_fshader.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\deffered_fragment_ellipsoid_shader.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\deffered_fragment_shader.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\deffered_vertex_ellipsoid_shader.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\deffered_vertex_shader.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\fragment_shader.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\fragment_shader_ellipse.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\fragment_shader_no_light.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\front_back_fshader.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\front_back_vshader.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\front_fshader.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\instance_fshader.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\instance_fshader_color.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\instance_vshader.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\instance_vshader_color.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\light_frag.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\light_vert.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\prepass_shader.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\prepass_vert.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\quad_shader.frag">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\quad_shader.vert">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\screen_fshader.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\screen_vshader.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\signed_distance_fragment.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\sky_fshader.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\sky_vshader.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\ssao_frag.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\ssao_vert.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\vertex_shader.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\vertex_shader_ellipse.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\vertex_shader_no_light.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\volume_fragment.glsl">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\volume_vertex.glsl">
+      <Filter>Source Files\Shaders</Filter>
     </None>
   </ItemGroup>
 </Project>

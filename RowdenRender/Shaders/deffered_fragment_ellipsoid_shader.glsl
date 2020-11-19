@@ -70,7 +70,7 @@ frag_pos_scale, tunable;
 uniform int shininess, num_point_lights, num_frequencies,
 num_routers, num_contours;
 
-uniform bool group_frequencies, display_names, lic_on,
+uniform bool display_names, lic_on, multirouter,
 texton_background, invert_colors, frequency_bands, use_mask,
 screen_space_lic, cull_discontinuities, procedural_noise;
 
@@ -264,8 +264,10 @@ vec4 calculateForce(vec3 fragPos , mat3 worldToWallCoords, mat3 wallToWorldCoord
 		if (ellipsoid_dist < .005)
 			ret = -1;
 		vec3 ellipsoid_coords = fragPos - modified_coords;
-		if(ellipsoid_dist < extent)
-			direction += (fragPos - ellipsoid_coords)/ellipsoid_dist;
+		if (ellipsoid_dist < extent) {
+			vec3 force = (fragPos - ellipsoid_coords);
+			direction += force / (length(force));
+		}
 	}
 	direction = worldToWallCoords * direction;
 	direction.z = 0;
@@ -614,76 +616,84 @@ vec3 calculateColor(vec3 fragPos, vec3 Normal) {
 			}
 		}
 	}
-	if (!lic_on) {
-		for (int i = 0; i < num_routers; i++) {
-			float distance = 0;
-			if (!texton_background || dot(Normal, vec3(0, 0, 1)) != 0)
-				distance = ellipsoidDistance(fragPos, Ellipsoids[i]);
-			else
-				distance = distances[i];
-			if (distance <= extent) {
-				float alpha_new = 1;
+	for (int i = 0; i < num_routers; i++) {
+		float distance = 0;
+		if (!texton_background || dot(Normal, vec3(0, 0, 1)) != 0)
+			distance = ellipsoidDistance(fragPos, Ellipsoids[i]);
+		else
+			distance = distances[i];
+		if (distance <= extent) {
+			float alpha_new = 1;
 
-				float color_ind = Ellipsoids[i].mu.w;
-				if (invert_colors)
-					color_ind = Ellipsoids[i].r.w / float(num_routers);
-				vec3 color = texture(wifi_colors, vec2(0, color_ind)).rgb;
+			float color_ind = Ellipsoids[i].mu.w;
+			if (invert_colors)
+				color_ind = Ellipsoids[i].r.w / float(num_routers);
+			vec3 color = texture(wifi_colors, vec2(0, color_ind)).rgb;
 
-				if (!texton_background && (dot(Normal, vec3(0, 0, 1))) == 1) {
-					alpha_new = paintTextons(fragPos, i, num_routers_per_freq[int(Ellipsoids[i].r.w)], router_counter[int(Ellipsoids[i].r.w)]);
-					router_counter[int(Ellipsoids[i].r.w)]++;
-				}
-				else if ((dot(Normal, vec3(0, 0, 1))) == 1) {
-					continue;
-				}
-				else if (-dot(Normal, vec3(0, 0, 1)) == 1) {
+			if (!texton_background && (dot(Normal, vec3(0, 0, 1))) == 1) {
+				alpha_new = paintTextons(fragPos, i, num_routers_per_freq[int(Ellipsoids[i].r.w)], router_counter[int(Ellipsoids[i].r.w)]);
+				router_counter[int(Ellipsoids[i].r.w)]++;
+			}
+			else if ((dot(Normal, vec3(0, 0, 1))) == 1) {
+				continue;
+			}
+			else if (-dot(Normal, vec3(0, 0, 1)) == 1) {
+				alpha_new = 0;
+			}
+			else if (!lic_on) {
+				//(abs(mod(linear_term * log2(distance / extent), frequency) / (frequency * thickness) - .5) > .2)
+				float iso_band = mod(linear_term * log2(distance / extent), frequency);
+				if (iso_band > frequency * thickness) {
 					alpha_new = 0;
 				}
-				else if (!lic_on) {
-					//(abs(mod(linear_term * log2(distance / extent), frequency) / (frequency * thickness) - .5) > .2)
-					float iso_band = mod(linear_term * log2(distance / extent), frequency);
-					if (iso_band > frequency * thickness) {
-						alpha_new = 0;
-					}
-					else {
-						if (frequency_bands) {
-							iso_band = (iso_band - (1 - frequency * thickness)) / (frequency * thickness);
-							int freq_number = int(Ellipsoids[i].r.w);
-							if (mod(iso_band * (2 * freq_number + 1), 2) > 1) {
-								alpha_new = 0;
-							}
-						}
-						if (display_names) {
-							vec3 modified_coords = ellipsoidCoordinates(fragPos, Ellipsoids[i]);
-							vec2 projected_coords = vec2(dot(tangent, modified_coords), dot(bitangent, modified_coords));
-							float theta = atan(projected_coords.y, projected_coords.x);
-							float norm_theta = max(theta / PI + 1, 0);
-							if (mod(norm_theta * num_contours, 2) < 1) {
-								vec2 index = vec2(mod(norm_theta * num_contours, 2), mod(linear_term * log2(distance / extent), frequency) / (frequency * thickness));
-								index.y = index.y / num_routers + i / float(num_routers);
-								alpha_new = texture(text_tex, index).r;
-							}
+				else {
+					if (frequency_bands) {
+						iso_band = (iso_band - (1 - frequency * thickness)) / (frequency * thickness);
+						int freq_number = int(Ellipsoids[i].r.w);
+						if (mod(iso_band * (2 * freq_number + 1), 2) > 1) {
+							alpha_new = 0;
 						}
 					}
+					if (display_names) {
+						vec3 modified_coords = ellipsoidCoordinates(fragPos, Ellipsoids[i]);
+						vec2 projected_coords = vec2(dot(tangent, modified_coords), dot(bitangent, modified_coords));
+						float theta = atan(projected_coords.y, projected_coords.x);
+						float norm_theta = max(theta / PI + 1, 0);
+						if (mod(norm_theta * num_contours, 2) < 1) {
+							vec2 index = vec2(mod(norm_theta * num_contours, 2), mod(linear_term * log2(distance / extent), frequency) / (frequency * thickness));
+							index.y = index.y / num_routers + i / float(num_routers);
+							alpha_new = texture(text_tex, index).r;
+						}
+					}
+				}
+			}
+			else {
+				if (distance / extent < .01) {
+					alpha_new = 0;
+				}
+				else if(!multirouter){
+					alpha_new = renderLIC(fragPos, tangent, bitangent, Normal, distance, i);
 				}
 				else {
-					if (distance / extent < .01) {
-						alpha_new = 0;
-					}
-					else {
-						//alpha_new = renderLIC(fragPos, tangent, bitangent, Normal, distance, i);
-					}
+					alpha_new = 0;
 				}
-
-				ret = alpha_new * (alpha * color) + ret;
-				alpha = (1 - alpha_new) * alpha;
 			}
+
+			ret = alpha_new * (alpha * color) + ret;
+			alpha = (1 - alpha_new) * alpha;
 		}
 	}
-	else {
-		vec4 color = renderLIC(fragPos, tangent, bitangent, Normal);
-		ret = color.a * (alpha * color.rgb) + ret;
-		alpha = (1 - color.a) * alpha;
+	
+	if (lic_on && multirouter){
+		if (dot(Normal, vec3(0,0,1)) == 0) {
+			vec4 color = renderLIC(fragPos, tangent, bitangent, Normal);
+			ret = color.a * (alpha * color.rgb) + ret;
+			alpha = (1 - color.a) * alpha;
+		}
+		else {
+			ret = 0 * (alpha * color) + ret;
+			alpha = (1 - 0) * alpha;
+		}
 	}
 	
 	if (texton_background) {

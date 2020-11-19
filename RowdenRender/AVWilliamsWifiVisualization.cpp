@@ -614,7 +614,8 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 		{ "anti_aliasing", true},
 		{ "use_mask", false},
 		{ "screen_space_lic", true},
-		{ "cull_discontinuities", false}
+		{ "cull_discontinuities", false},
+		{ "multirouter", true}
 	};
 	deferred_shading_ints = {
 		{"num_point_lights", 20},
@@ -961,6 +962,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 					ImGui::SliderFloat("Tunable", &deferred_shading_floats["tunable"], .00001, .1);
 					ImGui::Checkbox("Hug Walls", &deferred_shading_bools["cull_discontinuities"]);
 				}
+				ImGui::Checkbox("Multirouter", &deferred_shading_bools["multirouter"]);
 				ImGui::Checkbox("Procedural Noise", &deferred_shading_bools["procedural_noise"]);
 				if (deferred_shading_bools["procedural_noise"]) {
 					ImGui::SliderFloat("Density", &deferred_shading_floats["density"], 0, 1);
