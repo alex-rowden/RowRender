@@ -213,7 +213,7 @@ int CampusWifiVisualization(bool use_vr) {
 	std::vector<float> use_intensities, max_volume;
 	WifiData wifi;
 
-	std::string filename = "linear_power_big";
+	std::string filename = "./Content/Data/linear_power_big";
 	wifi.loadBinary((filename + ".raw").c_str(), use_intensities, normal_x, normal_y);
 	max_volume = use_intensities;
 

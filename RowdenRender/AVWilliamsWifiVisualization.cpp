@@ -473,7 +473,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	//load avw wifi data
 	AVWWifiData wifi(deferred_shader);
 	Ellipsoid ellipsoid;
-	wifi.loadEllipsoid("one_router.elipsoid", ellipsoid);
+	wifi.loadEllipsoid("./Content/Data/one_router.elipsoid", ellipsoid);
 	
 
 	VolumeData volume;

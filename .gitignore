@@ -376,3 +376,5 @@ healthchecksdb
 /RowdenRender/Content/Models/controller_l.fbx
 *.tga
 *.fbx
+/Subset
+*.7z
