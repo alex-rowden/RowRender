@@ -257,106 +257,106 @@ void ShaderProgram::program_error_check(Shaders shader) {
 		std::string filename;
 		switch (shader) {
 		case Shaders::VERTEX:
-			filename = "vertex_shader.glsl";
+			filename = "shaders/vertex_shader.glsl";
 			break;
 		case Shaders::FRAGMENT:
-			filename = "fragment_shader.glsl";
+			filename = "shaders/fragment_shader.glsl";
 			break;
 		case Shaders::LIGHT_FRAG:
-			filename = "light_frag.glsl";
+			filename = "shaders/light_frag.glsl";
 			break;
 		case Shaders::LIGHT_VERT:
-			filename = "light_vert.glsl";
+			filename = "shaders/light_vert.glsl";
 			break;
 		case Shaders::NO_LIGHT_FRAG:
-			filename = "fragment_shader_no_light.glsl";
+			filename = "shaders/fragment_shader_no_light.glsl";
 			break;
 		case Shaders::NO_LIGHT_VERT:
-			filename = "vertex_shader_no_light.glsl";
+			filename = "shaders/vertex_shader_no_light.glsl";
 			break;
 		case Shaders::SCREEN_FRAG:
-			filename = "screen_fshader.glsl";
+			filename = "shaders/screen_fshader.glsl";
 			break;
 		case Shaders::SCREEN_VERT:
-			filename = "screen_vshader.glsl";
+			filename = "shaders/screen_vshader.glsl";
 			break;
 		case Shaders::SKY_FRAG:
-			filename = "sky_fshader.glsl";
+			filename = "shaders/sky_fshader.glsl";
 			break;
 		case Shaders::SKY_VERT:
-			filename = "sky_vshader.glsl";
+			filename = "shaders/sky_vshader.glsl";
 			break;
 		case Shaders::INSTANCE_FRAG:
-			filename = "instance_fshader.glsl";
+			filename = "shaders/instance_fshader.glsl";
 			break;
 		case Shaders::INSTANCE_VERT:
-			filename = "instance_vshader.glsl";
+			filename = "shaders/instance_vshader.glsl";
 			break;
 		case Shaders::VOLUME_FRAG:
-			filename = "volume_fragment.glsl";
+			filename = "shaders/volume_fragment.glsl";
 			break;
 		case Shaders::VOLUME_VERT:
-			filename = "volume_vertex.glsl";
+			filename = "shaders/volume_vertex.glsl";
 			break;
 		case Shaders::FRONT_BACK_FRAG:
-			filename = "front_back_fshader.glsl";
+			filename = "shaders/front_back_fshader.glsl";
 			break;
 		case Shaders::FRONT_BACK_VERT:
-			filename = "front_back_vshader.glsl";
+			filename = "shaders/front_back_vshader.glsl";
 			break;
 		case Shaders::SIGNED_DISTANCE_FRAG:
-			filename = "signed_distance_fragment.glsl";
+			filename = "shaders/signed_distance_fragment.glsl";
 			break;
 		case Shaders::FRONT_FRAG:
-			filename = "front_fshader.glsl";
+			filename = "shaders/front_fshader.glsl";
 			break;
 		case Shaders::BACK_FRAG:
-			filename = "back_fshader.glsl";
+			filename = "shaders/back_fshader.glsl";
 			break;
 		case Shaders::INSTANCE_FRAG_COLOR:
-			filename = "instance_fshader_color.glsl";
+			filename = "shaders/instance_fshader_color.glsl";
 			break;
 		case Shaders::INSTANCE_VERT_COLOR:
-			filename = "instance_vshader_color.glsl";
+			filename = "shaders/instance_vshader_color.glsl";
 			break;
 		case Shaders::VOLUME_FRAG_3D:
-			filename = "3d_volume_fragment.glsl";
+			filename = "shaders/3d_volume_fragment.glsl";
 			break;
 		case Shaders::VOLUME_VERT_3D:
-			filename = "3d_volume_vertex.glsl";
+			filename = "shaders/3d_volume_vertex.glsl";
 			break;
 		case Shaders::FRAG_ELLIPSOID:
-			filename = "fragment_shader_ellipse.glsl";
+			filename = "shaders/fragment_shader_ellipse.glsl";
 			break;
 		case Shaders::VERT_ELLIPSOID:
-			filename = "vertex_shader_ellipse.glsl";
+			filename = "shaders/vertex_shader_ellipse.glsl";
 			break;
 		case Shaders::DEFFERED_RENDER_FRAG:
-			filename = "deffered_fragment_shader.glsl";
+			filename = "shaders/deffered_fragment_shader.glsl";
 			break;
 		case Shaders::DEFFERED_RENDER_VERT:
-			filename = "deffered_vertex_shader.glsl";
+			filename = "shaders/deffered_vertex_shader.glsl";
 			break;
 		case Shaders::DEFFERED_RENDER_ELLIPSOID_FRAG:
-			filename = "deffered_fragment_ellipsoid_shader.glsl";
+			filename = "shaders/deffered_fragment_ellipsoid_shader.glsl";
 			break;
 		case Shaders::DEFFERED_RENDER_ELLIPSOID_VERT:
-			filename = "deffered_vertex_ellipsoid_shader.glsl";
+			filename = "shaders/deffered_vertex_ellipsoid_shader.glsl";
 			break;
 		case Shaders::PREPASS_SHADER:
-			filename = "prepass_shader.glsl";
+			filename = "shaders/prepass_shader.glsl";
 			break;
 		case Shaders::SSAO_VERT:
-			filename = "ssao_vert.glsl";
+			filename = "shaders/ssao_vert.glsl";
 			break;
 		case Shaders::SSAO_FRAG:
-			filename = "ssao_frag.glsl";
+			filename = "shaders/ssao_frag.glsl";
 			break;
 		case Shaders::QUAD_RENDER_VERT:
-			filename = "quad_shader.vert";
+			filename = "shaders/quad_shader.vert";
 			break;
 		case Shaders::QUAD_RENDER_FRAG:
-			filename = "quad_render.frag";
+			filename = "shaders/quad_render.frag";
 			break;
 		default:
 			throw "Not a valid shader";
@@ -369,106 +369,106 @@ void ShaderProgram::importShaderFile(Shaders shader, std::string *ShaderString) 
 	const char* filename;
 	switch (shader) {
 	case Shaders::VERTEX:
-		filename = "vertex_shader.glsl";
+		filename = "shaders/vertex_shader.glsl";
 		break;
 	case Shaders::FRAGMENT:
-		filename = "fragment_shader.glsl";
+		filename = "shaders/fragment_shader.glsl";
 		break;
 	case Shaders::LIGHT_FRAG:
-		filename = "light_frag.glsl";
+		filename = "shaders/light_frag.glsl";
 		break;
 	case Shaders::LIGHT_VERT:
-		filename = "light_vert.glsl";
+		filename = "shaders/light_vert.glsl";
 		break;
 	case Shaders::NO_LIGHT_FRAG:
-		filename = "fragment_shader_no_light.glsl";
+		filename = "shaders/fragment_shader_no_light.glsl";
 		break;
 	case Shaders::NO_LIGHT_VERT:
-		filename = "vertex_shader_no_light.glsl";
+		filename = "shaders/vertex_shader_no_light.glsl";
 		break;
 	case Shaders::SCREEN_FRAG:
-		filename = "screen_fshader.glsl";
+		filename = "shaders/screen_fshader.glsl";
 		break;
 	case Shaders::SCREEN_VERT:
-		filename = "screen_vshader.glsl";
+		filename = "shaders/screen_vshader.glsl";
 		break;
 	case Shaders::SKY_FRAG:
-		filename = "sky_fshader.glsl";
+		filename = "shaders/sky_fshader.glsl";
 		break;
 	case Shaders::SKY_VERT:
-		filename = "sky_vshader.glsl";
+		filename = "shaders/sky_vshader.glsl";
 		break;
 	case Shaders::INSTANCE_FRAG:
-		filename = "instance_fshader.glsl";
+		filename = "shaders/instance_fshader.glsl";
 		break;
 	case Shaders::INSTANCE_VERT:
-		filename = "instance_vshader.glsl";
+		filename = "shaders/instance_vshader.glsl";
 		break;
 	case Shaders::VOLUME_FRAG:
-		filename = "volume_fragment.glsl";
+		filename = "shaders/volume_fragment.glsl";
 		break;
 	case Shaders::VOLUME_VERT:
-		filename = "volume_vertex.glsl";
+		filename = "shaders/volume_vertex.glsl";
 		break;
 	case Shaders::FRONT_BACK_FRAG:
-		filename = "front_back_fshader.glsl";
+		filename = "shaders/front_back_fshader.glsl";
 		break;
 	case Shaders::FRONT_BACK_VERT:
-		filename = "front_back_vshader.glsl";
+		filename = "shaders/front_back_vshader.glsl";
 		break;
 	case Shaders::SIGNED_DISTANCE_FRAG:
-		filename = "signed_distance_fragment.glsl";
+		filename = "shaders/signed_distance_fragment.glsl";
 		break;
 	case Shaders::FRONT_FRAG:
-		filename = "front_fshader.glsl";
+		filename = "shaders/front_fshader.glsl";
 		break;
 	case Shaders::BACK_FRAG:
-		filename = "back_fshader.glsl";
+		filename = "shaders/back_fshader.glsl";
 		break;
 	case Shaders::INSTANCE_FRAG_COLOR:
-		filename = "instance_fshader_color.glsl";
+		filename = "shaders/instance_fshader_color.glsl";
 		break;
 	case Shaders::INSTANCE_VERT_COLOR:
-		filename = "instance_vshader_color.glsl";
+		filename = "shaders/instance_vshader_color.glsl";
 		break;
 	case Shaders::VOLUME_FRAG_3D:
-		filename = "3d_volume_fragment.glsl";
+		filename = "shaders/3d_volume_fragment.glsl";
 		break;
 	case Shaders::VOLUME_VERT_3D:
-		filename = "3d_volume_vertex.glsl";
+		filename = "shaders/3d_volume_vertex.glsl";
 		break;
 	case Shaders::FRAG_ELLIPSOID:
-		filename = "fragment_shader_ellipse.glsl";
+		filename = "shaders/fragment_shader_ellipse.glsl";
 		break;
 	case Shaders::VERT_ELLIPSOID:
-		filename = "vertex_shader_ellipse.glsl";
+		filename = "shaders/vertex_shader_ellipse.glsl";
 		break;
 	case Shaders::DEFFERED_RENDER_FRAG:
-		filename = "deffered_fragment_shader.glsl";
+		filename = "shaders/deffered_fragment_shader.glsl";
 		break;
 	case Shaders::DEFFERED_RENDER_VERT:
-		filename = "deffered_vertex_shader.glsl";
+		filename = "shaders/deffered_vertex_shader.glsl";
 		break;
 	case Shaders::DEFFERED_RENDER_ELLIPSOID_FRAG:
-		filename = "deffered_fragment_ellipsoid_shader.glsl";
+		filename = "shaders/deffered_fragment_ellipsoid_shader.glsl";
 		break;
 	case Shaders::DEFFERED_RENDER_ELLIPSOID_VERT:
-		filename = "deffered_vertex_ellipsoid_shader.glsl";
+		filename = "shaders/deffered_vertex_ellipsoid_shader.glsl";
 		break;
 	case Shaders::PREPASS_SHADER:
-		filename = "prepass_shader.glsl";
+		filename = "shaders/prepass_shader.glsl";
 		break;
 	case Shaders::SSAO_FRAG:
-		filename = "ssao_frag.glsl";
+		filename = "shaders/ssao_frag.glsl";
 		break;
 	case Shaders::SSAO_VERT:
-		filename = "ssao_vert.glsl";
+		filename = "shaders/ssao_vert.glsl";
 		break;
 	case Shaders::QUAD_RENDER_FRAG:
-		filename = "quad_shader.frag";
+		filename = "shaders/quad_shader.frag";
 		break;
 	case Shaders::QUAD_RENDER_VERT:
-		filename = "quad_shader.vert";
+		filename = "shaders/quad_shader.vert";
 		break;
 	default:
 		throw "Not a valid shader";
