@@ -184,8 +184,8 @@ void createFramebuffer(glm::vec2 resolution, gBuffer* buffer, bool resize) {
 
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, resolution.x, resolution.y, 0, GL_RGBA, GL_FLOAT, 0);
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT4, GL_TEXTURE_2D, buffer->tangent_tex, 0);
@@ -597,7 +597,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 		{ "learning_rate", .05 },
 		{ "distance_mask", 0 },
 		{ "alpha_boost", 20 },
-		{ "density", .05 },
+		{ "density", .025 },
 		{ "frag_pos_scale", 100},
 		{ "cling", .9},
 		{ "tunable", .005}
@@ -612,15 +612,16 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 		{ "frequency_bands", false },
 		{ "shade_instances", false},
 		{ "anti_aliasing", true},
-		{ "use_mask", false},
+		{ "use_mask", true},
 		{ "screen_space_lic", true},
-		{ "cull_discontinuities", false},
-		{ "multirouter", true}
+		{ "cull_discontinuities", true},
+		{ "multirouter", true},
 	};
 	deferred_shading_ints = {
 		{"num_point_lights", 20},
 		{"num_frequencies", wifi.getActiveFreqs(freqs).size()},
-		{"num_contours", 6}
+		{"num_contours", 6},
+		{"power", 5 }
 	};
 	const int num_antialiased_textures = 2;
 	Texture2D antialiased_textures[num_antialiased_textures] = {
@@ -957,15 +958,18 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			ImGui::Checkbox("Line Integral Convolution", &deferred_shading_bools["lic_on"]);
 			if (deferred_shading_bools["lic_on"]) {
 				ImGui::SliderFloat("Alpha_Boost", &deferred_shading_floats["alpha_boost"], 1, 30);
+				ImGui::SliderInt("Power", &deferred_shading_ints["power"], 1, 8);
 				ImGui::Checkbox("Screenspcace LIC", &deferred_shading_bools["screen_space_lic"]);
 				if (deferred_shading_bools["screen_space_lic"]) {
-					ImGui::SliderFloat("Tunable", &deferred_shading_floats["tunable"], .00001, .1);
+					ImGui::SliderFloat("Vector Threshold", &deferred_shading_floats["tunable"], 0, 3);
 					ImGui::Checkbox("Hug Walls", &deferred_shading_bools["cull_discontinuities"]);
 				}
 				ImGui::Checkbox("Multirouter", &deferred_shading_bools["multirouter"]);
 				ImGui::Checkbox("Procedural Noise", &deferred_shading_bools["procedural_noise"]);
 				if (deferred_shading_bools["procedural_noise"]) {
 					ImGui::SliderFloat("Density", &deferred_shading_floats["density"], 0, 1);
+					if (!deferred_shading_bools["screen_space_lic"])
+						ImGui::SliderFloat("Cling Factor", &deferred_shading_floats["cling"], 0, 1);
 				}else {
 					ImGui::SliderInt("num_samples", &num_samples, 12800, 102400 * 16);
 				}

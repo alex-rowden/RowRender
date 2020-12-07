@@ -378,3 +378,4 @@ healthchecksdb
 *.fbx
 /Subset
 *.7z
+/RowdenRender/Content/Models/uvs.uvw
