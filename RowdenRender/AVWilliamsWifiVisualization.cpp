@@ -51,7 +51,7 @@ void maxSeperatedColors(int n, std::vector<glm::vec4>& out, bool ordered = true)
 		while (v > 360) {
 			v = v - 360;
 		}
-		out[i] = glm::vec4(hsv2rgb(glm::vec3(v, .5f, 1.f)), 1);
+		out[i] = glm::vec4(hsv2rgb(glm::vec3(v, .6f, 1.f)), 1);
 	}
 }
 
@@ -184,8 +184,8 @@ void createFramebuffer(glm::vec2 resolution, gBuffer* buffer, bool resize) {
 
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, resolution.x, resolution.y, 0, GL_RGBA, GL_FLOAT, 0);
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT4, GL_TEXTURE_2D, buffer->tangent_tex, 0);
@@ -250,6 +250,22 @@ void createFramebuffers(glm::vec2 resolution, gBuffer *buffers, eyeBuffer *eyes,
 	if (use_vr)
 		createEyeFramebuffer(resolution, &eyes[1], resize);
 	eyes[0].screenTexture.giveName("screenTexture");
+}
+
+void updateNoise(LineIntegralConvolution& lic, int num_samples, int num_routers, Texture2D *noise, Texture2D *antialiased_textures, glm::uvec2 lic_texture_res, float an) {
+	//lic(glm::uvec2(64, 256));
+	for (int i = 0; i < num_routers; i++) {
+		lic.clear();
+		lic.fillWithNoise(num_samples/num_routers);
+		//lic.convolve(fall_off);
+
+		noise[i] = Texture2D(lic.getTexture().data(), lic_texture_res.y, lic_texture_res.x);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY, an);
+		noise[i].setTexMinMagFilter(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR);
+		noise[i].giveName("noise_tex[" + std::to_string(i)  + "]");
+		antialiased_textures[1 + i] = noise[i];
+	}
+	
 }
 
 
@@ -421,8 +437,8 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 
 	//Setup Camera
 	//Camera camera = Camera(glm::vec3(-11.54, 11.6, .4575),glm::vec3(-10.54, 11.6, .4575) , 60.0f, w.width / (float)w.height);
-	Camera camera = Camera(glm::vec3(.467506, 11.501509, 2.478917),glm::vec3(.467506 - .970493, 11.501509 + .020823, 2.478917 - .240227) , 60.0f, w.width / (float)w.height);
-	//Camera camera = Camera(glm::vec3(1.951824, 11.616767, 2.541506),glm::vec3(1.951824 - .932394, 11.616767 - .281266, 2.541506 - .227) , 60.0f, w.width / (float)w.height);
+	//Camera camera = Camera(glm::vec3(.467506, 11.501509, 2.478917),glm::vec3(.467506 - .970493, 11.501509 + .020823, 2.478917 - .240227) , 60.0f, w.width / (float)w.height);
+	Camera camera = Camera(glm::vec3(-.032911, 11.68143, 2.214213), glm::vec3(-.032911, 11.68143, 2.214213) + glm::vec3(.89027, -.430448, -.090891), 60.0f, w.width / (float)w.height);
 	w.SetCamera(&camera);
 	w.setSpeed(1);
 
@@ -572,13 +588,14 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	LineIntegralConvolution lic(lic_texture_res); 
 	lic.fillWithNoise(num_samples);
 	//lic.convolve(fall_off);
-	Texture2D noise = Texture2D(lic.getTexture().data(), lic_texture_res.y, lic_texture_res.x);
-	noise.setTexMinMagFilter(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR);
-	noise.setTexParameterWrap(GL_REPEAT);
+	Texture2D noise[20];
+	noise[0] = Texture2D(lic.getTexture().data(), lic_texture_res.y, lic_texture_res.x);
+	noise[0].setTexMinMagFilter(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR);
+	noise[0].setTexParameterWrap(GL_REPEAT);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY, an);
 	
-	noise.giveName("noise_tex");
-	quad.getMeshes().at(0)->setTexture(noise);
+	noise[0].giveName("noise_tex");
+	quad.getMeshes().at(0)->setTexture(noise[0]);
 
 	glm::vec4* fragPosArray = (glm::vec4*)malloc(sizeof(glm::vec4) * resolution.x * resolution.y);
 	if (!fragPosArray) {
@@ -616,17 +633,18 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 		{ "screen_space_lic", true},
 		{ "cull_discontinuities", true},
 		{ "multirouter", true},
+		{ "color_weaving", true}
 	};
 	deferred_shading_ints = {
 		{"num_point_lights", 20},
 		{"num_frequencies", wifi.getActiveFreqs(freqs).size()},
 		{"num_contours", 6},
-		{"power", 5 }
+		{"power", 1}
 	};
-	const int num_antialiased_textures = 2;
+	const int num_antialiased_textures = 21;
 	Texture2D antialiased_textures[num_antialiased_textures] = {
-		frequency_texture, noise};
-
+		frequency_texture, noise[0]};
+	bool num_samples_changed = false, num_routers_changed = false;
 	while (!glfwWindowShouldClose(w.getWindow())) {
 		if (w.getResized()) {
 			resolution.x = w.width;
@@ -765,20 +783,13 @@ int AVWilliamsWifiVisualization(bool use_vr) {
  			render(quad, &deferred_shader);
 			glDepthMask(GL_TRUE);
 
-			if (num_samples != old_num_samples) {
-				//lic(glm::uvec2(64, 256));
-				lic.clear();
-				lic.fillWithNoise( num_samples);
-				//lic.convolve(fall_off);
-				noise = Texture2D(lic.getTexture().data(), lic_texture_res.y, lic_texture_res.x);
-				glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY, an);
-				noise.setTexMinMagFilter(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR);
-				noise.giveName("noise_tex");
-				antialiased_textures[1] = noise;
-				quad.getMeshes().at(0)->setTexture(noise);
-				
-				old_num_samples = num_samples;
-				
+			if (num_samples_changed || num_routers_changed) {
+				updateNoise(lic, num_samples, num_routers, noise, antialiased_textures, lic_texture_res, an);
+				for (int i = 0; i < num_routers; i++) {
+					quad.getMeshes().at(0)->setTexture(noise[i]);
+				}
+				num_samples_changed = false;
+				num_routers_changed = false;
 			}
 			
 			if (renderPopup) {
@@ -941,6 +952,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 		ImGui::Begin("Rendering Terms");
 			ImGui::SliderInt("Number of Routers", &num_routers, 1, 20);
 			if (ImGui::Button("Nearest Routers")) {
+				num_routers_changed = true;
 				std::fill(freqs.begin(), freqs.end(), true);
 				wifi.setNearestNRouters(num_routers, camera.getPosition(), wifinames, routers, freqs);
 				deferred_shading_floats["delta_theta"] = 180.f / wifi.getActiveFreqs(freqs).size();
@@ -965,15 +977,18 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 					ImGui::Checkbox("Hug Walls", &deferred_shading_bools["cull_discontinuities"]);
 				}
 				ImGui::Checkbox("Multirouter", &deferred_shading_bools["multirouter"]);
+				if(deferred_shading_bools["multirouter"]) {
+					ImGui::Checkbox("Use Color Weaving", &deferred_shading_bools["color_weaving"]);
+				}
 				ImGui::Checkbox("Procedural Noise", &deferred_shading_bools["procedural_noise"]);
 				if (deferred_shading_bools["procedural_noise"]) {
 					ImGui::SliderFloat("Density", &deferred_shading_floats["density"], 0, 1);
 					if (!deferred_shading_bools["screen_space_lic"])
 						ImGui::SliderFloat("Cling Factor", &deferred_shading_floats["cling"], 0, 1);
 				}else {
-					ImGui::SliderInt("num_samples", &num_samples, 12800, 102400 * 16);
+					num_samples_changed = ImGui::SliderInt("num_samples", &num_samples, 12800, 102400 * 16);
 				}
-				ImGui::SliderFloat("Fragment Position Scale", &deferred_shading_floats["frag_pos_scale"], 0, 100);
+				ImGui::SliderFloat("Fragment Position Scale", &deferred_shading_floats["frag_pos_scale"], 0, 200);
 				ImGui::SliderFloat("Rate", &deferred_shading_floats["learning_rate"], 0, .9);
 				ImGui::Checkbox("Use LIC Mask", &deferred_shading_bools["use_mask"]);
 				
@@ -992,7 +1007,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			ImGui::Checkbox("texton_background", &deferred_shading_bools["texton_background"]);
 
 			if (ImGui::Checkbox("Antialiasing", &deferred_shading_bools["anti_aliasing"])) {
-				for (int i = 0; i < num_antialiased_textures; i++) {
+				for (int i = 0; i < num_routers + 1; i++) {
 					Texture2D texture = antialiased_textures[i];
 					texture.Bind();
 					if (deferred_shading_bools["anti_aliasing"]) {
