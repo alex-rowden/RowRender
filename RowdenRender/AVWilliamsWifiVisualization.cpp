@@ -633,7 +633,8 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 		{ "screen_space_lic", true},
 		{ "cull_discontinuities", true},
 		{ "multirouter", true},
-		{ "color_weaving", true}
+		{ "color_weaving", true},
+		{"blending", true}
 	};
 	deferred_shading_ints = {
 		{"num_point_lights", 20},
@@ -979,6 +980,9 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				ImGui::Checkbox("Multirouter", &deferred_shading_bools["multirouter"]);
 				if(deferred_shading_bools["multirouter"]) {
 					ImGui::Checkbox("Use Color Weaving", &deferred_shading_bools["color_weaving"]);
+					if (deferred_shading_bools["color_weaving"]) {
+						ImGui::Checkbox("Use Blending", &deferred_shading_bools["blending"]);
+					}
 				}
 				ImGui::Checkbox("Procedural Noise", &deferred_shading_bools["procedural_noise"]);
 				if (deferred_shading_bools["procedural_noise"]) {
