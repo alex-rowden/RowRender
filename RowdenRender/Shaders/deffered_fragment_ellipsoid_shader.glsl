@@ -16,6 +16,7 @@ uniform sampler2D albedo_tex;
 uniform sampler2D fragPos_tex;
 uniform sampler2D ellipsoid_coordinates_tex;
 uniform sampler2D tangent_tex;
+uniform sampler2D lic_tex[2];
 
 //stored textures
 uniform sampler2D frequency_tex;
@@ -68,7 +69,7 @@ delta_theta, extent, frequency, learning_rate, alpha_boost, density,
 frag_pos_scale, tunable, cling;
 
 uniform int shininess, num_point_lights, num_frequencies,
-num_routers, num_contours, power;
+num_routers, num_contours, power, num_lic;
 
 uniform bool display_names, lic_on, multirouter,
 texton_background, invert_colors, frequency_bands, use_mask,
@@ -261,14 +262,14 @@ float calculateMask(int dir, int j) {
 
 vec4 calculateForce(vec3 fragPos , mat3 worldToWallCoords, mat3 wallToWorldCoords) {
 	vec3 direction = vec3(0);
-	
+
 	bool empty = true;
 	for (int i = 0; i < num_routers; i++) {
 		vec3 modified_coords = ellipsoidCoordinates(fragPos, Ellipsoids[i]);
-		
+
 		float ellipsoid_dist = ellipsoidDistance(fragPos, modified_coords, Ellipsoids[i]);
-		
-		if (ellipsoid_dist/extent < .01) {
+
+		if (ellipsoid_dist / extent < .01) {
 			return vec4(vec3(0), -1);
 		}
 		vec3 ellipsoid_coords = fragPos - modified_coords;
@@ -659,7 +660,17 @@ vec4 renderLIC(vec3 fragPos, vec3 tangent, vec3 bitangent, vec3 Normal) {
 
 
 vec3 calculateColor(vec3 fragPos, vec3 Normal) {
+	
 	vec3 color = texture(albedo_tex, TexCoord).rgb;
+	if (num_routers > 0 && lic_on && abs(dot(Normal, vec3(0,0,1))) < 1e-3) {
+		vec4 lic_color = texture(lic_tex[num_lic], TexCoord);
+		if (lic_color.a < 0)
+			return color;
+		vec3 ret = lic_color.a * lic_color.rgb;
+		ret = ret + color * (1 - lic_color.a);
+		return ret;
+	}
+	
 	vec3 tangent = normalize(texture(tangent_tex, TexCoord).rgb);
 	vec3 bitangent = normalize(cross(tangent, Normal));
 	vec3 swap;
@@ -750,10 +761,10 @@ vec3 calculateColor(vec3 fragPos, vec3 Normal) {
 						alpha_new = 1;
 					else
 						alpha_new = 0;
-				}
+				}/*
 				else if(!multirouter){
-					alpha_new = renderLIC(fragPos, tangent, bitangent, Normal, distance, i);
-				}
+					//alpha_new = renderLIC(fragPos, tangent, bitangent, Normal, distance, i);
+				}*/
 				else {
 					alpha_new = 0;
 				}
@@ -763,18 +774,19 @@ vec3 calculateColor(vec3 fragPos, vec3 Normal) {
 			alpha = (1 - alpha_new) * alpha;
 		}
 	}
-	
+	/*
 	if (lic_on && multirouter){
 		if (dot(Normal, vec3(0,0,1)) == 0) {
-			vec4 color = renderLIC(fragPos, tangent, bitangent, Normal);
-			ret = color.a * (alpha * color.rgb) + ret;
-			alpha = (1 - color.a) * alpha;
+			//vec4 color = renderLIC(fragPos, tangent, bitangent, Normal);
+			//ret = color.a * (alpha * color.rgb) + ret;
+			//alpha = (1 - color.a) * alpha;
 		}
 		else {
 			ret = 0 * (alpha * color) + ret;
 			alpha = (1 - 0) * alpha;
 		}
 	}
+	*/
 	
 	if (texton_background) {
 		float alpha_new = 1;

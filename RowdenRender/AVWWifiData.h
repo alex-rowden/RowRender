@@ -32,17 +32,17 @@ private:
 	std::vector<std::string> router_strings;
 	
 	int numRouters = 0;
-	GLuint uniformBuffer = 1, block_index = 1, bindingPoint = 1;
+	GLuint  uniformBuffer = 1, *block_index, *bindingPoint;
 public:
 	glm::mat4 ellipsoid_transform;
 	glm::vec3 radius_stretch;
 	glm::vec3 ellipsoidCoordinates(glm::vec3 fragPos, Ellipsoid ellipsoid);
 	float ellipsoidDistance(glm::vec3 fragPos, glm::mat4 ellipsoid_transform, Ellipsoid ellipsoid);
 	AVWWifiData();
-	AVWWifiData(ShaderProgram);
+	AVWWifiData(ShaderProgram*, int);
 	void pruneEntries();
 	std::vector<std::string> getRouterStrings() { return router_strings; }
-	void updateRouterStructure(std::vector<bool>routers, std::vector<bool> wifi_names, std::vector<bool> freqs, ShaderProgram shader, bool nearest_router = false);
+	void updateRouterStructure(std::vector<bool>routers, std::vector<bool> wifi_names, std::vector<bool> freqs, ShaderProgram *shader, int num_shaders, bool nearest_router = false);
 	int getNumActiveRouters(std::vector<bool> routers);
 	bool loadEllipsoid(std::string filename, Ellipsoid&ret, float wifi_num = 0);
 	void loadWifi(std::string filename, std::string floor);

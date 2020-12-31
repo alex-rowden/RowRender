@@ -28,9 +28,12 @@ bool jittered = true;
 struct gBuffer {
 	GLuint frame_buffer, normal_tex, tangent_tex, 
 		color_tex, frag_pos_tex, color_array_tex,  ellipsoid_coordinates_tex,
-		depth_render_buf;
-	GLuint pboIDs[2];
-	Texture2D color_texture, frag_pos_texture, tangent_texture, normal_texture, ellipsoid_coordinates_texture;
+		depth_render_buf, force_framebuffer, force_renderbuffer, force_tex,
+		lic_accum_framebuffer, lic_accum_tex, lic_accum_renderbuffer;
+	GLuint pboIDs[2], lic_tex[2], lic_framebuffer[2], lic_renderbuffer[2];
+	Texture2D color_texture, frag_pos_texture, tangent_texture,
+		normal_texture, ellipsoid_coordinates_texture, force_texture,
+		lic_texture[2], lic_accum_texture;
 };
 
 struct eyeBuffer {
@@ -107,6 +110,7 @@ Lights setPointLights(int num_lights, float intensity, float linear, float quadr
 }
 
 void createFramebuffer(glm::vec2 resolution, gBuffer* buffer, bool resize) {
+	//generate framebuffers during resizing
 	if (!resize) {
 		glGenFramebuffers(1, &buffer->frame_buffer);
 		glGenTextures(1, &buffer->normal_tex);
@@ -116,8 +120,17 @@ void createFramebuffer(glm::vec2 resolution, gBuffer* buffer, bool resize) {
 		glGenTextures(1, &buffer->ellipsoid_coordinates_tex);
 		glGenTextures(1, &buffer->tangent_tex);
 		glGenRenderbuffers(1, &buffer->depth_render_buf);
+		glGenFramebuffers(1, &buffer->force_framebuffer);
+		glGenTextures(1, &buffer->force_tex);
+		glGenRenderbuffers(1, &buffer->force_renderbuffer);
+		glGenFramebuffers(2, buffer->lic_framebuffer);
+		glGenTextures(2, buffer->lic_tex);
+		glGenRenderbuffers(2, buffer->lic_renderbuffer);
+		glGenFramebuffers(1, &buffer->lic_accum_framebuffer);
+		glGenTextures(1, &buffer->lic_accum_tex);
+		glGenRenderbuffers(1, &buffer->lic_accum_renderbuffer);
 	}
-		
+	//Set Framebuffer Attributes
 	glBindFramebuffer(GL_FRAMEBUFFER, buffer->frame_buffer);
 	
 	glBindTexture(GL_TEXTURE_2D, buffer->normal_tex);
@@ -126,8 +139,8 @@ void createFramebuffer(glm::vec2 resolution, gBuffer* buffer, bool resize) {
 	buffer->normal_texture.giveName("normal_tex");
 	
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, resolution.x, resolution.y, 0, GL_RGBA, GL_FLOAT, 0);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, buffer->normal_tex, 0);	
@@ -139,8 +152,8 @@ void createFramebuffer(glm::vec2 resolution, gBuffer* buffer, bool resize) {
 	buffer->color_texture.giveName("albedo_tex");
 	
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, resolution.x, resolution.y, 0, GL_RGBA, GL_FLOAT, 0);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, buffer->color_tex, 0);	
@@ -207,6 +220,86 @@ void createFramebuffer(glm::vec2 resolution, gBuffer* buffer, bool resize) {
 		std::cout << "framebuffer broke" << std::endl;
 		return;
 	}
+
+	glBindFramebuffer(GL_FRAMEBUFFER, buffer->force_framebuffer);
+
+	glBindTexture(GL_TEXTURE_2D, buffer->force_tex);
+	buffer->force_texture = Texture2D();
+	buffer->force_texture.SetTextureID(buffer->force_tex);
+	buffer->force_texture.giveName("force_tex");
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, resolution.x, resolution.y, 0, GL_RGBA, GL_FLOAT, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, buffer->force_tex, 0);
+
+	GLenum drawBuffer[1] = { GL_COLOR_ATTACHMENT0 };
+	glDrawBuffers(1, drawBuffer);
+
+	glBindRenderbuffer(GL_RENDERBUFFER, buffer->force_renderbuffer);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, resolution.x, resolution.y);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, buffer->force_renderbuffer);
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+		std::cout << "lic prepass framebuffer broke" << std::endl;
+		return;
+	}
+
+	for (int i = 0; i < 2; i++) {
+		glBindFramebuffer(GL_FRAMEBUFFER, buffer->lic_framebuffer[i]);
+	
+		glBindTexture(GL_TEXTURE_2D, buffer->lic_tex[i]);
+		buffer->lic_texture[i] = Texture2D();
+		buffer->lic_texture[i].SetTextureID(buffer->lic_tex[i]);
+		buffer->lic_texture[i].giveName("lic_tex[" + std::to_string(i) + "]");
+
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, resolution.x, resolution.y, 0, GL_RGBA, GL_FLOAT, 0);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, buffer->lic_tex[i], 0);
+	
+		drawBuffer[1] = { GL_COLOR_ATTACHMENT0 };
+		glDrawBuffers(1, drawBuffer);
+
+		glBindRenderbuffer(GL_RENDERBUFFER, buffer->lic_renderbuffer[i]);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, resolution.x, resolution.y);
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, buffer->lic_renderbuffer[i]);
+
+		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+			std::cout << "lic framebuffer broke" << std::endl;
+			return;
+		}
+	}
+	glBindFramebuffer(GL_FRAMEBUFFER, buffer->lic_accum_framebuffer);
+
+	glBindTexture(GL_TEXTURE_2D, buffer->lic_accum_tex);
+	buffer->lic_accum_texture = Texture2D();
+	buffer->lic_accum_texture.SetTextureID(buffer->lic_accum_tex);
+	buffer->lic_accum_texture.giveName("lic_accum_tex");
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, resolution.x, resolution.y, 0, GL_RGBA, GL_FLOAT, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, buffer->lic_accum_tex, 0);
+
+	drawBuffer[1] = { GL_COLOR_ATTACHMENT0 };
+	glDrawBuffers(1, drawBuffer);
+
+	glBindRenderbuffer(GL_RENDERBUFFER, buffer->lic_accum_renderbuffer);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, resolution.x, resolution.y);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, buffer->lic_accum_renderbuffer);
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+		std::cout << "lic accumulation framebuffer broke" << std::endl;
+		return;
+	}
+	
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
@@ -353,15 +446,39 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	
 
 	//Load shaders
-	ShaderProgram model_shader = ShaderProgram({ ShaderProgram::Shaders::FRAG_ELLIPSOID, ShaderProgram::Shaders::VERT_ELLIPSOID });
-	ShaderProgram skybox_shader = ShaderProgram({ ShaderProgram::Shaders::SKY_FRAG, ShaderProgram::Shaders::SKY_VERT });
-	ShaderProgram instance_shader = ShaderProgram({ ShaderProgram::Shaders::INSTANCE_FRAG_COLOR, ShaderProgram::Shaders::INSTANCE_VERT_COLOR });
-	ShaderProgram ground_shader = ShaderProgram({ ShaderProgram::Shaders::NO_LIGHT_FRAG, ShaderProgram::Shaders::NO_LIGHT_VERT });
-	ShaderProgram volume_shader = ShaderProgram({ShaderProgram::Shaders::VOLUME_FRAG_3D, ShaderProgram::Shaders::VOLUME_VERT_3D});
-	ShaderProgram deferred_shader = ShaderProgram({ ShaderProgram::Shaders::DEFFERED_RENDER_ELLIPSOID_FRAG, ShaderProgram::Shaders::DEFFERED_RENDER_ELLIPSOID_VERT });
-	ShaderProgram render2quad = ShaderProgram({ ShaderProgram::Shaders::SCREEN_FRAG, ShaderProgram::Shaders::SCREEN_VERT });
-	ShaderProgram quad_shader = ShaderProgram({ ShaderProgram::Shaders::QUAD_RENDER_FRAG, ShaderProgram::Shaders::QUAD_RENDER_VERT });
+	ShaderProgram model_shader		= ShaderProgram({ 
+		ShaderProgram::Shaders::FRAG_ELLIPSOID, 
+		ShaderProgram::Shaders::VERT_ELLIPSOID });
+	ShaderProgram skybox_shader		= ShaderProgram({ 
+		ShaderProgram::Shaders::SKY_FRAG, 
+		ShaderProgram::Shaders::SKY_VERT });
+	ShaderProgram instance_shader	= ShaderProgram({ 
+		ShaderProgram::Shaders::INSTANCE_FRAG_COLOR,
+		ShaderProgram::Shaders::INSTANCE_VERT_COLOR });
+	ShaderProgram ground_shader		= ShaderProgram({ 
+		ShaderProgram::Shaders::NO_LIGHT_FRAG, 
+		ShaderProgram::Shaders::NO_LIGHT_VERT });
+	ShaderProgram volume_shader		= ShaderProgram({ 
+		ShaderProgram::Shaders::VOLUME_FRAG_3D, 
+		ShaderProgram::Shaders::VOLUME_VERT_3D});
+	ShaderProgram deferred_shader	= ShaderProgram({ 
+		ShaderProgram::Shaders::DEFFERED_RENDER_ELLIPSOID_FRAG, 
+		ShaderProgram::Shaders::DEFFERED_RENDER_ELLIPSOID_VERT });
+	ShaderProgram render2quad		= ShaderProgram({ 
+		ShaderProgram::Shaders::SCREEN_FRAG, 
+		ShaderProgram::Shaders::SCREEN_VERT });
+	ShaderProgram quad_shader		= ShaderProgram({ 
+		ShaderProgram::Shaders::QUAD_RENDER_FRAG, 
+		ShaderProgram::Shaders::QUAD_RENDER_VERT });
+	ShaderProgram force_shader = ShaderProgram({
+		ShaderProgram::Shaders::LIC_PREPASS_FRAG,
+		ShaderProgram::Shaders::LIC_PREPASS_VERT });
+	ShaderProgram lic_shader = ShaderProgram({
+		ShaderProgram::Shaders::LIC_FRAG,
+		ShaderProgram::Shaders::LIC_PREPASS_VERT });
 	
+
+
 	//Setup Skybox
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 	std::vector<std::string> skybox_files;
@@ -388,7 +505,8 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	
 	//AVW.getMeshes()[0]->addTexture(text);
 	glm::mat4 avw_transform(1);
-	avw_transform = glm::rotate(avw_transform, glm::radians(90.f), glm::vec3(1, 0, 0));
+	avw_transform = glm::rotate(avw_transform, glm::radians(90.f), 
+		glm::vec3(1, 0, 0));
 	glm::vec3 avw_scale(2, 1, 2);
 	avw_transform = glm::scale(avw_transform, avw_scale);
 
@@ -464,12 +582,12 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 		{"ambient_coeff", .3f},
 		{"spec_coeff", .4},
 		{"diffuse_coeff", .3f},
-	};
+	}, lic_shading_floats;
 	std::map<std::string, int> deferred_shading_ints = { 
 		{"shininess", 32} 
 	}, instance_shading_ints = {
 		{"shininess", 16}
-	};
+	}, lic_shading_ints;
 	
 
 	//send light params to model shader
@@ -487,7 +605,9 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 
 
 	//load avw wifi data
-	AVWWifiData wifi(deferred_shader);
+	ShaderProgram router_shaders[2] = { deferred_shader, force_shader };
+
+	AVWWifiData wifi(router_shaders, 2);
 	Ellipsoid ellipsoid;
 	wifi.loadEllipsoid("./Content/Data/one_router.elipsoid", ellipsoid);
 	
@@ -560,6 +680,9 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	quad.getMeshes().at(0)->addTexture(buffer[0].normal_texture);
 	quad.getMeshes().at(0)->addTexture(buffer[0].ellipsoid_coordinates_texture);
 	quad.getMeshes().at(0)->addTexture(buffer[0].tangent_texture);
+	quad.getMeshes().at(0)->addTexture(buffer[0].force_texture);
+	quad.getMeshes().at(0)->addTexture(buffer[0].lic_texture[0]);
+	quad.getMeshes().at(0)->addTexture(buffer[0].lic_texture[1]);
 	quad.getMeshes().at(0)->addTexture(eyes[0].screenTexture);
 	quad.getMeshes().at(0)->addTexture(wifi_tex);
 
@@ -619,6 +742,12 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 		{ "cling", .9},
 		{ "tunable", .005}
 	};
+	lic_shading_floats = {
+		{ "alpha_boost", 20 },
+		{ "density", .025 },
+		{ "frag_pos_scale", 100},
+		{ "learning_rate", .05},
+	};
 	std::map<std::string, bool> deferred_shading_bools = {
 		{ "contour_on", false},
 		{ "display_names", false },
@@ -635,16 +764,27 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 		{ "multirouter", true},
 		{ "color_weaving", true},
 		{"blending", true}
+	}, lic_shading_bools = {
+		{ "screen_space_lic", true},
+		{ "procedural_noise", false},
+		{ "cull_discontinuities", true},
+		{ "use_mask", true}, 
+		{ "multirouter", true}
 	};
 	deferred_shading_ints = {
 		{"num_point_lights", 20},
 		{"num_frequencies", wifi.getActiveFreqs(freqs).size()},
 		{"num_contours", 6},
 		{"power", 1}
+	}, lic_shading_ints = {
+		{ "num_ellpsoids", num_routers},
+		{ "power", 1}
 	};
-	const int num_antialiased_textures = 21;
+	const int num_antialiased_textures = 23;
 	Texture2D antialiased_textures[num_antialiased_textures] = {
-		frequency_texture, noise[0]};
+		frequency_texture,
+		//buffer[0].lic_texture[0], buffer[0].lic_texture[0],
+		noise[0]};
 	bool num_samples_changed = false, num_routers_changed = false;
 	while (!glfwWindowShouldClose(w.getWindow())) {
 		if (w.getResized()) {
@@ -736,6 +876,55 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			glDisable(GL_CULL_FACE);
 			//glDepthMask(GL_TRUE);
 			//glClear(GL_DEPTH_BUFFER_BIT);
+			glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].lic_framebuffer[0]);
+			glClear(GL_COLOR_BUFFER_BIT);
+			glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].lic_framebuffer[1]);
+			glClear(GL_COLOR_BUFFER_BIT);
+			int num_forces = num_routers;
+			int num_iters = 4;
+			if (lic_shading_bools["multirouter"])
+				num_forces = 1;
+			for (int i = 0; i < num_forces; i++) {
+				
+				force_shader.Use();
+				glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].force_framebuffer);
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+				force_shader.SetUniform("ellipsoid_transform", wifi.ellipsoid_transform);
+				force_shader.SetUniform("radius_stretch", wifi.radius_stretch);
+				force_shader.SetUniform("ellipsoid_index_offset", i);
+
+				force_shader.SetUniform("num_ellipsoids", num_routers/num_forces);
+				force_shader.SetUniform("extent", 1.0f);
+
+				render(quad, &force_shader);
+				
+				for (int j = 0; j < num_iters; j++) {
+					lic_shader.Use();
+
+					lic_shader.SetUniforms(lic_shading_floats);
+					lic_shader.SetUniforms(lic_shading_ints);
+					lic_shader.SetUniforms(lic_shading_bools);
+					lic_shader.SetUniform("camera", ViewMat);
+					lic_shader.SetUniform("projection", ProjectionMat);
+					lic_shader.SetUniform("color", glm::vec3(wifi_colors.at(i)));
+					lic_shader.SetUniform("ellipsoid_index_offset", i);
+					lic_shader.SetUniform("router_num", i);
+					lic_shader.SetUniform("step_num", j);
+
+					glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].lic_framebuffer[j%2]);
+					glClear(GL_DEPTH_BUFFER_BIT);
+					render(quad, &lic_shader);
+					//if (j == 0) {
+					//	noise[i].giveName("temp_name");
+					//}
+					//buffer[0].lic_texture.giveName("noise_tex[" + std::to_string(i) + "]");
+				}
+				//noise[i].giveName("noise_tex[" + std::to_string(i) + "]");
+				//buffer[0].lic_texture.giveName("lic_tex");
+			}
+
+			glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].lic_accum_framebuffer);
 
 			deferred_shader.Use();
 			deferred_shader.SetEllipsoid(ellipsoid);
@@ -744,7 +933,9 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			deferred_shader.SetUniforms(deferred_shading_bools);
 			deferred_shader.SetUniform("camera", ViewMat);
 			deferred_shader.SetUniform("projection", ProjectionMat);
-
+			deferred_shader.SetUniform("num_lic", num_iters % 2);
+			deferred_shader.SetUniform("alpha_boost", lic_shading_floats["alpha_boost"]);
+			deferred_shader.SetUniform("power", lic_shading_ints["power"]);
 			wifi_transform = glm::translate(glm::mat4(1), wifi_translate);
 			wifi.ellipsoid_transform = wifi_transform * glm::scale(glm::mat4(1), wifi_scale);
 			deferred_shader.SetUniform("ellipsoid_transform", wifi.ellipsoid_transform);
@@ -778,11 +969,15 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			}
 			deferred_shader.SetLights(modelLights, camera.getPosition(), deferred_shading_ints["num_point_lights"]);
 
+			
+
+
 			glBindFramebuffer(GL_FRAMEBUFFER, eyes[i].frame_buffer);
 			//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			glDepthMask(GL_FALSE);
  			render(quad, &deferred_shader);
 			glDepthMask(GL_TRUE);
+
 
 			if (num_samples_changed || num_routers_changed) {
 				updateNoise(lic, num_samples, num_routers, noise, antialiased_textures, lic_texture_res, an);
@@ -807,7 +1002,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			}
 
 			if (updated_routers) {
-				wifi.updateRouterStructure(routers, wifinames, freqs, deferred_shader, nearest_router_on);
+				wifi.updateRouterStructure(routers, wifinames, freqs, router_shaders, 2, nearest_router_on);
 				updated_routers = false;
 				if (nearest_router_on) {
 					std::vector<glm::vec4> new_wifi_colors(wifi.getNumActiveRouters(routers));
@@ -874,6 +1069,8 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 					quad.getMeshes().at(0)->setTexture(text);
 				}
 			}
+			
+
 			//render wifi instances
 			instance_shader.Use();
 			wifi_transforms.clear();
@@ -892,6 +1089,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			instance_shader.SetUniform("normalMat", glm::mat3(1));
 			instance_shader.SetLights(lights);
 			instance_shader.SetUniform("viewPos", camera.getPosition());
+
 			glBindFramebuffer(GL_FRAMEBUFFER, eyes[i].frame_buffer);
 			if (wifi_transforms.size() > 0 && deferred_shading_bools["shade_instances"])
 				render(Sphere, &instance_shader);
@@ -970,31 +1168,31 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			ImGui::Checkbox("Shade Instances", &deferred_shading_bools["shade_instances"]);
 			ImGui::Checkbox("Line Integral Convolution", &deferred_shading_bools["lic_on"]);
 			if (deferred_shading_bools["lic_on"]) {
-				ImGui::SliderFloat("Alpha_Boost", &deferred_shading_floats["alpha_boost"], 1, 30);
-				ImGui::SliderInt("Power", &deferred_shading_ints["power"], 1, 8);
-				ImGui::Checkbox("Screenspcace LIC", &deferred_shading_bools["screen_space_lic"]);
+				ImGui::SliderFloat("Alpha_Boost", &lic_shading_floats["alpha_boost"], 1, 30);
+				ImGui::SliderInt("Power", &lic_shading_ints["power"], 1, 8);
+				ImGui::Checkbox("Screenspcace LIC", &lic_shading_bools["screen_space_lic"]);
 				if (deferred_shading_bools["screen_space_lic"]) {
-					ImGui::SliderFloat("Vector Threshold", &deferred_shading_floats["tunable"], 0, 3);
-					ImGui::Checkbox("Hug Walls", &deferred_shading_bools["cull_discontinuities"]);
+					ImGui::SliderFloat("Vector Threshold", &lic_shading_floats["tunable"], 0, 3);
+					ImGui::Checkbox("Hug Walls", &lic_shading_bools["cull_discontinuities"]);
 				}
-				ImGui::Checkbox("Multirouter", &deferred_shading_bools["multirouter"]);
-				if(deferred_shading_bools["multirouter"]) {
+				ImGui::Checkbox("Multirouter", &lic_shading_bools["multirouter"]);
+				if(lic_shading_bools["multirouter"]) {
 					ImGui::Checkbox("Use Color Weaving", &deferred_shading_bools["color_weaving"]);
 					if (deferred_shading_bools["color_weaving"]) {
 						ImGui::Checkbox("Use Blending", &deferred_shading_bools["blending"]);
 					}
 				}
-				ImGui::Checkbox("Procedural Noise", &deferred_shading_bools["procedural_noise"]);
-				if (deferred_shading_bools["procedural_noise"]) {
-					ImGui::SliderFloat("Density", &deferred_shading_floats["density"], 0, 1);
-					if (!deferred_shading_bools["screen_space_lic"])
+				ImGui::Checkbox("Procedural Noise", &lic_shading_bools["procedural_noise"]);
+				if (lic_shading_bools["procedural_noise"]) {
+					ImGui::SliderFloat("Density", &lic_shading_floats["density"], 0, 1);
+					if (!lic_shading_bools["screen_space_lic"])
 						ImGui::SliderFloat("Cling Factor", &deferred_shading_floats["cling"], 0, 1);
 				}else {
 					num_samples_changed = ImGui::SliderInt("num_samples", &num_samples, 12800, 102400 * 16);
 				}
-				ImGui::SliderFloat("Fragment Position Scale", &deferred_shading_floats["frag_pos_scale"], 0, 200);
-				ImGui::SliderFloat("Rate", &deferred_shading_floats["learning_rate"], 0, .9);
-				ImGui::Checkbox("Use LIC Mask", &deferred_shading_bools["use_mask"]);
+				ImGui::SliderFloat("Fragment Position Scale", &lic_shading_floats["frag_pos_scale"], 0, 200);
+				ImGui::SliderFloat("Rate", &lic_shading_floats["learning_rate"], 0, .9);
+				ImGui::Checkbox("Use LIC Mask", &lic_shading_bools["use_mask"]);
 				
 			}
 			else {

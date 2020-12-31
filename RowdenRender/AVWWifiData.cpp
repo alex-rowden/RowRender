@@ -35,10 +35,16 @@ AVWWifiData::AVWWifiData()
 	std::cerr << "Wifi data must be linked to shader program" << std::endl;
 }
 
-AVWWifiData::AVWWifiData(ShaderProgram p) {
-	block_index = glGetUniformBlockIndex(p.getShader(), "EllipsoidBlock");
-	glUniformBlockBinding(p.getShader(), block_index, bindingPoint);
+AVWWifiData::AVWWifiData(ShaderProgram* p, int num_shaders) {
+	block_index = new GLuint[num_shaders];
+	bindingPoint = new GLuint[num_shaders];
 	glGenBuffers(1, &uniformBuffer);
+	for (int i = 0; i < num_shaders; i++) {
+		bindingPoint[i] = 0;
+		block_index[i] = glGetUniformBlockIndex(p[i].getShader(), "EllipsoidBlock");
+		glUniformBlockBinding(p[i].getShader(), block_index[i], bindingPoint[i]);
+		std::cout << bindingPoint[i] << std::endl;
+	}
 	
 }
 
@@ -293,7 +299,7 @@ void AVWWifiData::loadWifi(std::string filename, std::string floor) {
 	inputFile.close();
 }
 
-void AVWWifiData::updateRouterStructure(std::vector<bool>router_bools, std::vector<bool> wifinames, std::vector<bool> freqs, ShaderProgram model_shader, bool nearest_router) {
+void AVWWifiData::updateRouterStructure(std::vector<bool>router_bools, std::vector<bool> wifinames, std::vector<bool> freqs, ShaderProgram* model_shader, int num_shaders, bool nearest_router) {
 	int wifinum = 0;
 	int i = 0;
 	delete[] routers;
@@ -318,14 +324,14 @@ void AVWWifiData::updateRouterStructure(std::vector<bool>router_bools, std::vect
 					wifiname = "empty";
 				float router_index = 0;
 				if (nearest_router)
-					router_index = (i + getNumWifiNames() + 1 ) / (float)(getNumActiveRouters(router_bools) + getNumWifiNames() + 1);
+					router_index = (i + getNumWifiNames() + 1) / (float)(getNumActiveRouters(router_bools) + getNumWifiNames() + 1);
 				else
 					router_index = wifinum / (float)(getNumWifiNames() + 1);
 				if (!loadEllipsoid("./Content/Data/AVW_data/"
 					+ wifiname + "/"
 					+ MacToEntries.first + ".ellipsoid",
 					routers[i], router_index)) {
-					
+
 					std::cerr << "Error loading ellipsoid" << std::endl;
 				}
 				else {
@@ -345,9 +351,12 @@ void AVWWifiData::updateRouterStructure(std::vector<bool>router_bools, std::vect
 	}
 	//model_shader.setEllipsoids(routers);
 	glBindBuffer(GL_UNIFORM_BUFFER, uniformBuffer);
-	glBufferData(GL_UNIFORM_BUFFER, i * sizeof(Ellipsoid), routers, GL_DYNAMIC_DRAW);
-	glBindBufferBase(GL_UNIFORM_BUFFER, bindingPoint, uniformBuffer);
-	model_shader.SetUniform("num_routers", i);
+	for (int j = 0; j < num_shaders; j++){
+		glBufferData(GL_UNIFORM_BUFFER, i * sizeof(Ellipsoid), routers, GL_DYNAMIC_DRAW);
+		glBindBufferBase(GL_UNIFORM_BUFFER, bindingPoint[j], uniformBuffer);
+		model_shader[0].SetUniform("num_routers", i);
+	}
+		
 }
 
 

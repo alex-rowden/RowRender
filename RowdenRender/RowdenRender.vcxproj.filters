@@ -329,5 +329,14 @@
     <None Include="Shaders\volume_vertex.glsl">
       <Filter>Source Files\Shaders</Filter>
     </None>
+    <None Include="Shaders\lic_prepass.frag">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\lic_prepass.vert">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\lic.frag">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

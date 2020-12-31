@@ -105,6 +105,9 @@
     <None Include="Shaders\instance_fshader_color.glsl" />
     <None Include="Shaders\instance_vshader.glsl" />
     <None Include="Shaders\instance_vshader_color.glsl" />
+    <None Include="Shaders\lic.frag" />
+    <None Include="Shaders\lic_prepass.frag" />
+    <None Include="Shaders\lic_prepass.vert" />
     <None Include="Shaders\light_frag.glsl" />
     <None Include="Shaders\light_vert.glsl" />
     <None Include="Shaders\prepass_shader.glsl" />
