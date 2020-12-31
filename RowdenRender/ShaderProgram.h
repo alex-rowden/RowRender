@@ -30,7 +30,7 @@ public:
 		SSAO_VERT, SSAO_FRAG,
 		QUAD_RENDER_VERT, QUAD_RENDER_FRAG,
 		LIC_PREPASS_VERT, LIC_PREPASS_FRAG,
-		LIC_FRAG,
+		LIC_FRAG, LIC_ACCUM_FRAG
 	};
 	void SetupShader(Shaders shader);
 	ShaderProgram() {};

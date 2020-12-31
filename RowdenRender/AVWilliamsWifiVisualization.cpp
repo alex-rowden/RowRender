@@ -476,6 +476,9 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	ShaderProgram lic_shader = ShaderProgram({
 		ShaderProgram::Shaders::LIC_FRAG,
 		ShaderProgram::Shaders::LIC_PREPASS_VERT });
+	ShaderProgram lic_accum_shader = ShaderProgram({
+		ShaderProgram::Shaders::LIC_ACCUM_FRAG,
+		ShaderProgram::Shaders::LIC_PREPASS_VERT });
 	
 
 
@@ -683,6 +686,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	quad.getMeshes().at(0)->addTexture(buffer[0].force_texture);
 	quad.getMeshes().at(0)->addTexture(buffer[0].lic_texture[0]);
 	quad.getMeshes().at(0)->addTexture(buffer[0].lic_texture[1]);
+	quad.getMeshes().at(0)->addTexture(buffer[0].lic_accum_texture);
 	quad.getMeshes().at(0)->addTexture(eyes[0].screenTexture);
 	quad.getMeshes().at(0)->addTexture(wifi_tex);
 
@@ -876,10 +880,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			glDisable(GL_CULL_FACE);
 			//glDepthMask(GL_TRUE);
 			//glClear(GL_DEPTH_BUFFER_BIT);
-			glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].lic_framebuffer[0]);
-			glClear(GL_COLOR_BUFFER_BIT);
-			glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].lic_framebuffer[1]);
-			glClear(GL_COLOR_BUFFER_BIT);
+			
 			int num_forces = num_routers;
 			int num_iters = 4;
 			if (lic_shading_bools["multirouter"])
@@ -907,13 +908,17 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 					lic_shader.SetUniforms(lic_shading_bools);
 					lic_shader.SetUniform("camera", ViewMat);
 					lic_shader.SetUniform("projection", ProjectionMat);
-					lic_shader.SetUniform("color", glm::vec3(wifi_colors.at(i)));
+					if(wifi.getNumWifiNames() + i < wifi_colors.size())
+						lic_shader.SetUniform("color", glm::vec3(wifi_colors.at(wifi.getNumWifiNames() + i)));
 					lic_shader.SetUniform("ellipsoid_index_offset", i);
 					lic_shader.SetUniform("router_num", i);
 					lic_shader.SetUniform("step_num", j);
-
+					
 					glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].lic_framebuffer[j%2]);
-					glClear(GL_DEPTH_BUFFER_BIT);
+					if (j < 2)
+						glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+					else
+						glClear(GL_DEPTH_BUFFER_BIT);
 					render(quad, &lic_shader);
 					//if (j == 0) {
 					//	noise[i].giveName("temp_name");
@@ -922,10 +927,19 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				}
 				//noise[i].giveName("noise_tex[" + std::to_string(i) + "]");
 				//buffer[0].lic_texture.giveName("lic_tex");
+				glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].lic_accum_framebuffer);
+				if (i == 0)
+					glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+				else
+					glClear(GL_DEPTH_BUFFER_BIT);
+				lic_accum_shader.Use();
+				lic_accum_shader.SetUniform("camera", ViewMat);
+				lic_accum_shader.SetUniform("projection", ProjectionMat);
+				lic_accum_shader.SetUniform("lic_index", num_iters % 2);
+				render(quad, &lic_accum_shader);
 			}
 
-			glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].lic_accum_framebuffer);
-
+			
 			deferred_shader.Use();
 			deferred_shader.SetEllipsoid(ellipsoid);
 			deferred_shader.SetUniforms(deferred_shading_floats);

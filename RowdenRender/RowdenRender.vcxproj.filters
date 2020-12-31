@@ -338,5 +338,8 @@
     <None Include="Shaders\lic.frag">
       <Filter>Source Files\Shaders</Filter>
     </None>
+    <None Include="Shaders\lic_accum.frag">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

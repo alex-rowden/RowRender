@@ -16,7 +16,7 @@ uniform sampler2D albedo_tex;
 uniform sampler2D fragPos_tex;
 uniform sampler2D ellipsoid_coordinates_tex;
 uniform sampler2D tangent_tex;
-uniform sampler2D lic_tex[2];
+uniform sampler2D lic_accum_tex;
 
 //stored textures
 uniform sampler2D frequency_tex;
@@ -663,8 +663,8 @@ vec3 calculateColor(vec3 fragPos, vec3 Normal) {
 	
 	vec3 color = texture(albedo_tex, TexCoord).rgb;
 	if (num_routers > 0 && lic_on && abs(dot(Normal, vec3(0,0,1))) < 1e-3) {
-		vec4 lic_color = texture(lic_tex[num_lic], TexCoord);
-		if (lic_color.a < 0)
+		vec4 lic_color = texture(lic_accum_tex, TexCoord);
+		if (lic_color.a < 0) 
 			return color;
 		vec3 ret = lic_color.a * lic_color.rgb;
 		ret = ret + color * (1 - lic_color.a);
