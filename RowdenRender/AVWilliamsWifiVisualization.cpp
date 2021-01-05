@@ -1128,7 +1128,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 						auto inv_view = glm::inverse(camera_offset * camera.getView());
 						position = glm::vec3(inv_view * glm::vec4(position, 1));
 				
-						forward = glm::normalize(glm::vec3(inv_view * vr.getControllerPose(vr.RightDeviceId) * glm::rotate(glm::mat4(1), glm::radians(90.0f), glm::vec3(1, 0, 0)) * glm::vec4(0, 0, -1,0)));
+						forward = glm::normalize(glm::vec3(inv_view * vr.getControllerPose(vr.RightDeviceId) * glm::rotate(glm::mat4(1), glm::radians(60.0f), glm::vec3(1,0,0)) * glm::rotate(glm::mat4(1), glm::radians(120.0f), glm::vec3(1, 0, 0)) * glm::vec4(0, 0, -1,0)));
 						rayPicker(forward, position, glm::vec3(0), vr.teleport_position);
 						
 						deferred_shader.SetUniform("selectedPos", glm::vec3(vr.teleport_position.r, vr.teleport_position.g, vr.teleport_position.b));
@@ -1136,7 +1136,8 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 					}
 				}
 				right_hand_transform = right_hand_transform *
-					glm::rotate(glm::mat4(1), glm::radians(-90.0f), glm::vec3(1, 0, 0)) *
+					glm::rotate(glm::mat4(1),
+						 glm::radians(-120.0f), glm::vec3(1, 0, 0)) *
 					glm::scale(glm::mat4(1), glm::vec3(-.2, -100, -.2));
 				ground_shader.SetUniform("model", right_hand_transform * glm::scale(glm::mat4(1), .01f * glm::vec3(1, 1, 1)));
 
