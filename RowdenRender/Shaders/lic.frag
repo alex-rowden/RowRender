@@ -1,6 +1,6 @@
 #version 430
 
-#define NUM_STEPS 16
+#define NUM_STEPS 12
 #define MAX_ROUTERS 20
 
 out vec4 LIC;

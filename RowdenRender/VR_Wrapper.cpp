@@ -245,11 +245,11 @@ void VR_Wrapper::UpdateActionState() {
 	for (int eHand = 0; eHand < 2; eHand++)
 	{
 		vr::InputPoseActionData_t poseData;
-		if (auto error = vr::VRInput()->GetPoseActionDataForNextFrame(hand[eHand].pose_handle, vr::TrackingUniverseStanding, &poseData, sizeof(poseData), vr::k_ulInvalidInputValueHandle) != vr::VRInputError_None
+		if (auto error = vr::VRInput()->GetPoseActionDataForNextFrame(hand[eHand].pose_handle, vr::TrackingUniverseStanding, &poseData, sizeof(poseData), hand[eHand].source) != vr::VRInputError_None
 			|| !poseData.bActive || !poseData.pose.bPoseIsValid)
 		{
 			//m_rHand[eHand].m_bShowController = false;
-			//std::cerr << "pose invalid " << error << std::endl;
+			std::cerr << "pose invalid: " << error << std::endl;
 		}
 		else
 		{
@@ -266,12 +266,14 @@ void VR_Wrapper::handle_vr_input() {
 		ProcessVREvent(event);
 	}
 	UpdateActionState();
+	/*
 	for (EHand eHand = EHand::Left; eHand <= EHand::Right; ((int&)eHand)++)
 	{
 		vr::InputPoseActionData_t poseData;
-		if (vr::VRInput()->GetPoseActionDataForNextFrame(m_rHand[(int)eHand].m_actionPose, vr::TrackingUniverseStanding, &poseData, sizeof(poseData), vr::k_ulInvalidInputValueHandle) != vr::VRInputError_None
+		if (auto error = vr::VRInput()->GetPoseActionDataForNextFrame(m_rHand[(int)eHand].m_actionPose, vr::TrackingUniverseStanding, &poseData, sizeof(poseData), vr::k_ulInvalidInputValueHandle) != vr::VRInputError_None
 			|| !poseData.bActive || !poseData.pose.bPoseIsValid)
 		{
+			std::cout << "failed to get PoseActionData" << error << std::endl;
 			m_rHand[(int)eHand].m_bShowController = false;
 		}
 		else
@@ -291,7 +293,8 @@ void VR_Wrapper::handle_vr_input() {
 			}
 		}
 	}
-}
+	*/
+	}
 
 glm::mat4 VR_Wrapper::getSeatedZeroPoseToStandingPose() {
 	return ConvertSteamVRMatrixToMatrix4(vr_pointer->GetSeatedZeroPoseToStandingAbsoluteTrackingPose());
