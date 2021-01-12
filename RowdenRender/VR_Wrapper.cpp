@@ -45,7 +45,7 @@ void VR_Wrapper::ProcessVREvent(const vr::VREvent_t& event) {
 		if (left_or_right(event) == VR_Wrapper::EHand::Right) {
 			if (ButtonCode2Button(event) == VR_Wrapper::Button::Trigger) {
 				std::cout << "Run Ray Picking" << std::endl;
-				ray_picker_enable = true;
+				
 			}if (ButtonCode2Button(event) == VR_Wrapper::Button::B) {
 				//adjusted_height += 1.01;
 			}if (ButtonCode2Button(event) == VR_Wrapper::Button::A) {
@@ -205,14 +205,21 @@ void VR_Wrapper::setActionHandles()
 	auto ret = vr::VRInput()->GetInputSourceHandle("/user/hand/left", &hand[0].source);
 	ret = vr::VRInput()->GetActionHandle("/actions/demo/in/hand_left", &hand[0].pose_handle);
 	
+	ret = vr::VRInput()->GetActionHandle("/actions/demo/in/move_quad", &trigger_left);
+
+	if (ret != vr::EVRInputError::VRInputError_None) {
+		std::cout << "left trigger error " << ret << std::endl;
+	}
+
 	vr::VRInput()->GetInputSourceHandle("/user/hand/right", &hand[1].source);
 	vr::VRInput()->GetActionHandle("/actions/demo/in/hand_right", &hand[1].pose_handle);
 	
 	ret = vr::VRInput()->GetActionHandle("/actions/demo/in/select", &trigger_right);
 
 	if (ret != vr::EVRInputError::VRInputError_None) {
-		std::cout << "boop " << ret << std::endl;
+		std::cout << "right trigger error " << ret << std::endl;
 	}
+	
 }
 
 //straight up stolen from openvr sample
@@ -241,7 +248,9 @@ void VR_Wrapper::UpdateActionState() {
 	if (vr::VRInput()->UpdateActionState(&actionSet, sizeof(actionSet), 1) != vr::EVRInputError::VRInputError_None) {
 		std::cerr << "error updating Action State" << std::endl;
 	}
-	ray_picker_enable = GetDigitalActionState(trigger_right);
+	right_trigger = GetDigitalActionState(trigger_right);
+	left_trigger = GetDigitalActionState(trigger_left);
+	
 	for (int eHand = 0; eHand < 2; eHand++)
 	{
 		vr::InputPoseActionData_t poseData;

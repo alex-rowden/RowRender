@@ -17,6 +17,10 @@
     },
     {
       "name": "/actions/demo/in/select",
+      "type": "boolean"
+    },
+    {
+      "name": "/actions/demo/in/move_quad",
       "type":  "boolean"
     }
 

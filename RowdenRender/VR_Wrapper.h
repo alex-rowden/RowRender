@@ -27,15 +27,16 @@ public:
 		None = -1,
 	};
 	IVRSystem* vr_pointer = NULL;
-	VRActionHandle_t m_actionSet, trigger_right;
+	VRActionHandle_t m_actionSet, trigger_right, trigger_left;
 	vr::TrackedDevicePose_t trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
 	glm::mat4 DevicePose[vr::k_unMaxTrackedDeviceCount];
 	char DevClassChar[k_unMaxTrackedDeviceCount];
 	int validPoseCount = 0;
 	std::string strPoseClasses;
-	bool ray_picker_enable = false;
+	bool right_trigger = false, left_trigger = false;
 	float adjusted_height = 0;
 	glm::vec3 teleport_position;
+	glm::mat4 quad_transform;
 	//VR_Wrapper();
 	void initialize();
 	bool initCompositor();

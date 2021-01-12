@@ -18,14 +18,13 @@ layout(location = 3) out vec4 ellipsoid_coordinates_tex;
 layout(location = 4) out vec4 tangent_tex;
 
 uniform float distance_mask;
-
-
+uniform float texcoord_scale;
 uniform vec3 viewPos;
 
 
 void main()
 {
-	vec3 fragPos = FragPos;
+	vec3 fragPos = FragPos ;
 	vec3 norm = normalize(Normal);
 	tangent_tex = vec4(normalize(Tangent), 1);
 	if (distance(FragPos, viewPos) < distance_mask) {
@@ -37,7 +36,7 @@ void main()
 	}
 	
 
-	ellipsoid_coordinates_tex = vec4(TexCoord, 0, 1);
+	ellipsoid_coordinates_tex = vec4(TexCoord * texcoord_scale, 0, 1);
 
 	albedo_tex = vec4(texture(texture_diffuse1, TexCoord).rgb, 1);
 	fragPos_tex = vec4(fragPos, 1);

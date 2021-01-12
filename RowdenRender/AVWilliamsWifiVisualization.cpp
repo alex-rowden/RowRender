@@ -444,7 +444,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	);
 	int max_chars = 6;
 	
-
+	float texcoord_scale = .004;
 	//Load shaders
 	ShaderProgram model_shader		= ShaderProgram({ 
 		ShaderProgram::Shaders::FRAG_ELLIPSOID, 
@@ -500,12 +500,16 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	skybox.getMeshes().at(0)->setTexture(skybox_tex, 0);
 
 	//Setup AV Willams Model
-	Model AVW("./Content/Models/AVW_model.obj", true);
+	Model AVW("./Content/Models/AVW_sliced.obj", true);
 	AVW.setModel(true);
 	Texture2D white = Texture2D(glm::vec4(1,1,1,1));
 	//white.giveName("texture_diffuse1");
-	AVW.getMeshes()[0]->setTexture(white, 0);
+	//AVW.getMeshes()[0]->setTexture(white, 0);
 	
+	for (int i = 0; i < AVW.getMeshes().size(); i++) {
+		AVW.getMeshes()[i]->setTexture(white, 0);
+	}
+
 	//AVW.getMeshes()[0]->addTexture(text);
 	glm::mat4 avw_transform(1);
 	avw_transform = glm::rotate(avw_transform, glm::radians(90.f), 
@@ -534,13 +538,12 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	Cylinder.setModel();
 
 	//Setup ground rendering
-	Model quad("./Content/Models/quad/quad_centered.obj");
-	quad.setModel();
+	Model quad("./Content/Models/quad/quad_centered.obj", true);
+	quad.setModel(true);
 	glm::mat4 ground_transform(1);
 	ground_transform = glm::scale(ground_transform, glm::vec3(15, 19, 2));
 	ground_transform = glm::translate(ground_transform, glm::vec3(0, 0, -.101));
 	//quad.getMeshes().at(0)->setTexture(Texture2D(glm::vec4(50, 50, 50, 255) * (1 / 255.0f)), 0);
-	quad.getMeshes().at(0)->setTexture(popup_background, 0);
 	
 
 	//Setup volume rendering
@@ -642,7 +645,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	frequency_texture.setTexMinMagFilter(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR);
 	frequency_texture.setTexParameterWrap(GL_REPEAT);
 	//AVW.getMeshes().at(0)->addTexture(frequency_texture);
-	quad.getMeshes().at(0)->addTexture(frequency_texture);
+	quad.getMeshes().at(0)->setTexture(frequency_texture, 1);
 
 
 	//std::vector<glm::vec4> heatmap = std::vector<glm::vec4>(2);
@@ -749,8 +752,8 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	lic_shading_floats = {
 		{ "alpha_boost", 20 },
 		{ "density", .025 },
-		{ "frag_pos_scale", 100},
-		{ "learning_rate", .05},
+		{ "frag_pos_scale", 50},
+		{ "learning_rate", .075},
 	};
 	std::map<std::string, bool> deferred_shading_bools = {
 		{ "contour_on", false},
@@ -828,12 +831,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			render(skybox, &skybox_shader);
 			glDepthMask(GL_TRUE);
 
-			//render ground plane
-			ground_shader.SetUniform("projection", ProjectionMat);
-			ground_shader.SetUniform("camera", ViewMat);
-			ground_shader.SetUniform("model", ground_transform);
-			ground_shader.SetUniform("heatmap", 0);
-			render(quad, &ground_shader);
+			
 
 			//render building model
 			glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].frame_buffer);
@@ -872,14 +870,42 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			Lights modelLights = setPointLights(totalLights, constant, linear, quadratic);
 			model_shader.SetUniform("viewPos", camera.getPosition());
 			model_shader.SetUniform("distance_mask", deferred_shading_floats["distance_mask"]);
-
+			model_shader.SetUniform("texcoord_scale", 1.f);
 			//glDepthMask(GL_FALSE);
 			glEnable(GL_CULL_FACE);
 			glCullFace(GL_BACK);
-			render(AVW, &model_shader);
+			AVW.Render(&model_shader, avw_transform, ViewMat, ProjectionMat);
+			//render(AVW, &model_shader);
+			//render ground plane
 			glDisable(GL_CULL_FACE);
+			ground_shader.Use();
+			ground_shader.SetUniform("projection", ProjectionMat);
+			ground_shader.SetUniform("camera", ViewMat);
+			ground_shader.SetUniform("model", ground_transform);
+			ground_shader.SetUniform("heatmap", 0);
+			render(quad, &ground_shader);
+			
 			//glDepthMask(GL_TRUE);
 			//glClear(GL_DEPTH_BUFFER_BIT);
+			if (use_vr && vr.quad_transform != glm::mat4(1)) {
+				glm::mat4 transform = glm::inverse(camera_offset * camera.getView()) *
+					vr.quad_transform *
+					glm::scale(
+						glm::rotate(
+							glm::mat4(1),
+							glm::radians(90.0f),
+							glm::vec3(1, 0, 0)),
+						glm::vec3(.2))
+					;;
+				//vr.getViewMatrix(curr_eye) * camera_offset * ViewMat
+				model_shader.SetUniform("model", transform);
+				model_shader.SetUniform("camera", ViewMat);
+				model_shader.SetUniform("normalMatrix", glm::mat3(glm::transpose(glm::inverse(transform))));
+				model_shader.SetUniform("texcoord_scale", texcoord_scale);
+				quad.getMeshes().at(0)->setTexture(white, 0);
+				render(quad, &model_shader);
+			}
+
 			glDisable(GL_DEPTH_TEST);
 			int num_forces = num_routers;
 			int num_iters = 3;
@@ -1002,6 +1028,8 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			
 			if (renderPopup) {
 				glm::mat4 quad_transform(1);
+				quad.getMeshes().at(0)->setTexture(popup_background, 0);
+
 				glm::vec3 pos = glm::lerp(selectedPos, camera.getPosition(), .1f);
 				quad_transform = glm::translate(quad_transform, pos);
 				quad_shader.SetUniform("camera", ViewMat);
@@ -1116,7 +1144,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				render(RightHand, &ground_shader);
 				
 				if (i == 0) {
-					if (vr.ray_picker_enable) {
+					if (vr.right_trigger) {
 						//glm::vec3 forward = vr.getControllerPose(vr.RightDeviceId) *controller_rotation* glm::vec4(-1, 0, 0,0);
 						glm::vec3 forward, pos2;
 						glm::quat  orientation;
@@ -1132,7 +1160,22 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 						rayPicker(forward, position, glm::vec3(0), vr.teleport_position);
 						
 						deferred_shader.SetUniform("selectedPos", glm::vec3(vr.teleport_position.r, vr.teleport_position.g, vr.teleport_position.b));
-						vr.ray_picker_enable = false;
+						//vr.ray_picker_enable = false;
+					}else if (vr.teleport_position != glm::vec3()) {
+						camera.setPosition(glm::vec3(vr.teleport_position.x, vr.teleport_position.y, camera.getPosition().z));
+						vr.teleport_position = glm::vec3();
+					}
+					
+					if (vr.left_trigger) {
+						std::cout << "left_trigger actions" << std::endl;
+						glm::vec3 forward;
+						glm::quat  orientation;
+						glm::vec3 skew, scale;
+						glm::vec4 perspective;
+						glm::vec3 position;
+						//glm::decompose(vr.getControllerPose(vr.LeftDeviceId), scale, orientation, position, skew, perspective);
+						//auto inv_view = glm::inverse(camera_offset * camera.getView());
+						vr.quad_transform = vr.getControllerPose(vr.LeftDeviceId);
 					}
 				}
 				right_hand_transform = right_hand_transform *
@@ -1171,6 +1214,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			ImGui::SliderFloat("constant", &constant, 0, 1);
 			ImGui::SliderFloat("linear", &linear, 0, 1);
 			ImGui::SliderFloat("quadratic", &quadratic, 0, 1);
+			ImGui::SliderFloat("TexCoord Scale", &texcoord_scale, 0, .1);
 			//ImGui::SliderFloat("extent", &deferred_shading_floats["extent"], 0, 3);
 			ImGui::SliderFloat("BillBoard Scale", &billboard_scale, 0, 1);
 			ImGui::Checkbox("Shade Instances", &deferred_shading_bools["shade_instances"]);

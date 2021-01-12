@@ -236,7 +236,10 @@ void Mesh::addTexture(Texture2D texture) {
 }
 
 void Mesh::setTexture(Texture2D texture, int index) {
+	if (textures.size() <= index)
+		textures.resize(index + 1);
 	textures[index] = texture;
+
 }void Mesh::setTexture(Texture2D texture) {
 	bool found = false;
 	for (int i = 0; i < textures.size(); i++) {

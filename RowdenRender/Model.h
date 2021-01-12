@@ -21,10 +21,13 @@ private:
 	Mesh *processMesh(aiMesh* mesh, const aiScene* scene, bool import_tangents);
 	std::vector<Texture2D> loadMaterialTextures(aiMaterial* mat, aiTextureType type, std::string typeName);
 	std::vector<Texture2D> loadEmbeddedTextures(const aiScene* scene, const std::string& path);
+	
 public:
 	Model(const char* path, bool use_tangents = false) { loadModel(std::string(path), use_tangents); };
 	Model(std::string string, bool use_tangents = false) { loadModel(string, use_tangents); }
 	Model() {};
+	void Render(ShaderProgram* sp, glm::mat4, glm::mat4, glm::mat4);
+	void Render(ShaderProgram* sp, std::vector<Mesh*> meshes);
 	void Render(ShaderProgram* sp);
 	void addMesh(Mesh *mesh);
 	void addModel(Model* model);

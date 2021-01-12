@@ -31,6 +31,10 @@ public:
 	std::vector<float> getTexCoords() { return texCoords;}
 	std::vector<Texture2D> getTextures() { return textures; };
 	std::vector<unsigned int> getIndices() { return indices; }
+	glm::vec3 getBBoxMin() { return bbox_min; };
+	glm::vec3 getBBoxMax() { return bbox_max; };
+	void setBBoxMin(glm::vec3 a) { bbox_min = a; }
+	void setBBoxMax(glm::vec3 a) { bbox_max = a; }
 private:
 	bool first_render = true;
 	bool is_light = false;
@@ -42,6 +46,7 @@ private:
 	std::vector<float> texCoords;
 	std::vector<Texture2D> textures;
 	std::vector<float> tangents;
+	glm::vec3 bbox_min, bbox_max;
 	unsigned int VertexBufferObject, VertexArrayObject, IndexBufferArray, NormalBuffer, TexCoordBuffer, matrixBuffer, colorBuffer, tangentBufferArray;
 };
 

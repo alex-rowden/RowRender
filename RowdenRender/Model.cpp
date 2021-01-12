@@ -1,10 +1,105 @@
 #include "Model.h"
+#include <glm/gtc/matrix_access.hpp>
+/*
+int FrustumAABBIntersect(Plane *planes, Vector &mins, Vector &maxs) {
+   int    ret = INSIDE;
+   Vector vmin, vmax;
 
-void Model::Render(ShaderProgram *sp) {
+   for(int i = 0; i < 6; ++i) {
+	  // X axis
+	  if(planes[i].normal.x > 0) {
+		 vmin.x = mins.x;
+		 vmax.x = maxs.x;
+	  } else {
+		 vmin.x = maxs.x;
+		 vmax.x = mins.x;
+	  }
+	  // Y axis
+	  if(planes[i].normal.y > 0) {
+		 vmin.y = mins.y;
+		 vmax.y = maxs.y;
+	  } else {
+		 vmin.y = maxs.y;
+		 vmax.y = mins.y;
+	  }
+	  // Z axis
+	  if(planes[i].normal.z > 0) {
+		 vmin.z = mins.z;
+		 vmax.z = maxs.z;
+	  } else {
+		 vmin.z = maxs.z;
+		 vmax.z = mins.z;
+	  }
+	  if(Vector::DotProduct(planes[i].normal, vmin) + planes[i].d > 0)
+		 return OUTSIDE;
+	  if(Vector::DotProduct(planes[i].normal, vmax) + planes[i].d >= 0)
+		 ret = INTERSECT;
+   }
+   return ret;
+}
+*/
+
+bool frustum_cull(Mesh* m, const glm::vec4 p_planes[6]) {
+	glm::vec3 dim, half_dim, midpoint;
+
+	dim = m->getBBoxMax() - m->getBBoxMin();
+	half_dim = dim / 2.0f;
+	midpoint = m->getBBoxMin() + half_dim;
+
+
+	for (int i = 0; i < 6; i++) {
+		float p = abs(p_planes[i].x * half_dim.x) +
+			abs(p_planes[i].y * half_dim.y) +
+			abs(p_planes[i].z * half_dim.z);
+		float d = dot(midpoint, glm::vec3(p_planes[i])) + p_planes[i][3];
+		if (d <= -p) {
+			return true;
+		}
+	}
+	
+	return false;
+}
+
+void Model::Render(ShaderProgram* sp) {
+	Render(sp, meshes);
+}
+
+void Model::Render(ShaderProgram *sp, std::vector<Mesh*> render_meshes) {
 	sp->Use();
-	for (auto mesh : meshes) {
+
+	for (auto mesh : render_meshes) {
 		mesh->Render(sp);
 	}
+}
+
+void Model::Render(ShaderProgram* sp, glm::mat4 model, glm::mat4 view, glm::mat4 proj) {
+	std::vector<Mesh*> render_meshes;
+	auto comboMatrix = proj *(view * model);
+	glm::vec4 p_planes[6];
+	
+	p_planes[0] = glm::row(comboMatrix, 3) + glm::row(comboMatrix, 0); //left
+	p_planes[1] = glm::row(comboMatrix, 3) - glm::row(comboMatrix, 0); //right
+	p_planes[2] = glm::row(comboMatrix, 3) - glm::row(comboMatrix, 1); //bottom
+	p_planes[3] = glm::row(comboMatrix, 3) + glm::row(comboMatrix, 1); //top
+	p_planes[4] = glm::row(comboMatrix, 3) + glm::row(comboMatrix, 2); //near
+	p_planes[5] = glm::row(comboMatrix, 3) - glm::row(comboMatrix, 2); //far
+	
+	//for (int i = 0; i < 6; i++) {
+	//	auto temp = glm::length(glm::vec3(p_planes[i]));
+	//	p_planes[i] = p_planes[i] / temp;
+	//}
+
+	
+
+	std::sort(render_meshes.begin(), render_meshes.end(),
+		[view](Mesh* m1, Mesh* m2) {glm::vec3 camera_pos = glm::vec3(view * glm::vec4(0, 0, 0, 1)); return glm::distance(m1->getBBoxMax() + m1->getBBoxMin(), camera_pos) < glm::distance(m2->getBBoxMax() + m2->getBBoxMin(), camera_pos); });
+	
+	for (auto mesh : meshes) {
+		if (!frustum_cull(mesh, p_planes)) {
+			render_meshes.emplace_back(mesh);
+		}
+	}
+	Render(sp, render_meshes);
 }
 
 void Model::addMesh(Mesh* mesh) {
@@ -20,7 +115,8 @@ void Model::loadModel(std::string path, bool import_tangents) {
 	Assimp::Importer importer;
 	const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate |
 		aiProcess_FlipUVs | aiProcess_GenNormals | aiProcess_FixInfacingNormals |
-		aiProcess_CalcTangentSpace | aiProcess_JoinIdenticalVertices);
+		aiProcess_CalcTangentSpace | aiProcess_JoinIdenticalVertices |
+		aiProcess_GenBoundingBoxes);
 
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 	{
@@ -51,6 +147,7 @@ void Model::processNode(aiNode *node, const aiScene *scene, bool import_tangents
 Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, bool import_tangents) {
 	Shape shape = Shape();
 	for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
+		auto temp = glm::vec3(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z);
 		shape.addVertex(glm::vec3(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z));
 		shape.addNormal(glm::vec3(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z));
 		if (import_tangents) {
@@ -70,6 +167,10 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, bool import_tangent
 		}
 	}
 	Mesh* ret = new Mesh(&shape);
+	ret->setBBoxMin(glm::vec3(mesh->mAABB.mMin.x,
+		mesh->mAABB.mMin.y, mesh->mAABB.mMin.z));
+	ret->setBBoxMax(glm::vec3(mesh->mAABB.mMax.x,
+		mesh->mAABB.mMax.y, mesh->mAABB.mMax.z));
 	if (mesh->mMaterialIndex >= 0) {
 		if (mesh->mMaterialIndex >= 0)
 		{
@@ -117,11 +218,11 @@ std::vector<Texture2D > Model::loadMaterialTextures(aiMaterial* mat, aiTextureTy
 			texture.name = "texture_specular";
 		textures.emplace_back(texture);
 	}
-	if (textures.size() == 0) {
-		aiColor4D color(0, 0, 0, 0);
-		mat->Get(AI_MATKEY_COLOR_DIFFUSE, color);
-		textures.emplace_back(Texture2D(glm::vec4(color.r, color.g, color.b, color.a)));
-	}
+	//if (textures.size() == 0) {
+	//	aiColor4D color(0, 0, 0, 0);
+	//	mat->Get(AI_MATKEY_COLOR_DIFFUSE, color);
+	//	textures.emplace_back(Texture2D(glm::vec4(color.r, color.g, color.b, color.a)));
+	//}
 
 
 	return textures;

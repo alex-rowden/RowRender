@@ -662,7 +662,7 @@ vec4 renderLIC(vec3 fragPos, vec3 tangent, vec3 bitangent, vec3 Normal) {
 vec3 calculateColor(vec3 fragPos, vec3 Normal) {
 	
 	vec3 color = texture(albedo_tex, TexCoord).rgb;
-	if (num_routers > 0 && lic_on && abs(dot(Normal, vec3(0,0,1))) < 1e-3) {
+	if (num_routers > 0 && lic_on && abs(dot(Normal, vec3(0,0,1))) < 1 - 1e-3) {
 		vec4 lic_color = texture(lic_accum_tex, TexCoord);
 		if (lic_color.a < 0) 
 			return color;

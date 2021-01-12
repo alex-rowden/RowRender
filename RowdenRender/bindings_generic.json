@@ -52,7 +52,7 @@
             {
                "inputs" : {
                   "click" : {
-                     "output" : "/actions/demo/in/hidecubes"
+                     "output" : "/actions/demo/in/move_quad"
                   }
                },
                "mode" : "button",
@@ -89,6 +89,6 @@
       }
    },
    "controller_type" : "generic",
-   "description" : "Bindings for the OpenVR SDK \"hellovr_opengl\" demo for a generic controller",
-   "name" : "HelloVR bindings for a generic controller"
+   "description" : "Bindings for Wifi Visualization (generic controller)",
+   "name" : "Wifi Visualization Bindings for a generic controller"
 }
