@@ -5,9 +5,9 @@ in vec2 TexCoords;
 
 uniform sampler2D normal_tex;
 uniform sampler2D fragPos_tex;
-uniform sampler2D texNoise;
+uniform sampler2D ssaoNoise;
 
-uniform vec2 resolution;
+uniform vec2 noiseScale;
 
 uniform vec3 samples[64];
 uniform mat4 projection;
@@ -16,10 +16,10 @@ uniform int kernelSize;
 uniform float radius, bias;
 
 void main() {
-	vec2 noiseScale = resolution / 4.0;
+	
 	vec3 fragPos = texture(fragPos_tex, TexCoords).xyz;
 	vec3 normal = texture(normal_tex, TexCoords).rgb;
-	vec3 randomVec = texture(texNoise, TexCoords * noiseScale).xyz;
+	vec3 randomVec = texture(ssaoNoise, TexCoords * noiseScale).xyz;
 
 	vec3 tangent = normalize(randomVec - normal * dot(randomVec, normal));
 	vec3 bitangent = cross(normal, tangent);

@@ -29,11 +29,13 @@ struct gBuffer {
 	GLuint frame_buffer, normal_tex, tangent_tex, 
 		color_tex, frag_pos_tex, color_array_tex,  ellipsoid_coordinates_tex,
 		depth_render_buf, force_framebuffer, force_renderbuffer, force_tex, lic_color_tex,
-		lic_accum_framebuffer[2], lic_accum_renderbuffer[2];
+		lic_accum_framebuffer[2], lic_accum_renderbuffer[2], 
+		ssao_tex, ssao_framebuffer, ssao_renderbuffer;
 	GLuint pboIDs[2], lic_tex[2], lic_framebuffer[2], lic_renderbuffer[2], lic_accum_tex[2];
 	Texture2D color_texture, frag_pos_texture, tangent_texture,
 		normal_texture, ellipsoid_coordinates_texture, force_texture,
-		lic_texture[2], lic_accum_texture[2], lic_color_texture;
+		lic_texture[2], lic_accum_texture[2], lic_color_texture,
+		ssao_texture;
 };
 
 struct eyeBuffer {
@@ -130,6 +132,9 @@ void createFramebuffer(glm::vec2 resolution, gBuffer* buffer, bool resize) {
 		glGenFramebuffers(2, buffer->lic_accum_framebuffer);
 		glGenTextures(2, buffer->lic_accum_tex);
 		glGenRenderbuffers(2, buffer->lic_accum_renderbuffer);
+		glGenFramebuffers(1, &buffer->ssao_framebuffer);
+		glGenTextures(1, &buffer->ssao_tex);
+		glGenRenderbuffers(1, &buffer->ssao_renderbuffer);
 	}
 	//Set Framebuffer Attributes
 	glBindFramebuffer(GL_FRAMEBUFFER, buffer->frame_buffer);
@@ -314,6 +319,32 @@ void createFramebuffer(glm::vec2 resolution, gBuffer* buffer, bool resize) {
 			return;
 		}
 	}
+
+	glBindFramebuffer(GL_FRAMEBUFFER, buffer->ssao_framebuffer);
+
+	glBindTexture(GL_TEXTURE_2D, buffer->ssao_tex);
+	buffer->ssao_texture = Texture2D();
+	buffer->ssao_texture.SetTextureID(buffer->ssao_tex);
+	buffer->ssao_texture.giveName("ssao_tex");
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, resolution.x, resolution.y, 0, GL_RED, GL_FLOAT, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, buffer->ssao_tex, 0);
+
+	
+	glDrawBuffers(1, drawBuffer);
+
+	glBindRenderbuffer(GL_RENDERBUFFER, buffer->ssao_renderbuffer);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, resolution.x, resolution.y);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, buffer->ssao_renderbuffer);
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+		std::cout << "ssao framebuffer broke" << std::endl;
+		return;
+	}
 	
 	
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -495,7 +526,9 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	ShaderProgram lic_accum_shader = ShaderProgram({
 		ShaderProgram::Shaders::LIC_ACCUM_FRAG,
 		ShaderProgram::Shaders::LIC_PREPASS_VERT });
-	
+	ShaderProgram ssao_shader = ShaderProgram({
+		ShaderProgram::Shaders::SSAO_FRAG,
+		ShaderProgram::Shaders::SSAO_VERT});
 
 
 	//Setup Skybox
@@ -582,7 +615,52 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	w.SetCamera(&camera);
 	w.setSpeed(1);
 
+	//setUp SSAO Kernel
+	std::uniform_real_distribution<float> randomFloats(0.0, 1.0); // random floats between [0.0, 1.0]
+	std::default_random_engine generator;
+	//std::vector<glm::vec3> ssaoKernel;
+	for (unsigned int i = 0; i < 64; ++i)
+	{
+		glm::vec3 sample(
+			randomFloats(generator) * 2.0 - 1.0,
+			randomFloats(generator) * 2.0 - 1.0,
+			randomFloats(generator)
+		);
+		float scale = (float)i / 64.0;
+		scale = glm::lerp(0.1f, 1.0f, scale * scale);
+		sample *= scale;
+		sample = glm::normalize(sample);
+		sample *= randomFloats(generator);
+		//ssaoKernel.push_back(sample);
+		ssao_shader.Use();
+		ssao_shader.SetUniform(("samples[" + std::to_string(i) + "]").c_str(), sample);
+		ssao_shader.SetUniform("kernelSize", 64);
+		ssao_shader.SetUniform("radius", .5f);
+		ssao_shader.SetUniform("bias", .025f);
+	}
+	std::vector<glm::vec3> ssaoNoise;
+	for (unsigned int i = 0; i < 16; i++)
+	{
+		glm::vec3 noise(
+			randomFloats(generator) * 2.0 - 1.0,
+			randomFloats(generator) * 2.0 - 1.0,
+			0.0f);
+		ssaoNoise.push_back(noise);
+	}
+	Texture2D ssaoNoise_texture;
+	unsigned int noiseTexture;
+	glGenTextures(1, &noiseTexture);
+	glBindTexture(GL_TEXTURE_2D, noiseTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, 4, 4, 0, GL_RGB, GL_FLOAT, &ssaoNoise[0]);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	ssaoNoise_texture.SetTextureID(noiseTexture);
+	ssaoNoise_texture.setDims(4, 4, 3);
+	ssaoNoise_texture.giveName("ssaoNoise");
 
+	
 
 	//Setup Light
 	Lights lights = Lights();
@@ -709,6 +787,8 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	quad.getMeshes().at(0)->addTexture(buffer[0].lic_accum_texture[1]);
 	quad.getMeshes().at(0)->addTexture(buffer[0].lic_color_texture);
 	quad.getMeshes().at(0)->addTexture(eyes[0].screenTexture);
+	quad.getMeshes().at(0)->addTexture(ssaoNoise_texture);
+	quad.getMeshes().at(0)->addTexture(buffer[0].ssao_texture);
 	quad.getMeshes().at(0)->addTexture(wifi_tex);
 
 	int num_fb = 1;
@@ -924,8 +1004,15 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				quad.getMeshes().at(0)->setTexture(white, 0);
 				render(quad, &model_shader);
 			}
-
 			glDisable(GL_DEPTH_TEST);
+			glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].ssao_framebuffer);
+			glClear(GL_COLOR_BUFFER_BIT);
+			ssao_shader.Use();
+			ssao_shader.SetUniform("projection", ProjectionMat);
+			ssao_shader.SetUniform("noiseScale", glm::vec2(resolution)/4.0f);
+			render(quad, &ssao_shader);
+
+			
 			int num_forces = num_routers;
 			int num_iters = 3;
 			if (lic_shading_bools["multirouter"])
