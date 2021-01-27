@@ -91,14 +91,15 @@ void Model::Render(ShaderProgram* sp, glm::mat4 model, glm::mat4 view, glm::mat4
 
 	
 
-	std::sort(render_meshes.begin(), render_meshes.end(),
-		[view](Mesh* m1, Mesh* m2) {glm::vec3 camera_pos = glm::vec3(view * glm::vec4(0, 0, 0, 1)); return glm::distance(m1->getBBoxMax() + m1->getBBoxMin(), camera_pos) < glm::distance(m2->getBBoxMax() + m2->getBBoxMin(), camera_pos); });
 	
 	for (auto mesh : meshes) {
 		if (!frustum_cull(mesh, p_planes)) {
 			render_meshes.emplace_back(mesh);
 		}
 	}
+	std::sort(render_meshes.begin(), render_meshes.end(),
+		[view, model](Mesh* m1, Mesh* m2) {glm::vec3 camera_pos = glm::vec3(glm::inverse(model) * view * glm::vec4(0, 0, 1, 0)); return ((m1->getBBoxMax() + m1->getBBoxMin()) * camera_pos).z > ((m2->getBBoxMax() + m2->getBBoxMin()) * camera_pos).z; });
+
 	Render(sp, render_meshes);
 }
 

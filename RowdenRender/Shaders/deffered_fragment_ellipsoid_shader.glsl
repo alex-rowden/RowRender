@@ -16,7 +16,7 @@ uniform sampler2D albedo_tex;
 uniform sampler2D fragPos_tex;
 uniform sampler2D ellipsoid_coordinates_tex;
 uniform sampler2D tangent_tex;
-uniform sampler2D lic_accum_tex;
+uniform sampler2D lic_accum_tex[2];
 
 //stored textures
 uniform sampler2D frequency_tex;
@@ -31,6 +31,8 @@ uniform mat4 projection;
 
 float ellipsoid_ration = 1400.0f / 1600.0f;
 float ellipsoid_offset = (1 - ellipsoid_ration) / 2.0;
+
+uniform int force_index;
 
 out vec4 FragColor;
 
@@ -663,7 +665,7 @@ vec3 calculateColor(vec3 fragPos, vec3 Normal) {
 	
 	vec3 color = texture(albedo_tex, TexCoord).rgb;
 	if (num_routers > 0 && lic_on && abs(dot(Normal, vec3(0,0,1))) < 1 - 1e-3) {
-		vec4 lic_color = texture(lic_accum_tex, TexCoord);
+		vec4 lic_color = texture(lic_accum_tex[force_index], TexCoord);
 		if (lic_color.a < 0) 
 			return color;
 		vec3 ret = lic_color.a * lic_color.rgb;

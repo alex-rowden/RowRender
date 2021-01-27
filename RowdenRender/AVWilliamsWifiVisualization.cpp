@@ -28,12 +28,12 @@ bool jittered = true;
 struct gBuffer {
 	GLuint frame_buffer, normal_tex, tangent_tex, 
 		color_tex, frag_pos_tex, color_array_tex,  ellipsoid_coordinates_tex,
-		depth_render_buf, force_framebuffer, force_renderbuffer, force_tex,
-		lic_accum_framebuffer, lic_accum_tex, lic_accum_renderbuffer;
-	GLuint pboIDs[2], lic_tex[2], lic_framebuffer[2], lic_renderbuffer[2];
+		depth_render_buf, force_framebuffer, force_renderbuffer, force_tex, lic_color_tex,
+		lic_accum_framebuffer[2], lic_accum_renderbuffer[2];
+	GLuint pboIDs[2], lic_tex[2], lic_framebuffer[2], lic_renderbuffer[2], lic_accum_tex[2];
 	Texture2D color_texture, frag_pos_texture, tangent_texture,
 		normal_texture, ellipsoid_coordinates_texture, force_texture,
-		lic_texture[2], lic_accum_texture;
+		lic_texture[2], lic_accum_texture[2], lic_color_texture;
 };
 
 struct eyeBuffer {
@@ -122,13 +122,14 @@ void createFramebuffer(glm::vec2 resolution, gBuffer* buffer, bool resize) {
 		glGenRenderbuffers(1, &buffer->depth_render_buf);
 		glGenFramebuffers(1, &buffer->force_framebuffer);
 		glGenTextures(1, &buffer->force_tex);
+		glGenTextures(1, &buffer->lic_color_tex);
 		glGenRenderbuffers(1, &buffer->force_renderbuffer);
 		glGenFramebuffers(2, buffer->lic_framebuffer);
 		glGenTextures(2, buffer->lic_tex);
 		glGenRenderbuffers(2, buffer->lic_renderbuffer);
-		glGenFramebuffers(1, &buffer->lic_accum_framebuffer);
-		glGenTextures(1, &buffer->lic_accum_tex);
-		glGenRenderbuffers(1, &buffer->lic_accum_renderbuffer);
+		glGenFramebuffers(2, buffer->lic_accum_framebuffer);
+		glGenTextures(2, buffer->lic_accum_tex);
+		glGenRenderbuffers(2, buffer->lic_accum_renderbuffer);
 	}
 	//Set Framebuffer Attributes
 	glBindFramebuffer(GL_FRAMEBUFFER, buffer->frame_buffer);
@@ -234,9 +235,21 @@ void createFramebuffer(glm::vec2 resolution, gBuffer* buffer, bool resize) {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, buffer->force_tex, 0);
+	
+	glBindTexture(GL_TEXTURE_2D, buffer->lic_color_tex);
+	buffer->lic_color_texture = Texture2D();
+	buffer->lic_color_texture.SetTextureID(buffer->lic_color_tex);
+	buffer->lic_color_texture.giveName("lic_color_tex");
 
-	GLenum drawBuffer[1] = { GL_COLOR_ATTACHMENT0 };
-	glDrawBuffers(1, drawBuffer);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, resolution.x, resolution.y, 0, GL_RGB, GL_FLOAT, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, buffer->lic_color_tex, 0);
+
+	GLenum drawBuffer[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+	glDrawBuffers(2, drawBuffer);
 
 	glBindRenderbuffer(GL_RENDERBUFFER, buffer->force_renderbuffer);
 	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, resolution.x, resolution.y);
@@ -262,7 +275,7 @@ void createFramebuffer(glm::vec2 resolution, gBuffer* buffer, bool resize) {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, buffer->lic_tex[i], 0);
 	
-		drawBuffer[1] = { GL_COLOR_ATTACHMENT0 };
+		drawBuffer[0] = { GL_COLOR_ATTACHMENT0 };
 		glDrawBuffers(1, drawBuffer);
 
 		glBindRenderbuffer(GL_RENDERBUFFER, buffer->lic_renderbuffer[i]);
@@ -274,31 +287,34 @@ void createFramebuffer(glm::vec2 resolution, gBuffer* buffer, bool resize) {
 			return;
 		}
 	}
-	glBindFramebuffer(GL_FRAMEBUFFER, buffer->lic_accum_framebuffer);
+	for (int i = 0; i < 2; i++) {
+		glBindFramebuffer(GL_FRAMEBUFFER, buffer->lic_accum_framebuffer[i]);
 
-	glBindTexture(GL_TEXTURE_2D, buffer->lic_accum_tex);
-	buffer->lic_accum_texture = Texture2D();
-	buffer->lic_accum_texture.SetTextureID(buffer->lic_accum_tex);
-	buffer->lic_accum_texture.giveName("lic_accum_tex");
+		glBindTexture(GL_TEXTURE_2D, buffer->lic_accum_tex[i]);
+		buffer->lic_accum_texture[i] = Texture2D();
+		buffer->lic_accum_texture[i].SetTextureID(buffer->lic_accum_tex[i]);
+		buffer->lic_accum_texture[i].giveName("lic_accum_tex[" + std::to_string(i) +"]");
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, resolution.x, resolution.y, 0, GL_RGBA, GL_FLOAT, 0);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, buffer->lic_accum_tex, 0);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, resolution.x, resolution.y, 0, GL_RGBA, GL_FLOAT, 0);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, buffer->lic_accum_tex[i], 0);
+	
+		//drawBuffer = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACMENT0};
+		glDrawBuffers(1, drawBuffer);
 
-	drawBuffer[1] = { GL_COLOR_ATTACHMENT0 };
-	glDrawBuffers(1, drawBuffer);
+		glBindRenderbuffer(GL_RENDERBUFFER, buffer->lic_accum_renderbuffer[i]);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, resolution.x, resolution.y);
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, buffer->lic_accum_renderbuffer[i]);
 
-	glBindRenderbuffer(GL_RENDERBUFFER, buffer->lic_accum_renderbuffer);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, resolution.x, resolution.y);
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, buffer->lic_accum_renderbuffer);
-
-	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-		std::cout << "lic accumulation framebuffer broke" << std::endl;
-		return;
+		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+			std::cout << "lic accumulation framebuffer broke" << std::endl;
+			return;
+		}
 	}
+	
 	
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
@@ -689,7 +705,9 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	quad.getMeshes().at(0)->addTexture(buffer[0].force_texture);
 	quad.getMeshes().at(0)->addTexture(buffer[0].lic_texture[0]);
 	quad.getMeshes().at(0)->addTexture(buffer[0].lic_texture[1]);
-	quad.getMeshes().at(0)->addTexture(buffer[0].lic_accum_texture);
+	quad.getMeshes().at(0)->addTexture(buffer[0].lic_accum_texture[0]);
+	quad.getMeshes().at(0)->addTexture(buffer[0].lic_accum_texture[1]);
+	quad.getMeshes().at(0)->addTexture(buffer[0].lic_color_texture);
 	quad.getMeshes().at(0)->addTexture(eyes[0].screenTexture);
 	quad.getMeshes().at(0)->addTexture(wifi_tex);
 
@@ -738,22 +756,22 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 		{ "frequency", .973 },
 		{ "linear_term", 1 },
 		{ "thickness", .056 },
-		{ "u_stretch", 10 },
-		{ "v_stretch", 10 },
+		{ "u_stretch", 3.654 },
+		{ "v_stretch", 3.654 },
 		{ "delta_theta", 180.f / wifi.getActiveFreqs(freqs).size() },
-		{ "learning_rate", .05 },
+		{ "learning_rate", .134 },
 		{ "distance_mask", 0 },
 		{ "alpha_boost", 20 },
 		{ "density", .025 },
-		{ "frag_pos_scale", 100},
+		{ "frag_pos_scale", 150},
 		{ "cling", .9},
 		{ "tunable", .005}
 	};
 	lic_shading_floats = {
 		{ "alpha_boost", 20 },
 		{ "density", .025 },
-		{ "frag_pos_scale", 50},
-		{ "learning_rate", .075},
+		{ "frag_pos_scale", 150},
+		{ "learning_rate", .134},
 	};
 	std::map<std::string, bool> deferred_shading_bools = {
 		{ "contour_on", false},
@@ -776,7 +794,8 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 		{ "procedural_noise", false},
 		{ "cull_discontinuities", true},
 		{ "use_mask", true}, 
-		{ "multirouter", true}
+		{ "multirouter", true},
+		{ "last_pass", false}
 	};
 	deferred_shading_ints = {
 		{"num_point_lights", 20},
@@ -912,7 +931,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			if (lic_shading_bools["multirouter"])
 				num_forces = 1;
 			for (int i = 0; i < num_forces; i++) {
-				
+				glClearColor(0, 0, 0, 0);
 				force_shader.Use();
 				glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].force_framebuffer);
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -920,26 +939,28 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				force_shader.SetUniform("ellipsoid_transform", wifi.ellipsoid_transform);
 				force_shader.SetUniform("radius_stretch", wifi.radius_stretch);
 				force_shader.SetUniform("ellipsoid_index_offset", i);
-
+				force_shader.SetUniform("num_routers", num_routers);
 				force_shader.SetUniform("num_ellipsoids", num_routers/num_forces);
 				force_shader.SetUniform("extent", 1.0f);
-
+				force_shader.SetUniform("invert_colors", deferred_shading_bools["invert_colors"]);
 				render(quad, &force_shader);
-				
+				glClearColor(1, 1, 1, 0);
 				for (int j = 0; j < num_iters; j++) {
 					lic_shader.Use();
-
+					lic_shading_bools["last_pass"] = (j == (num_iters - 1));
 					lic_shader.SetUniforms(lic_shading_floats);
 					lic_shader.SetUniforms(lic_shading_ints);
 					lic_shader.SetUniforms(lic_shading_bools);
 					lic_shader.SetUniform("camera", ViewMat);
 					lic_shader.SetUniform("projection", ProjectionMat);
-					if(wifi.getNumWifiNames() + i < wifi_colors.size())
-						lic_shader.SetUniform("color", glm::vec3(wifi_colors.at(wifi.getNumWifiNames() + i)));
+					//if(wifi.getNumWifiNames() + i < wifi_colors.size())
+						//lic_shader.SetUniform("color", glm::vec3(wifi_colors.at(wifi.getNumWifiNames() + i)));
 					lic_shader.SetUniform("ellipsoid_index_offset", i);
 					lic_shader.SetUniform("router_num", i);
 					lic_shader.SetUniform("step_num", j);
-					
+					lic_shader.SetUniform("multirouter", lic_shading_bools["multirouter"]);
+
+					//glClearColor(1, 1, 1, 0);
 					glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].lic_framebuffer[j%2]);
 					if (j < 2)
 						glClear( GL_COLOR_BUFFER_BIT);
@@ -952,18 +973,27 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				}
 				//noise[i].giveName("noise_tex[" + std::to_string(i) + "]");
 				//buffer[0].lic_texture.giveName("lic_tex");
-				glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].lic_accum_framebuffer);
-				if (i == 0)
+				//glEnable(GL_BLEND);
+				//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+				glClearColor(1,1,1,0);
+
+				if (i == 0) {
+					glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].lic_accum_framebuffer[1]);
 					glClear(GL_COLOR_BUFFER_BIT);
+				}
+
+				glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].lic_accum_framebuffer[i%2]);
+				
+				glClear(GL_COLOR_BUFFER_BIT);
 			
 				lic_accum_shader.Use();
 				lic_accum_shader.SetUniform("camera", ViewMat);
 				lic_accum_shader.SetUniform("projection", ProjectionMat);
-				lic_accum_shader.SetUniform("lic_index", num_iters % 2);
+				lic_accum_shader.SetUniform("lic_index", (num_iters + 1) % 2);
+				lic_accum_shader.SetUniform("force_index", (i + 1) % 2);
 				render(quad, &lic_accum_shader);
 			}
-
-			
+			glClearColor(0, 0, 0, 0);
 			deferred_shader.Use();
 			deferred_shader.SetEllipsoid(ellipsoid);
 			deferred_shader.SetUniforms(deferred_shading_floats);
@@ -974,6 +1004,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			deferred_shader.SetUniform("num_lic", num_iters % 2);
 			deferred_shader.SetUniform("alpha_boost", lic_shading_floats["alpha_boost"]);
 			deferred_shader.SetUniform("power", lic_shading_ints["power"]);
+			deferred_shader.SetUniform("force_index", (num_forces + 1) % 2);
 			wifi_transform = glm::translate(glm::mat4(1), wifi_translate);
 			wifi.ellipsoid_transform = wifi_transform * glm::scale(glm::mat4(1), wifi_scale);
 			deferred_shader.SetUniform("ellipsoid_transform", wifi.ellipsoid_transform);
@@ -1052,7 +1083,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 					for (int i = 0; i < unused_indices.size(); i++) { unused_indices[i] = i; }
 					maxSeperatedColors(wifi.getNumActiveRouters(routers), new_wifi_colors, jittered);
 					std::vector<std::string> available_macs = wifi.getAvailablesMacs();
-					//Remember collors between updates
+					//Remember colors between updates
 					if (saved_colors.size() == num_routers) {
 						int count = 0;
 						int used_router_num = 0;
@@ -1242,7 +1273,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				}else {
 					num_samples_changed = ImGui::SliderInt("num_samples", &num_samples, 12800, 102400 * 16);
 				}
-				ImGui::SliderFloat("Fragment Position Scale", &lic_shading_floats["frag_pos_scale"], 0, 200);
+				ImGui::SliderFloat("Fragment Position Scale", &lic_shading_floats["frag_pos_scale"], 0, 300);
 				ImGui::SliderFloat("Rate", &lic_shading_floats["learning_rate"], 0, .9);
 				ImGui::Checkbox("Use LIC Mask", &lic_shading_bools["use_mask"]);
 				

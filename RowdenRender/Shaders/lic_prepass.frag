@@ -2,18 +2,21 @@
 
 #define MAX_ROUTERS 20
 
-out vec4 Force;
+layout(location = 0) out vec4 Force;
+layout(location = 1) out vec4 lic_color;
 
 in vec2 TexCoord;
 
 uniform sampler2D normal_tex;
 uniform sampler2D tangent_tex;
 uniform sampler2D fragPos_tex;
-uniform int ellipsoid_index_offset, num_ellipsoids;
+uniform sampler2D wifi_colors;
+uniform int ellipsoid_index_offset, num_ellipsoids, num_routers;
 
 uniform mat4 ellipsoid_transform;
 uniform vec3 radius_stretch;
 uniform float extent;
+uniform bool invert_colors;
 
 struct Ellipsoid {
 	vec4 mu;
@@ -55,10 +58,10 @@ vec4 calculateForce(vec3 fragPos, Ellipsoid ellipsoid,
 	
 	vec3 modified_coords = ellipsoidCoordinates(fragPos, ellipsoid);
 
-	float ellipsoid_dist = ellipsoidDistance(fragPos, modified_coords, ellipsoid);
+	float ellipsoid_dist = ellipsoidDistance(fragPos, ellipsoid);
 
-	if (ellipsoid_dist / extent < .01) {
-		return vec4(vec3(0), 0);
+	if (ellipsoid_dist / extent < .01 - .001) {
+		return vec4(vec3(0), ellipsoid_dist/extent);
 	}
 	vec3 ellipsoid_coords = fragPos - modified_coords;
 	if (ellipsoid_dist < extent) {
@@ -67,9 +70,9 @@ vec4 calculateForce(vec3 fragPos, Ellipsoid ellipsoid,
 		direction = worldToWallCoords * direction;
 		direction.z = 0;
 		direction = wallToWorldCoords * direction;
-		return vec4(direction, 1);
+		return vec4(direction, ellipsoid_dist/extent);
 	}
-	return vec4(vec3(0), -1);
+	return vec4(vec3(0), -ellipsoid_dist/extent);
 
 }
 
@@ -77,29 +80,38 @@ vec4 calculateForce(vec3 fragPos, Ellipsoid ellipsoid,
 void main()
 {
 	vec3 force = vec3(0);
-	bool found = true;
+	bool found = false;
 	vec3 fragPos = texture(fragPos_tex, TexCoord).xyz;
 	vec3 normal = texture(normal_tex, TexCoord).xyz;
 	vec3 tangent = texture(tangent_tex, TexCoord).xyz;
 	vec3 bitangent = cross(normal, tangent);
 	mat3 wallToWorldCoords = mat3(tangent, bitangent, normal);
 	mat3 worldToWallCoords = transpose(wallToWorldCoords);
-
+	float min_alpha = 1000;
+	float max_strength = 1000;
+	vec3 color = vec3(0);
 	Ellipsoid ellipsoid;
 	for(int i = 0; i < num_ellipsoids; i++){
 		ellipsoid = Ellipsoids[i + ellipsoid_index_offset];
 		vec4 direction = calculateForce(fragPos, ellipsoid, worldToWallCoords, wallToWorldCoords);
 		if(direction.a > 0){
 			force += direction.xyz;
+			min_alpha = min(direction.a, min_alpha);
 			found = true;
 		}
-		if(length(direction) == 0){
+		if(length(direction.xyz) == 0){
 			force = vec3(0);
-			break;
+		}if(abs(direction.a) < max_strength){
+			max_strength = direction.a;
+			float color_ind = ellipsoid.mu.w;
+			if (invert_colors)
+				color_ind = ellipsoid.r.w / float(num_routers);
+			color = texture(wifi_colors, vec2(0, color_ind)).rgb;
 		}
 	}
 	if(!found)
-		Force = vec4(-1);
+		Force = vec4(0);
 	else
-		Force = vec4(force, 1);
+		Force = vec4(force, max(min_alpha, 0));
+	lic_color = vec4(color, 1);
 }

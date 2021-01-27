@@ -13,16 +13,16 @@ uniform sampler2D normal_tex,
 				  ellipsoid_coordinates_tex,
 				  force_tex,
 				  lic_tex[2],
+				  lic_color_tex,
 				  noise_tex[MAX_ROUTERS];
 
 uniform int ellipsoid_index_offset, num_ellipsoids, router_num, power, step_num;
-uniform bool screen_space_lic, procedural_noise, cull_discontinuities, use_mask;
+uniform bool screen_space_lic, procedural_noise, cull_discontinuities, use_mask, last_pass, multirouter;
 uniform float alpha_boost, learning_rate,
 frag_pos_scale, density;
 
 uniform mat4 projection, camera;
 
-uniform vec3 color;
 
 float rand(vec2 st) {
 	return step(fract(sin(dot(st.xy,
@@ -87,7 +87,12 @@ vec2 getScreenCoords(vec3 fragPos) {
 	return fakeTex;
 }
 
-float renderLIC(vec3 fragPos, vec3 tangent, vec3 bitangent, vec3 Normal) {
+vec4 renderLIC(vec3 fragPos, vec3 tangent, vec3 bitangent, vec3 Normal) {
+	
+	vec3 color = vec3(0);
+	color = texture(lic_color_tex, TexCoord).rgb;
+	float signal_strength = 1;
+	
 	float alpha_new = 0;
 	float scale = 1;
 	if (screen_space_lic && !procedural_noise)
@@ -106,7 +111,7 @@ float renderLIC(vec3 fragPos, vec3 tangent, vec3 bitangent, vec3 Normal) {
 
 	vec2 uv;
 	vec3 uvt;
-
+	bool found = false;
 	vec3 projected_frag, projected_coords, newFragPos;
 	int dir = -1;
 	for (int num_directions = 0; num_directions < 2; num_directions++) {
@@ -125,33 +130,65 @@ float renderLIC(vec3 fragPos, vec3 tangent, vec3 bitangent, vec3 Normal) {
 			dir = 1;
 		if (dir > 0)
 			j = 1;
+
+		float max_sig = 0;
 		for (j; j < NUM_STEPS / 2; j++) {
 			if (screen_space_lic) {
 				uvt = texture(ellipsoid_coordinates_tex, uv).xyz;
 			}
 			
 			float mask = calculateMask(dir, j);// ;
-			//mask *= mask;
+			vec4 direction4 = texture(force_tex, uv);
+			
 			if(step_num != 0){
-				val += mask * texture(lic_tex[(step_num + 1) % 2], uv).a;
+				vec4 lic = texture(lic_tex[(step_num + 1) % 2], uv);
+			
+				
+				val += mask * lic.a;
+				if(lic.a > 0 && multirouter){
+					if(!found && direction4.a > 0){
+						color = vec3(0);
+						found = true;
+						signal_strength = 0;
+					}
+					signal_strength += direction4.a;
+					color += direction4.a * lic.rgb;
+				}
+				
 			}
-			else if ( procedural_noise)
-				val += noise(frag_pos_scale * scale * uvt.rgb) * mask;
 			else{
 				float noise_val = 0;
-				noise_val += noise(frag_pos_scale * scale * uvt.rg, router_num);
-				//noise_val = max(noise_val, noise(frag_pos_scale / 5.0f * scale * uvt.rg));
+				if ( procedural_noise)
+					noise_val = noise(frag_pos_scale * scale * uvt.rgb) * mask;
+				else{
+					
+					noise_val = noise(frag_pos_scale * scale * uvt.rg, router_num);
+					//noise_val = max(noise_val, noise(frag_pos_scale / 5.0f * scale * uvt.rg));
+				}
 				val += noise_val * mask;
+				if(noise_val > 0 && multirouter){
+					if(!found && direction4.a > 0){
+						signal_strength = 0;
+						color = vec3(0);
+						found = true;
+					}
+					color += direction4.a * texture(lic_color_tex, uv).rgb;
+					signal_strength += direction4.a;
+				}
 			}
 			norm += mask;
 			
 
-			vec3 direction = texture(force_tex, uv).xyz;
-			float magnitude = length(direction);
+			
+			vec3 direction = direction4.xyz;
+			float magnitude = length(direction.xyz);
+			
 			if(magnitude == 0){
 				if(j == 0)
-					return 0;
+					return vec4(0);
 				break;
+			}if(j == 0 && direction4.a < .0001 && last_pass){
+				return vec4(texture(lic_color_tex, uv).rgb, 1);
 			}
 			vec3 force = dir * (direction) / magnitude;
 			
@@ -188,16 +225,12 @@ float renderLIC(vec3 fragPos, vec3 tangent, vec3 bitangent, vec3 Normal) {
 						wallToWorldCoords = mat3(tangent, bitangent, Normal);
 						worldToWallCoords = transpose(wallToWorldCoords);
 						vec3 new_direction = texture2D(force_tex, uv).xyz;
-						//if new direction and old direction point toward each other, flip the new direction
-						//if (dot(force, dir * new_direction) < 0) {
-							
-						//	dir *= -1;
-						//}
 						
-						fragPos += 2 * dir * remaining_distance * normalize(new_direction);
+						
+						fragPos +=  dir * remaining_distance * normalize(new_direction);
 						if (any(notEqual(texture(normal_tex, getScreenCoords(fragPos)).rgb, Normal))) {
 							dir *= -1; 
-							fragPos += 3 * dir * remaining_distance * normalize(new_direction);
+							fragPos += 2 * dir * remaining_distance * normalize(new_direction);
 						}
 						else {
 							fragPos -= dir * remaining_distance * normalize(new_direction);
@@ -223,13 +256,22 @@ float renderLIC(vec3 fragPos, vec3 tangent, vec3 bitangent, vec3 Normal) {
 		}
 		dir *= -1;
 	}
-	alpha_new = float(alpha_boost * pow(val / norm, power));
+
+	alpha_new = val/norm;
+	
+	
+	//alpha_new = alpha_boost * alpha_new;
+	//if(last_pass)
+	alpha_new = float(alpha_boost * pow(alpha_new, power));
 	
 	//alpha_new = sqrt(alpha_new);
 	//alpha_new *= alpha_new;
 	//alpha_new *= (1 - .9 * distance / extent);
 	alpha_new = min(alpha_new, 1);
-	return alpha_new;
+	if (signal_strength != 0) {
+		color = color / signal_strength;
+	}
+	return vec4(color, alpha_new);
 }
 
 void main(){
@@ -243,7 +285,7 @@ void main(){
 	vec3 tangent = texture(tangent_tex, TexCoord).xyz;
 	vec3 bitangent = normalize(cross(tangent, normal));
 
-	float lic = renderLIC(fragPos, tangent, bitangent, normal);
+	vec4 lic = renderLIC(fragPos, tangent, bitangent, normal);
 	
-	LIC = vec4(color, lic);
+	LIC = lic;
 }
