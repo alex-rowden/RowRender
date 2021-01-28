@@ -634,9 +634,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 		//ssaoKernel.push_back(sample);
 		ssao_shader.Use();
 		ssao_shader.SetUniform(("samples[" + std::to_string(i) + "]").c_str(), sample);
-		ssao_shader.SetUniform("kernelSize", 64);
-		ssao_shader.SetUniform("radius", .5f);
-		ssao_shader.SetUniform("bias", .025f);
+		
 	}
 	std::vector<glm::vec3> ssaoNoise;
 	for (unsigned int i = 0; i < 16; i++)
@@ -886,6 +884,14 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 		{ "num_ellpsoids", num_routers},
 		{ "power", 1}
 	};
+
+	std::map<std::string, float> ssao_shading_floats = {
+		{"radius", .5 },
+		{"bias", .025}
+	};
+	int kernelSize = 16;
+	bool ssao_on = true;
+	
 	const int num_antialiased_textures = 23;
 	Texture2D antialiased_textures[num_antialiased_textures] = {
 		frequency_texture,
@@ -1005,12 +1011,18 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				render(quad, &model_shader);
 			}
 			glDisable(GL_DEPTH_TEST);
-			glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].ssao_framebuffer);
-			glClear(GL_COLOR_BUFFER_BIT);
-			ssao_shader.Use();
-			ssao_shader.SetUniform("projection", ProjectionMat);
-			ssao_shader.SetUniform("noiseScale", glm::vec2(resolution)/4.0f);
-			render(quad, &ssao_shader);
+			if (ssao_on) {
+				glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].ssao_framebuffer);
+				glClear(GL_COLOR_BUFFER_BIT);
+				ssao_shader.Use();
+				ssao_shader.SetUniform("kernelSize", kernelSize);
+				ssao_shader.SetUniforms(ssao_shading_floats);
+
+				ssao_shader.SetUniform("ViewMat", (ViewMat));
+				ssao_shader.SetUniform("projection", ProjectionMat);
+				ssao_shader.SetUniform("noiseScale", glm::vec2(resolution) / 4.0f);
+				render(quad, &ssao_shader);
+			}
 
 			
 			int num_forces = num_routers;
@@ -1337,6 +1349,23 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			ImGui::SliderFloat("BillBoard Scale", &billboard_scale, 0, 1);
 			ImGui::Checkbox("Shade Instances", &deferred_shading_bools["shade_instances"]);
 			ImGui::Checkbox("Line Integral Convolution", &deferred_shading_bools["lic_on"]);
+			if (ImGui::TreeNode("SSAO Terms")) {
+				if (ImGui::Checkbox("SSAO Enabled", &ssao_on)) {
+					if (!ssao_on) {
+						glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].ssao_framebuffer);
+						glClearColor(1, 1, 1, 1);
+						glClear(GL_COLOR_BUFFER_BIT);
+						glClearColor(0, 0, 0, 0);
+						glBindFramebuffer(GL_FRAMEBUFFER, 0);
+					}
+				}
+				if (ssao_on) {
+					ImGui::SliderInt("Kernel Size", &kernelSize, 1, 64);
+					ImGui::SliderFloat("Bias", &ssao_shading_floats["bias"], 0, 1);
+					ImGui::SliderFloat("Radius", &ssao_shading_floats["radius"], 0, 3);
+				}
+				ImGui::TreePop();
+			}
 			if (deferred_shading_bools["lic_on"]) {
 				ImGui::SliderFloat("Alpha_Boost", &lic_shading_floats["alpha_boost"], 1, 30);
 				ImGui::SliderInt("Power", &lic_shading_ints["power"], 1, 8);

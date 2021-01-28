@@ -11,14 +11,15 @@ uniform vec2 noiseScale;
 
 uniform vec3 samples[64];
 uniform mat4 projection;
+uniform mat4 ViewMat;
 
 uniform int kernelSize;
 uniform float radius, bias;
 
 void main() {
 	
-	vec3 fragPos = texture(fragPos_tex, TexCoords).xyz;
-	vec3 normal = texture(normal_tex, TexCoords).rgb;
+	vec3 fragPos = (ViewMat * vec4(texture(fragPos_tex, TexCoords).xyz, 1)).xyz;
+	vec3 normal = (ViewMat * vec4(texture(normal_tex, TexCoords).rgb, 0)).xyz;
 	vec3 randomVec = texture(ssaoNoise, TexCoords * noiseScale).xyz;
 
 	vec3 tangent = normalize(randomVec - normal * dot(randomVec, normal));
