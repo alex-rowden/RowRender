@@ -341,5 +341,8 @@
     <None Include="Shaders\lic_accum.frag">
       <Filter>Source Files\Shaders</Filter>
     </None>
+    <None Include="Shaders\ssao_blur.frag">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -24,18 +24,20 @@ using namespace vr;
 GLuint fhp_tex, bhp_tex;
 bool nearest_router_on = false;
 bool jittered = true;
+int color_offset = 205;
 
 struct gBuffer {
 	GLuint frame_buffer, normal_tex, tangent_tex, 
 		color_tex, frag_pos_tex, color_array_tex,  ellipsoid_coordinates_tex,
 		depth_render_buf, force_framebuffer, force_renderbuffer, force_tex, lic_color_tex,
 		lic_accum_framebuffer[2], lic_accum_renderbuffer[2], 
-		ssao_tex, ssao_framebuffer, ssao_renderbuffer;
+		ssao_tex, ssao_framebuffer, ssao_renderbuffer, 
+		ssao_blur_tex, ssao_blur_framebuffer, ssao_blur_renderbuffer;
 	GLuint pboIDs[2], lic_tex[2], lic_framebuffer[2], lic_renderbuffer[2], lic_accum_tex[2];
 	Texture2D color_texture, frag_pos_texture, tangent_texture,
 		normal_texture, ellipsoid_coordinates_texture, force_texture,
 		lic_texture[2], lic_accum_texture[2], lic_color_texture,
-		ssao_texture;
+		ssao_texture, ssao_blur_texture;
 };
 
 struct eyeBuffer {
@@ -43,12 +45,12 @@ struct eyeBuffer {
 	Texture2D screenTexture;
 };
  
-void maxSeperatedColors(int n, std::vector<glm::vec4>& out, bool ordered = true) {
+void maxSeperatedColors(int n, std::vector<glm::vec4>& out, bool ordered = true, float offset=0) {
 	float increment = 360.0f / (n);
 	int incrementor = ceil(n / 2.0f) * increment;
 	if (ordered)
 		incrementor = increment;
-	float offset = 0;// rand_float()* increment;
+	
 	for (int i = 0; i < n; i++) {
 		float v = (incrementor * i) + offset;
 		if ((n % 2 || i % 2) && !ordered)
@@ -135,6 +137,9 @@ void createFramebuffer(glm::vec2 resolution, gBuffer* buffer, bool resize) {
 		glGenFramebuffers(1, &buffer->ssao_framebuffer);
 		glGenTextures(1, &buffer->ssao_tex);
 		glGenRenderbuffers(1, &buffer->ssao_renderbuffer);
+		glGenFramebuffers(1, &buffer->ssao_blur_framebuffer);
+		glGenTextures(1, &buffer->ssao_blur_tex);
+		glGenRenderbuffers(1, &buffer->ssao_blur_renderbuffer);
 	}
 	//Set Framebuffer Attributes
 	glBindFramebuffer(GL_FRAMEBUFFER, buffer->frame_buffer);
@@ -327,13 +332,12 @@ void createFramebuffer(glm::vec2 resolution, gBuffer* buffer, bool resize) {
 	buffer->ssao_texture.SetTextureID(buffer->ssao_tex);
 	buffer->ssao_texture.giveName("ssao_tex");
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, resolution.x, resolution.y, 0, GL_RED, GL_FLOAT, 0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, resolution.x, resolution.y, 0, GL_RED, GL_FLOAT, 0);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, buffer->ssao_tex, 0);
-
 	
 	glDrawBuffers(1, drawBuffer);
 
@@ -345,7 +349,31 @@ void createFramebuffer(glm::vec2 resolution, gBuffer* buffer, bool resize) {
 		std::cout << "ssao framebuffer broke" << std::endl;
 		return;
 	}
-	
+
+	glBindFramebuffer(GL_FRAMEBUFFER, buffer->ssao_blur_framebuffer);
+
+	glBindTexture(GL_TEXTURE_2D, buffer->ssao_blur_tex);
+	buffer->ssao_blur_texture = Texture2D();
+	buffer->ssao_blur_texture.SetTextureID(buffer->ssao_blur_tex);
+	buffer->ssao_blur_texture.giveName("ssao_blur_tex");
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, resolution.x, resolution.y, 0, GL_RED, GL_FLOAT, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, buffer->ssao_blur_tex, 0);
+
+	glDrawBuffers(1, drawBuffer);
+
+	glBindRenderbuffer(GL_RENDERBUFFER, buffer->ssao_blur_renderbuffer);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, resolution.x, resolution.y);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, buffer->ssao_blur_renderbuffer);
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+		std::cout << "ssao blur framebuffer broke" << std::endl;
+		return;
+	}
 	
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
@@ -477,6 +505,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	TextRenderer tr = TextRenderer();
 	TextRenderer popupText = TextRenderer();
 	int font_size = 64;
+	float hue_start = 0;
 	tr.SetCharacterSize(font_size);
 	popupText.SetCharacterSize(font_size);
 	float pixel_size = font_size * 109 / 72.0f;
@@ -529,6 +558,10 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	ShaderProgram ssao_shader = ShaderProgram({
 		ShaderProgram::Shaders::SSAO_FRAG,
 		ShaderProgram::Shaders::SSAO_VERT});
+	ShaderProgram ssao_blur_shader = ShaderProgram({
+		ShaderProgram::Shaders::SSAO_BLUR_FRAG,
+		ShaderProgram::Shaders::SCREEN_VERT
+		});
 
 
 	//Setup Skybox
@@ -787,6 +820,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	quad.getMeshes().at(0)->addTexture(eyes[0].screenTexture);
 	quad.getMeshes().at(0)->addTexture(ssaoNoise_texture);
 	quad.getMeshes().at(0)->addTexture(buffer[0].ssao_texture);
+	quad.getMeshes().at(0)->addTexture(buffer[0].ssao_blur_texture);
 	quad.getMeshes().at(0)->addTexture(wifi_tex);
 
 	int num_fb = 1;
@@ -886,7 +920,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	};
 
 	std::map<std::string, float> ssao_shading_floats = {
-		{"radius", .5 },
+		{"radius", .05 },
 		{"bias", .025}
 	};
 	int kernelSize = 16;
@@ -1022,6 +1056,10 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				ssao_shader.SetUniform("projection", ProjectionMat);
 				ssao_shader.SetUniform("noiseScale", glm::vec2(resolution) / 4.0f);
 				render(quad, &ssao_shader);
+				glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].ssao_blur_framebuffer);
+				glClear(GL_COLOR_BUFFER_BIT);
+				ssao_blur_shader.Use();
+				render(quad, &ssao_blur_shader);
 			}
 
 			
@@ -1180,7 +1218,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 					std::vector<int> vec_indices(wifi.getNumActiveRouters(routers));
 					std::vector<int> unused_indices(wifi.getNumActiveRouters(routers));
 					for (int i = 0; i < unused_indices.size(); i++) { unused_indices[i] = i; }
-					maxSeperatedColors(wifi.getNumActiveRouters(routers), new_wifi_colors, jittered);
+					maxSeperatedColors(wifi.getNumActiveRouters(routers), new_wifi_colors, jittered, color_offset);
 					std::vector<std::string> available_macs = wifi.getAvailablesMacs();
 					//Remember colors between updates
 					if (saved_colors.size() == num_routers) {
@@ -1349,23 +1387,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			ImGui::SliderFloat("BillBoard Scale", &billboard_scale, 0, 1);
 			ImGui::Checkbox("Shade Instances", &deferred_shading_bools["shade_instances"]);
 			ImGui::Checkbox("Line Integral Convolution", &deferred_shading_bools["lic_on"]);
-			if (ImGui::TreeNode("SSAO Terms")) {
-				if (ImGui::Checkbox("SSAO Enabled", &ssao_on)) {
-					if (!ssao_on) {
-						glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].ssao_framebuffer);
-						glClearColor(1, 1, 1, 1);
-						glClear(GL_COLOR_BUFFER_BIT);
-						glClearColor(0, 0, 0, 0);
-						glBindFramebuffer(GL_FRAMEBUFFER, 0);
-					}
-				}
-				if (ssao_on) {
-					ImGui::SliderInt("Kernel Size", &kernelSize, 1, 64);
-					ImGui::SliderFloat("Bias", &ssao_shading_floats["bias"], 0, 1);
-					ImGui::SliderFloat("Radius", &ssao_shading_floats["radius"], 0, 3);
-				}
-				ImGui::TreePop();
-			}
+			
 			if (deferred_shading_bools["lic_on"]) {
 				ImGui::SliderFloat("Alpha_Boost", &lic_shading_floats["alpha_boost"], 1, 30);
 				ImGui::SliderInt("Power", &lic_shading_ints["power"], 1, 8);
@@ -1425,7 +1447,33 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			ImGui::SliderFloat("u stretch", &deferred_shading_floats["u_stretch"], 0, 10);
 			ImGui::SliderFloat("v stretch", &deferred_shading_floats["v_stretch"], 0, 10);
 			ImGui::SliderFloat("distance mask", &deferred_shading_floats["distance_mask"], 0, 3);
+			if (ImGui::SliderInt("Hue Start", &color_offset, 0, 360)) {
+				std::vector<glm::vec4> new_colors(num_routers);
+
+				maxSeperatedColors(num_routers, new_colors, jittered, color_offset);
+				for (int i = 0; i < num_routers; i++)
+					wifi_colors[i + wifi.getNumWifiNames()] = new_colors[i];
+				wifi_tex.updateTexture(&wifi_colors, wifi.getNumActiveRouters(routers) + wifi.getNumWifiNames(), 1);
+			}
 			//ImGui::SliderFloat("Z Boost", &z_boost, 1, 10);
+			if (ImGui::TreeNode("SSAO Terms")) {
+				if (ImGui::Checkbox("SSAO Enabled", &ssao_on)) {
+					if (!ssao_on) {
+						glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].ssao_blur_framebuffer);
+						glClearColor(1, 1, 1, 1);
+						glClear(GL_COLOR_BUFFER_BIT);
+						glClearColor(0, 0, 0, 0);
+						glBindFramebuffer(GL_FRAMEBUFFER, 0);
+					}
+				}
+				if (ssao_on) {
+					ImGui::SliderInt("Kernel Size", &kernelSize, 1, 64);
+					ImGui::SliderFloat("Bias", &ssao_shading_floats["bias"], 0, 1);
+					ImGui::SliderFloat("Radius", &ssao_shading_floats["radius"], 0, 3);
+				}
+				ImGui::TreePop();
+			}
+			
 			if (ImGui::TreeNode("Wifi Names")) {
 				for (int i = 0; i < wifinames.size(); i++) {
 					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(wifi_colors.at(i).r, wifi_colors.at(i).g, wifi_colors.at(i).b, wifi_colors.at(i).a));

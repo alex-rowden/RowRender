@@ -17,7 +17,7 @@ uniform sampler2D fragPos_tex;
 uniform sampler2D ellipsoid_coordinates_tex;
 uniform sampler2D tangent_tex;
 uniform sampler2D lic_accum_tex[2];
-uniform sampler2D ssao_tex;
+uniform sampler2D ssao_blur_tex;
 
 //stored textures
 uniform sampler2D frequency_tex;
@@ -827,7 +827,7 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, v
 		light.quadratic * (distance * distance));
 
 
-	vec3 ambient = light.ambient * color * texture(ssao_tex, TexCoord).r;
+	vec3 ambient = light.ambient * color * texture(ssao_blur_tex, TexCoord).r;
 	vec3 diffuse = light.diffuse * diff * color;
 	vec3 specular = light.specular * spec * vec3(1, 1, 1);
 

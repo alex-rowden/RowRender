@@ -120,6 +120,7 @@
     <None Include="Shaders\signed_distance_fragment.glsl" />
     <None Include="Shaders\sky_fshader.glsl" />
     <None Include="Shaders\sky_vshader.glsl" />
+    <None Include="Shaders\ssao_blur.frag" />
     <None Include="Shaders\ssao_frag.glsl" />
     <None Include="Shaders\ssao_vert.glsl" />
     <None Include="Shaders\vertex_shader.glsl" />

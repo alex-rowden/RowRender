@@ -45,6 +45,7 @@ ShaderProgram::ShaderProgram(std::vector<Shaders> shaders) {
 		case Shaders::LIC_PREPASS_FRAG:
 		case Shaders::LIC_FRAG:
 		case Shaders::LIC_ACCUM_FRAG:
+		case Shaders::SSAO_BLUR_FRAG:
 			glAttachShader(shaderProgram, fragmentShader);
 			break;
 		}
@@ -374,6 +375,9 @@ void ShaderProgram::program_error_check(Shaders shader) {
 		case Shaders::LIC_ACCUM_FRAG:
 			filename = "shaders/lic_accum.frag";
 			break;
+		case Shaders::SSAO_BLUR_FRAG:
+			filename = "shaders/ssao_blur.frag";
+			break;
 		default:
 			throw "Not a valid shader";
 		}
@@ -497,6 +501,9 @@ void ShaderProgram::importShaderFile(Shaders shader, std::string *ShaderString) 
 		break;
 	case Shaders::LIC_ACCUM_FRAG:
 		filename = "shaders/lic_accum.frag";
+		break;
+	case Shaders::SSAO_BLUR_FRAG:
+		filename = "shaders/ssao_blur.frag";
 		break;
 	default:
 		throw "Not a valid shader";
@@ -676,6 +683,10 @@ void ShaderProgram::shader_error_check(Shaders shader) {
 		shader_name = "LIC_ACCUM_FRAGMENT_SHADER";
 		shader_adr = &fragmentShader;
 		break;
+	case Shaders::SSAO_BLUR_FRAG:
+		shader_name = "SSAO_BLUR_FRAGMENT_SHADER";
+		shader_adr = &fragmentShader;
+		break;
 	default:
 		throw("Missing definition for shader in shader_error_check");
 	}
@@ -737,6 +748,7 @@ void ShaderProgram::SetupShader(Shaders shader) {
 	case Shaders::LIC_PREPASS_FRAG:
 	case Shaders::LIC_FRAG:
 	case Shaders::LIC_ACCUM_FRAG:
+	case Shaders::SSAO_BLUR_FRAG:
 		fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 		glShaderSource(fragmentShader, 1, &shader_source, NULL);
 		glCompileShader(fragmentShader);

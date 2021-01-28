@@ -19,7 +19,7 @@ uniform float radius, bias;
 void main() {
 	
 	vec3 fragPos = (ViewMat * vec4(texture(fragPos_tex, TexCoords).xyz, 1)).xyz;
-	vec3 normal = (ViewMat * vec4(texture(normal_tex, TexCoords).rgb, 0)).xyz;
+	vec3 normal = (ViewMat * vec4(texture(normal_tex, TexCoords).xyz, 0)).xyz;
 	vec3 randomVec = texture(ssaoNoise, TexCoords * noiseScale).xyz;
 
 	vec3 tangent = normalize(randomVec - normal * dot(randomVec, normal));
@@ -37,7 +37,7 @@ void main() {
 		offset.xyz /= offset.w;               // perspective divide
 		offset.xyz = offset.xyz * 0.5 + 0.5; // transform to range 0.0 - 1.0  
 
-		float sampleDepth = texture(fragPos_tex, offset.xy).z;
+		float sampleDepth = (ViewMat * vec4(texture(fragPos_tex, offset.xy).xyz, 1)).z;
 		float rangeCheck = smoothstep(0.0, 1.0, radius / abs(fragPos.z - sampleDepth));
 		occlusion += (sampleDepth >= sample_vec.z + bias ? 1.0 : 0.0) * rangeCheck;
 	}
