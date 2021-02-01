@@ -1,14 +1,16 @@
 #include "TextRenderer.h"
-
+#include <windows.h>
 TextRenderer::TextRenderer() {
 	auto error = FT_Init_FreeType(&library);
 	if (error) {
 		std::cerr << "An error has occured during the initialization of FreeType: " 
 			<< error << std::endl;
 	}
-
+	char win_dir_buffer[100];
+	GetEnvironmentVariable("WINDIR", (char*)&win_dir_buffer,
+		sizeof(win_dir_buffer));
 	error = FT_New_Face(library,
-		"/Windows/Fonts/Arial.ttf",
+		(std::string(win_dir_buffer) + "/Fonts/Arial.ttf").c_str(),
 		0,
 		&arial_face);
 	if (error == FT_Err_Unknown_File_Format)

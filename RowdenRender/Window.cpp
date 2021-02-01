@@ -29,6 +29,12 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 	this_window->setResized(true);
 }
 
+void standard_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+	Window* win = static_cast<Window*>(glfwGetWindowUserPointer(window));
+	if (action == GLFW_PRESS) {
+		win->keypressed = key;
+	}
+}
 
 void standard_mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 	Window* win = static_cast<Window*>(glfwGetWindowUserPointer(window));
@@ -224,6 +230,7 @@ void Window::SetCamera(Camera* _camera) {
 	camera = _camera;
 	//glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	glfwSetCursorPosCallback(window, standard_mouse_callback);
+	glfwSetKeyCallback(window, standard_key_callback);
 }
 
 //Process each input frame, by default uses standard input processor

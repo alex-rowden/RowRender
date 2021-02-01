@@ -35,6 +35,7 @@ public:
 	bool pressed = false;
 	int i, j, width, height = 0;
 	bool signal = false;
+	int keypressed = 0;
 	double lastTime = 0;
 	float horizontalAngle = 3.14f;
 	float verticalAngle = 0.0f;

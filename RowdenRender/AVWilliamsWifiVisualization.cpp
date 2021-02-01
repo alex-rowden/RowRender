@@ -763,6 +763,9 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	Texture2D frequency_texture = Texture2D("./Content/Textures/texton_paper_aspect.png");
 	frequency_texture.giveName("frequency_tex");
 	float an = 0.0f;
+
+	Texture2D widget_background = Texture2D("./Content/Textures/quad_background.png");
+	
 	
 	glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY, &an); 
 	std::cout << an << std::endl;
@@ -931,7 +934,8 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 		frequency_texture,
 		//buffer[0].lic_texture[0], buffer[0].lic_texture[0],
 		noise[0]};
-	bool num_samples_changed = false, num_routers_changed = false;
+	bool num_samples_changed = false, num_routers_changed = false,
+		render_gui = true;
 	while (!glfwWindowShouldClose(w.getWindow())) {
 		if (w.getResized()) {
 			resolution.x = w.width;
@@ -1041,8 +1045,9 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				model_shader.SetUniform("camera", ViewMat);
 				model_shader.SetUniform("normalMatrix", glm::mat3(glm::transpose(glm::inverse(transform))));
 				model_shader.SetUniform("texcoord_scale", texcoord_scale);
-				quad.getMeshes().at(0)->setTexture(white, 0);
+				quad.getMeshes().at(0)->setTexture(widget_background, 0);
 				render(quad, &model_shader);
+				quad.getMeshes().at(0)->setTexture(white, 0);
 			}
 			glDisable(GL_DEPTH_TEST);
 			if (ssao_on) {
@@ -1335,7 +1340,6 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 					}
 					
 					if (vr.left_trigger) {
-						std::cout << "left_trigger actions" << std::endl;
 						glm::vec3 forward;
 						glm::quat  orientation;
 						glm::vec3 skew, scale;
@@ -1367,7 +1371,8 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
-		ImGui::Begin("Rendering Terms");
+		if (render_gui) {
+			ImGui::Begin("Rendering Terms");
 			ImGui::SliderInt("Number of Routers", &num_routers, 1, 20);
 			if (ImGui::Button("Nearest Routers")) {
 				num_routers_changed = true;
@@ -1387,7 +1392,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			ImGui::SliderFloat("BillBoard Scale", &billboard_scale, 0, 1);
 			ImGui::Checkbox("Shade Instances", &deferred_shading_bools["shade_instances"]);
 			ImGui::Checkbox("Line Integral Convolution", &deferred_shading_bools["lic_on"]);
-			
+
 			if (deferred_shading_bools["lic_on"]) {
 				ImGui::SliderFloat("Alpha_Boost", &lic_shading_floats["alpha_boost"], 1, 30);
 				ImGui::SliderInt("Power", &lic_shading_ints["power"], 1, 8);
@@ -1397,7 +1402,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 					ImGui::Checkbox("Hug Walls", &lic_shading_bools["cull_discontinuities"]);
 				}
 				ImGui::Checkbox("Multirouter", &lic_shading_bools["multirouter"]);
-				if(lic_shading_bools["multirouter"]) {
+				if (lic_shading_bools["multirouter"]) {
 					ImGui::Checkbox("Use Color Weaving", &deferred_shading_bools["color_weaving"]);
 					if (deferred_shading_bools["color_weaving"]) {
 						ImGui::Checkbox("Use Blending", &deferred_shading_bools["blending"]);
@@ -1408,13 +1413,14 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 					ImGui::SliderFloat("Density", &lic_shading_floats["density"], 0, 1);
 					if (!lic_shading_bools["screen_space_lic"])
 						ImGui::SliderFloat("Cling Factor", &deferred_shading_floats["cling"], 0, 1);
-				}else {
+				}
+				else {
 					num_samples_changed = ImGui::SliderInt("num_samples", &num_samples, 12800, 102400 * 16);
 				}
 				ImGui::SliderFloat("Fragment Position Scale", &lic_shading_floats["frag_pos_scale"], 0, 300);
 				ImGui::SliderFloat("Rate", &lic_shading_floats["learning_rate"], 0, .9);
 				ImGui::Checkbox("Use LIC Mask", &lic_shading_bools["use_mask"]);
-				
+
 			}
 			else {
 				ImGui::Checkbox("frequency_bands", &deferred_shading_bools["frequency_bands"]);
@@ -1473,7 +1479,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				}
 				ImGui::TreePop();
 			}
-			
+
 			if (ImGui::TreeNode("Wifi Names")) {
 				for (int i = 0; i < wifinames.size(); i++) {
 					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(wifi_colors.at(i).r, wifi_colors.at(i).g, wifi_colors.at(i).b, wifi_colors.at(i).a));
@@ -1530,8 +1536,9 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			}
 
 			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-		ImGui::End();
-		if (nearest_router_on) {
+			ImGui::End();
+		}
+		if (nearest_router_on && render_gui) {
 			ImGui::Begin("Nearest Routers");
 				for (int i = 0; i < wifi.getRouterStrings().size(); i++) {
 					glm::vec4 color = wifi_colors[i + wifi.getNumWifiNames()];
@@ -1562,6 +1569,10 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			camera.setPosition(pos);
 		}
 		w.ProcessFrame();
+		if (w.keypressed == GLFW_KEY_H) {
+			w.keypressed = 0;
+			render_gui = !render_gui;
+		}
 		if(use_vr)
 			vr.handoff();
 		glFinish();
