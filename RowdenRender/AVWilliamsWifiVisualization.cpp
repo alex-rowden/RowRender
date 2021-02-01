@@ -1,4 +1,3 @@
-
 #pragma once
 #include "RowRender.h"
 #include "WifiData.h"
@@ -18,6 +17,7 @@
 #include <glm/gtx/matrix_decompose.hpp>
 
 #include <glm/gtc/matrix_access.hpp>
+#include <windows.h>
 
 using namespace vr;
 
@@ -469,7 +469,9 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 		vr.initialize();
 		vr.resetZeroPose();
 		vr.initCompositor();
-		vr.SetActionManifestPath("C:\\Users\\ARR87\\Documents\\GitHub\\RowRender\\RowdenRender\\actions.json");
+		char path[100];
+		GetCurrentDirectory(MAX_PATH, path);
+		vr.SetActionManifestPath(std::string(path) + "/actions.json");
 		vr.setActionHandles();
 		camera_offset = vr.getSeatedZeroPoseToStandingPose();
 		resolution = vr.getRenderTargetSize();
@@ -937,6 +939,10 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	bool num_samples_changed = false, num_routers_changed = false,
 		render_gui = true;
 	while (!glfwWindowShouldClose(w.getWindow())) {
+		if (w.sleeping) {
+			glfwPollEvents();
+			continue;
+		}
 		if (w.getResized()) {
 			resolution.x = w.width;
 			resolution.y = w.height;

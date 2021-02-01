@@ -22,8 +22,11 @@ GLFWwindow* Window::getWindow() {
 //Call in order to resize the window
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
-	glViewport(0, 0, width, height);
 	Window* this_window = (Window*)glfwGetWindowUserPointer(window);
+	if (width == 0 || height == 0) {
+		this_window->sleeping = true;
+	}
+	glViewport(0, 0, width, height);
 	this_window->width = width;
 	this_window->height = height;
 	this_window->setResized(true);

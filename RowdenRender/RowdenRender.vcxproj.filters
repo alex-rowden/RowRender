@@ -102,6 +102,9 @@
     <ClCompile Include="LineIntegralConvolution.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="RouterMath.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Window.h">
@@ -198,6 +201,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="LineIntegralConvolution.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RouterMath.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
