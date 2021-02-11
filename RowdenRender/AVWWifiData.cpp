@@ -1,5 +1,6 @@
 #include "AVWWifiData.h"
 #include <glm/gtc/matrix_access.hpp>
+#include <map>
 
 void tokenizer(std::string str, const char* delim, std::vector<std::string>& out) {
 	char* next_token;
@@ -148,12 +149,7 @@ void AVWWifiData::setNearestNRouters(int n, glm::vec3 position, std::vector<bool
 				std::string wifiname = name2Mac.first;
 				if (!wifiname.compare(""))
 					wifiname = "empty";
-				if (!loadEllipsoid("./Content/Data/AVW_data/"
-					+ wifiname + "/"
-					+ mac2Entries.first + ".ellipsoid",
-					currEllipsoid)) {
-					std::cerr << "Error loading ellipsoid" << std::endl;
-				}
+				currEllipsoid = mac2routers[mac2Entries.first];
 				currDist = ellipsoidDistance(position, currEllipsoid);
 				curr_router = router_num++;
 				auto curr_freq = std::distance(active_freqs.begin(), loc);
@@ -287,7 +283,6 @@ void AVWWifiData::loadWifi(std::string filename, std::string floor) {
 				floorToWifiNameToEntries.at(floor).at(networkName).emplace_back(entry);
 			}
 
-
 		}
 	}
 	else
@@ -299,11 +294,11 @@ void AVWWifiData::loadWifi(std::string filename, std::string floor) {
 	inputFile.close();
 }
 
-void AVWWifiData::updateRouterStructure(std::vector<bool>router_bools, std::vector<bool> wifinames, std::vector<bool> freqs, ShaderProgram* model_shader, int num_shaders, bool nearest_router) {
+void AVWWifiData::updateRouterStructure(std::vector<bool>router_bools, std::vector<bool> wifinames, std::vector<bool> freqs, ShaderProgram* model_shader, int num_shaders, glm::vec3 position, bool nearest_router) {
 	int wifinum = 0;
 	int i = 0;
-	delete[] routers;
-	routers = new Ellipsoid[getNumActiveRouters(router_bools)];
+	routers.clear();
+	routers.resize(getNumActiveRouters(router_bools));
 	router_strings.empty();
 	router_strings.resize(getNumActiveRouters(router_bools));
 	for (auto NameToMacToEntries : wifiNameToMacToEntries) {
@@ -327,38 +322,101 @@ void AVWWifiData::updateRouterStructure(std::vector<bool>router_bools, std::vect
 					router_index = (i + getNumWifiNames() + 1) / (float)(getNumActiveRouters(router_bools) + getNumWifiNames() + 1);
 				else
 					router_index = wifinum / (float)(getNumWifiNames() + 1);
-				if (!loadEllipsoid("./Content/Data/AVW_data/"
-					+ wifiname + "/"
-					+ MacToEntries.first + ".ellipsoid",
-					routers[i], router_index)) {
+				routers[i] = mac2routers[MacToEntries.first];
+				routers[i].mu.w = router_index;
+				std::vector<int> active_freqs = getActiveFreqs(freqs);
+				auto it = std::find(active_freqs.begin(), active_freqs.end(), MacToEntries.second.at(0).freq);
+				int index = std::distance(active_freqs.begin(), it);
 
-					std::cerr << "Error loading ellipsoid" << std::endl;
-				}
-				else {
-					std::vector<int> active_freqs = getActiveFreqs(freqs);
-					auto it = std::find(active_freqs.begin(), active_freqs.end(), MacToEntries.second.at(0).freq);
-					int index = std::distance(active_freqs.begin(), it);
-
-					routers[i].r.w = (float)index;
-					router_strings[i] = wifiname + ": " + MacToEntries.first + ": " + std::to_string(MacToEntries.second.at(0).freq);
-					i++;
-				}
+				routers[i].r.w = (float)index;
+				router_strings[i] = wifiname + ": " + MacToEntries.first + ": " + std::to_string(MacToEntries.second.at(0).freq);
+				i++;
+				
 			}
 			else {
 				std::cout << "not enough samples for interpolation" << std::endl;
 			}
 		}
 	}
+	sortRouters(position);
 	//model_shader.setEllipsoids(routers);
-	glBindBuffer(GL_UNIFORM_BUFFER, uniformBuffer);
-	for (int j = 0; j < num_shaders; j++){
-		glBufferData(GL_UNIFORM_BUFFER, i * sizeof(Ellipsoid), routers, GL_DYNAMIC_DRAW);
-		glBindBufferBase(GL_UNIFORM_BUFFER, bindingPoint[j], uniformBuffer);
-		model_shader[0].SetUniform("num_routers", i);
-	}
-		
+	uploadRouters(num_shaders, model_shader);
+	
 }
 
+
+
+void AVWWifiData::sortRouters(glm::vec3 position) {
+	std::vector<std::vector<Ellipsoid>>organization;
+	for (auto router : routers) {
+		bool found = false;
+		for (int i = 0; i < organization.size(); i++) {
+			if (organization[i][0].r.w == router.r.w) {
+				found = true;
+				organization[i].emplace_back(router);
+			}
+		}
+		if (!found) {
+			std::vector<Ellipsoid> temp;
+			temp.emplace_back(router);
+			organization.emplace_back(temp);
+		}
+	}
+	std::sort(organization.begin(), organization.end(),
+		[](std::vector<Ellipsoid> a, std::vector<Ellipsoid> b) {
+			return a.size() > b.size();
+		}
+	);
+
+	int ittr = 0;
+	for (auto vec: organization) {
+		for (auto elem : vec) {
+			routers[ittr++] = elem;
+		}
+	}
+}
+
+void AVWWifiData::uploadRouters( int num_shaders, ShaderProgram *model_shader) {
+	glBindBuffer(GL_UNIFORM_BUFFER, uniformBuffer);
+	for (int j = 0; j < num_shaders; j++) {
+		glBufferData(GL_UNIFORM_BUFFER, routers.size() * sizeof(Ellipsoid), routers.data(), GL_DYNAMIC_DRAW);
+		glBindBufferBase(GL_UNIFORM_BUFFER, bindingPoint[j], uniformBuffer);
+		model_shader[0].SetUniform("num_routers", (int)routers.size());
+	}
+}
+
+
+int AVWWifiData::getNumRoutersWithSignalFromSet(glm::vec3 position, float extent) {
+	int counter = 0;
+	for (auto &router : routers) {
+		if (ellipsoidDistance(position, router) <= extent) {
+			counter++;
+		}
+	}
+	return counter;
+}
+int AVWWifiData::getNumRoutersWithSignal(glm::vec3 position, float extent) {
+	int counter = 0;
+	for (auto &macAndRouter : mac2routers) {
+		if (ellipsoidDistance(position, macAndRouter.second) <= extent) {
+			counter++;
+		}
+	}
+	return counter;
+}
+//TODO: should this be static or dynamic? Implementing static
+std::string AVWWifiData::getInterferenceString() {
+	std::map<float, int> counter_map;
+	for (auto &router : routers) {
+		counter_map.insert(std::pair<float, int>((float)router.r.w, 0));
+		counter_map[router.r.w]++;
+	}
+	std::string ret("");
+	for (auto key_val : counter_map)
+		ret += (std::to_string(key_val.second) + "|");
+	ret.erase(ret.end() - 1);
+	return ret;
+}
 
 
 void AVWWifiData::setAvailableMacs(std::vector<std::string> names) {
@@ -456,6 +514,19 @@ void AVWWifiData::setupStructures() {
 	for (auto element : wifiNameToMacToEntries) {
 		wifinames.emplace_back(element.first);
 		for (auto mac2entries : element.second) {
+			std::string wifiname = element.first;
+			Ellipsoid currEllipsoid;
+			if (!wifiname.compare(""))
+				wifiname = "empty";
+			if (!loadEllipsoid("./Content/Data/AVW_data/"
+				+ wifiname + "/"
+				+ mac2entries.first + ".ellipsoid",
+				currEllipsoid)) {
+				std::cerr << "Error loading ellipsoid" << std::endl;
+			}
+			
+			mac2routers[mac2entries.first] = currEllipsoid;
+
 			for (auto entry : mac2entries.second) {
 				if (std::find(frequencies.begin(), frequencies.end(), entry.freq) == frequencies.end()) {
 					frequencies.emplace_back(entry.freq);

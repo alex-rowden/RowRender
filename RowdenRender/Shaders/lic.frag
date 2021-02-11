@@ -2,6 +2,7 @@
 
 #define NUM_STEPS 12
 #define MAX_ROUTERS 20
+#define EPSILON 1e-4
 
 out vec4 LIC;
 
@@ -109,6 +110,8 @@ vec4 renderLIC(vec3 fragPos, vec3 tangent, vec3 bitangent, vec3 Normal) {
 	float val;
 	float step_size = learning_rate * .02;
 
+	float first_signal_strength = 0;
+
 	vec2 uv;
 	vec3 uvt;
 	bool found = false;
@@ -139,10 +142,17 @@ vec4 renderLIC(vec3 fragPos, vec3 tangent, vec3 bitangent, vec3 Normal) {
 			
 			float mask = calculateMask(dir, j);// ;
 			vec4 direction4 = texture(force_tex, uv);
-			
+			first_signal_strength = 1 - max(0, direction4.a);
+			if(direction4.a == 0){
+				first_signal_strength = 0;
+			}
 			if(step_num != 0){
-				vec4 lic = texture(lic_tex[(step_num + 1) % 2], uv);
-			
+				
+				vec4 lic;
+				if(step_num == 1)
+					lic = texture(lic_tex[0], uv);
+				else if(step_num == 2)
+					lic = texture(lic_tex[1], uv);
 				
 				val += mask * lic.a;
 				if(lic.a > 0 && multirouter){
@@ -157,6 +167,10 @@ vec4 renderLIC(vec3 fragPos, vec3 tangent, vec3 bitangent, vec3 Normal) {
 				
 			}
 			else{
+				if(direction4.a < EPSILON){
+					direction4.a = 1;
+				}
+				
 				float noise_val = 0;
 				if ( procedural_noise)
 					noise_val = noise(frag_pos_scale * scale * uvt.rgb) * mask;
@@ -209,7 +223,7 @@ vec4 renderLIC(vec3 fragPos, vec3 tangent, vec3 bitangent, vec3 Normal) {
 				
 				tangent = texture(tangent_tex, uv).rgb;
 				//check if we changed surfaces
-				if (abs(dot(tangent, oldTangent)) < 1e-3) {
+				if (abs(dot(tangent, oldTangent)) < EPSILON) {
 					
 					if (cull_discontinuities) {
 						float angle = acos(dot(newFragPos - oldFragPos, dir * direction * step_size) / (dir * magnitude * delta * step_size));
@@ -271,6 +285,9 @@ vec4 renderLIC(vec3 fragPos, vec3 tangent, vec3 bitangent, vec3 Normal) {
 	if (signal_strength != 0) {
 		color = color / signal_strength;
 	}
+	if(last_pass){
+		alpha_new *=  pow(first_signal_strength, .1);
+	}
 	return vec4(color, alpha_new);
 }
 
@@ -278,7 +295,7 @@ void main(){
 	
 	vec3 fragPos = texture(fragPos_tex, TexCoord).xyz;
 	vec3 normal = texture(normal_tex, TexCoord).xyz;
-	if(abs(dot(normal, vec3(0,0,1))) > (1 - 1e-3)){
+	if(abs(dot(normal, vec3(0,0,1))) > (1 - EPSILON)){
 		LIC = vec4(0,0,0,0);
 		return;
 	}

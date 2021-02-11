@@ -453,6 +453,25 @@ void rayPicker(glm::vec3 ray, glm::vec3 ray_coord, glm::vec3 camera_pos ,glm::ve
 	return;
 }
 
+std::string getLocationString(glm::vec3 position) {
+	std::string ret("Floor ");
+	if (position.z > 5 || position.z < 0) {
+		return std::string("Outside");
+	}
+	ret += std::to_string((int)floor(position.z));
+	ret += " ";
+	if (position.y > 10) {
+		ret += "West Hallway";
+	}
+	else if (position.y > -8.5) {
+		ret += "Central Hallway";
+	}
+	else {
+		ret += "East Hallway";
+	}
+	return ret;
+}
+
 
 int AVWilliamsWifiVisualization(bool use_vr) {
 
@@ -463,22 +482,29 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	
 	VR_Wrapper vr = VR_Wrapper();
 
-	glm::uvec2 resolution = glm::uvec2(2560, 1440);
+	glm::uvec2 resolution = glm::uvec2(0, 0);
 	glm::mat4 camera_offset = glm::mat4(1);
 	if (use_vr) {
 		vr.initialize();
 		vr.resetZeroPose();
 		vr.initCompositor();
-		char path[100];
+		char path[100];	
 		GetCurrentDirectory(MAX_PATH, path);
-		vr.SetActionManifestPath(std::string(path) + "/actions.json");
+		std::cout << std::string(path) + "/Content/VR Stuff/actions.json" << std::endl;
+		vr.SetActionManifestPath(std::string(path) + "/Content/VR Stuff/actions.json");
 		vr.setActionHandles();
 		camera_offset = vr.getSeatedZeroPoseToStandingPose();
 		resolution = vr.getRenderTargetSize();
+		std::cout << "resolution: " << glm::to_string(resolution) << std::endl;
 	}
 	//Open and setup window
+	
 	Window w = Window("AV Williams Wifi Visualization", resolution.x, resolution.y);
-	//w.setFullScreen(true);
+	resolution = glm::uvec2(w.width, w.height);
+	//glViewPort(0, 0, resolution.x, resolution.y);
+	//w.SetViewportSize(resolution.x, resolution.y);
+	//if(!use_vr)
+	//	w.setFullScreen(true);
 	//initialize GLAD
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) //load GLAD
 	{
@@ -770,7 +796,6 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	
 	
 	glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY, &an); 
-	std::cout << an << std::endl;
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY, an);
 	frequency_texture.setTexMinMagFilter(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR);
 	frequency_texture.setTexParameterWrap(GL_REPEAT);
@@ -872,7 +897,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 		{ "extent", 1 },
 		{ "frequency", .973 },
 		{ "linear_term", 1 },
-		{ "thickness", .056 },
+		{ "thickness", .018 },
 		{ "u_stretch", 3.654 },
 		{ "v_stretch", 3.654 },
 		{ "delta_theta", 180.f / wifi.getActiveFreqs(freqs).size() },
@@ -1073,73 +1098,76 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				render(quad, &ssao_blur_shader);
 			}
 
-			
-			int num_forces = num_routers;
-			int num_iters = 3;
-			if (lic_shading_bools["multirouter"])
-				num_forces = 1;
-			for (int i = 0; i < num_forces; i++) {
-				glClearColor(0, 0, 0, 0);
-				force_shader.Use();
-				glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].force_framebuffer);
-				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			if (deferred_shading_bools["lic_on"]) {
+				int num_forces = num_routers;
+				int num_iters = 3;
+				if (lic_shading_bools["multirouter"])
+					num_forces = 1;
+				for (int i = 0; i < num_forces; i++) {
+					glClearColor(0, 0, 0, 0);
+					force_shader.Use();
+					glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].force_framebuffer);
+					glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-				force_shader.SetUniform("ellipsoid_transform", wifi.ellipsoid_transform);
-				force_shader.SetUniform("radius_stretch", wifi.radius_stretch);
-				force_shader.SetUniform("ellipsoid_index_offset", i);
-				force_shader.SetUniform("num_routers", num_routers);
-				force_shader.SetUniform("num_ellipsoids", num_routers/num_forces);
-				force_shader.SetUniform("extent", 1.0f);
-				force_shader.SetUniform("invert_colors", deferred_shading_bools["invert_colors"]);
-				render(quad, &force_shader);
-				glClearColor(1, 1, 1, 0);
-				for (int j = 0; j < num_iters; j++) {
-					lic_shader.Use();
-					lic_shading_bools["last_pass"] = (j == (num_iters - 1));
-					lic_shader.SetUniforms(lic_shading_floats);
-					lic_shader.SetUniforms(lic_shading_ints);
-					lic_shader.SetUniforms(lic_shading_bools);
-					lic_shader.SetUniform("camera", ViewMat);
-					lic_shader.SetUniform("projection", ProjectionMat);
-					//if(wifi.getNumWifiNames() + i < wifi_colors.size())
-						//lic_shader.SetUniform("color", glm::vec3(wifi_colors.at(wifi.getNumWifiNames() + i)));
-					lic_shader.SetUniform("ellipsoid_index_offset", i);
-					lic_shader.SetUniform("router_num", i);
-					lic_shader.SetUniform("step_num", j);
-					lic_shader.SetUniform("multirouter", lic_shading_bools["multirouter"]);
+					force_shader.SetUniform("ellipsoid_transform", wifi.ellipsoid_transform);
+					force_shader.SetUniform("radius_stretch", wifi.radius_stretch);
+					force_shader.SetUniform("ellipsoid_index_offset", i);
+					force_shader.SetUniform("num_routers", num_routers);
+					force_shader.SetUniform("num_ellipsoids", num_routers / num_forces);
+					force_shader.SetUniform("extent", deferred_shading_floats["extent"]);
+					force_shader.SetUniform("invert_colors", deferred_shading_bools["invert_colors"]);
+					render(quad, &force_shader);
+					glClearColor(1, 1, 1, 0);
+					for (int j = 0; j < num_iters; j++) {
+						lic_shader.Use();
+						lic_shading_bools["last_pass"] = (j == (num_iters - 1));
+						lic_shader.SetUniforms(lic_shading_floats);
+						lic_shader.SetUniforms(lic_shading_ints);
+						lic_shader.SetUniforms(lic_shading_bools);
+						lic_shader.SetUniform("camera", ViewMat);
+						lic_shader.SetUniform("projection", ProjectionMat);
+						//if(wifi.getNumWifiNames() + i < wifi_colors.size())
+							//lic_shader.SetUniform("color", glm::vec3(wifi_colors.at(wifi.getNumWifiNames() + i)));
+						lic_shader.SetUniform("ellipsoid_index_offset", i);
+						lic_shader.SetUniform("router_num", i);
+						lic_shader.SetUniform("step_num", j);
+						lic_shader.SetUniform("multirouter", lic_shading_bools["multirouter"]);
 
-					//glClearColor(1, 1, 1, 0);
-					glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].lic_framebuffer[j%2]);
-					if (j < 2)
-						glClear( GL_COLOR_BUFFER_BIT);
-					
-					render(quad, &lic_shader);
-					//if (j == 0) {
-					//	noise[i].giveName("temp_name");
-					//}
-					//buffer[0].lic_texture.giveName("noise_tex[" + std::to_string(i) + "]");
-				}
-				//noise[i].giveName("noise_tex[" + std::to_string(i) + "]");
-				//buffer[0].lic_texture.giveName("lic_tex");
-				//glEnable(GL_BLEND);
-				//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-				glClearColor(1,1,1,0);
+						//glClearColor(1, 1, 1, 0);
+						glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].lic_framebuffer[j % 2]);
+						glClear(GL_COLOR_BUFFER_BIT);
 
-				if (i == 0) {
-					glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].lic_accum_framebuffer[1]);
+						render(quad, &lic_shader);
+						//if (j == 0) {
+						//	noise[i].giveName("temp_name");
+						//}
+						//buffer[0].lic_texture.giveName("noise_tex[" + std::to_string(i) + "]");
+					}
+					//noise[i].giveName("noise_tex[" + std::to_string(i) + "]");
+					//buffer[0].lic_texture.giveName("lic_tex");
+					//glEnable(GL_BLEND);
+					//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+					glClearColor(1, 1, 1, 0);
+
+					if (i == 0) {
+						glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].lic_accum_framebuffer[1]);
+						glClear(GL_COLOR_BUFFER_BIT);
+					}
+
+					glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].lic_accum_framebuffer[i % 2]);
+
 					glClear(GL_COLOR_BUFFER_BIT);
-				}
 
-				glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].lic_accum_framebuffer[i%2]);
-				
-				glClear(GL_COLOR_BUFFER_BIT);
-			
-				lic_accum_shader.Use();
-				lic_accum_shader.SetUniform("camera", ViewMat);
-				lic_accum_shader.SetUniform("projection", ProjectionMat);
-				lic_accum_shader.SetUniform("lic_index", (num_iters + 1) % 2);
-				lic_accum_shader.SetUniform("force_index", (i + 1) % 2);
-				render(quad, &lic_accum_shader);
+					lic_accum_shader.Use();
+					lic_accum_shader.SetUniform("camera", ViewMat);
+					lic_accum_shader.SetUniform("projection", ProjectionMat);
+					lic_accum_shader.SetUniform("lic_index", (num_iters + 1) % 2);
+					lic_accum_shader.SetUniform("force_index", (i + 1) % 2);
+					render(quad, &lic_accum_shader);
+				}
+				deferred_shader.SetUniform("force_index", (num_forces + 1) % 2);
+				deferred_shader.SetUniform("num_lic", num_iters % 2);
+
 			}
 			glClearColor(0, 0, 0, 0);
 			deferred_shader.Use();
@@ -1149,10 +1177,9 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			deferred_shader.SetUniforms(deferred_shading_bools);
 			deferred_shader.SetUniform("camera", ViewMat);
 			deferred_shader.SetUniform("projection", ProjectionMat);
-			deferred_shader.SetUniform("num_lic", num_iters % 2);
 			deferred_shader.SetUniform("alpha_boost", lic_shading_floats["alpha_boost"]);
 			deferred_shader.SetUniform("power", lic_shading_ints["power"]);
-			deferred_shader.SetUniform("force_index", (num_forces + 1) % 2);
+			
 			wifi_transform = glm::translate(glm::mat4(1), wifi_translate);
 			wifi.ellipsoid_transform = wifi_transform * glm::scale(glm::mat4(1), wifi_scale);
 			deferred_shader.SetUniform("ellipsoid_transform", wifi.ellipsoid_transform);
@@ -1170,7 +1197,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				deferred_shader.SetUniform("selectedPos", selectedPos);
 				renderPopup = wifi.getNumActiveRouters(routers) > 0;
 				wifi.setRenderText(popup_text, selectedPos, routers);
-				std::cout << glm::to_string(selectedPos) << std::endl;
+				//std::cout << glm::to_string(selectedPos) << std::endl;
 				send_data = false;
 				for (int i = 0; i < popup_text.size(); i++) {
 					popupText.RenderText(glm::uvec2(0, font_height * popup_text.size() - (i + 1) * font_height),
@@ -1221,7 +1248,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			}
 
 			if (updated_routers) {
-				wifi.updateRouterStructure(routers, wifinames, freqs, router_shaders, 2, nearest_router_on);
+				wifi.updateRouterStructure(routers, wifinames, freqs, router_shaders, 2, camera.getPosition(), nearest_router_on);
 				updated_routers = false;
 				if (nearest_router_on) {
 					std::vector<glm::vec4> new_wifi_colors(wifi.getNumActiveRouters(routers));
@@ -1562,6 +1589,16 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				ImGui::Text(popup_text.at(i).c_str());
 				ImGui::PopStyleColor();
 			}
+			ImGui::End();
+		}
+
+		if (!use_vr) {
+			ImGui::Begin("Analytics");
+			ImGui::Text((std::to_string(wifi.getNumRoutersWithSignalFromSet(camera.getPosition(), deferred_shading_floats["extent"])) + " Displayed routers with signal strength").c_str());
+			ImGui::Text((std::to_string(wifi.getNumRoutersWithSignal(camera.getPosition(), deferred_shading_floats["extent"])) + ": Number of routers with signal strength").c_str());
+			if(wifi.routers.size() > 0)
+				ImGui::Text(("Interference: " + wifi.getInterferenceString()).c_str());
+			ImGui::Text(getLocationString(camera.getPosition()).c_str());
 			ImGui::End();
 		}
 		ImGui::Render();

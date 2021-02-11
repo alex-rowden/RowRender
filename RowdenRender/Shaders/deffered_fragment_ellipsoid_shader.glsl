@@ -137,6 +137,9 @@ float paintTextons(vec3 fragPos, int i, int num_routers_per_freq, int router_cou
 	//alpha_new = mask;
 	if (router_num > router_counter)
 		mask = 0;
+	if (num_routers_per_freq == 1) {
+		mask *= .5;
+	}
 	return mask;
 }
 /*
@@ -736,11 +739,13 @@ vec3 calculateColor(vec3 fragPos, vec3 Normal) {
 			}
 			else if (!lic_on) {
 				//(abs(mod(linear_term * log2(distance / extent), frequency) / (frequency * thickness) - .5) > .2)
-				float iso_band = mod(linear_term * log2(distance / extent), frequency);
-				if (iso_band > frequency * thickness) {
+				float iso_band = mod(linear_term * -log2(distance / extent), frequency);
+				float contour_num = ceil(linear_term * -log2(distance / extent) / frequency);
+				if (iso_band/frequency > thickness * pow(.5*contour_num, 3)) {
 					alpha_new = 0;
 				}
 				else {
+					alpha_new = min(1, 1.2 -  distance / extent);
 					if (frequency_bands) {
 						iso_band = (iso_band - (1 - frequency * thickness)) / (frequency * thickness);
 						int freq_number = int(Ellipsoids[i].r.w);
@@ -753,8 +758,8 @@ vec3 calculateColor(vec3 fragPos, vec3 Normal) {
 						vec2 projected_coords = vec2(dot(tangent, modified_coords), dot(bitangent, modified_coords));
 						float theta = atan(projected_coords.y, projected_coords.x);
 						float norm_theta = max(theta / PI + 1, 0);
-						if (mod(norm_theta * num_contours, 2) < 1) {
-							vec2 index = vec2(mod(norm_theta * num_contours, 2), mod(linear_term * log2(distance / extent), frequency) / (frequency * thickness));
+						if (mod(norm_theta * num_contours / contour_num, 2) < 1) {
+							vec2 index = vec2(mod(norm_theta * num_contours / contour_num, 2),1 - mod(linear_term * -log2(distance / extent), frequency) / (frequency * (thickness * pow(.5 * contour_num, 3))));
 							index.y = index.y / num_routers + i / float(num_routers);
 							alpha_new = texture(text_tex, index).r;
 						}

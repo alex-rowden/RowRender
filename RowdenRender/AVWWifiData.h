@@ -24,6 +24,7 @@ class AVWWifiData
 private:
 	std::map<std::string, std::map<std::string, std::vector<WifiDataEntry>>> floorToWifiNameToEntries;
 	std::map<std::string, std::map<std::string, std::vector<WifiDataEntry>>> wifiNameToMacToEntries;
+	std::map<std::string, Ellipsoid> mac2routers;
 	std::vector<std::string> available_macs;
 	std::vector<int> available_freqs;
 	std::vector<std::string> wifinames;
@@ -42,7 +43,12 @@ public:
 	AVWWifiData(ShaderProgram*, int);
 	void pruneEntries();
 	std::vector<std::string> getRouterStrings() { return router_strings; }
-	void updateRouterStructure(std::vector<bool>routers, std::vector<bool> wifi_names, std::vector<bool> freqs, ShaderProgram *shader, int num_shaders, bool nearest_router = false);
+	void updateRouterStructure(std::vector<bool>routers, std::vector<bool> wifi_names, std::vector<bool> freqs, ShaderProgram *shader, int num_shaders, glm::vec3 position, bool nearest_router = false);
+	void sortRouters(glm::vec3 position);
+	void uploadRouters(int num_shaders, ShaderProgram *model_shader);
+	int getNumRoutersWithSignalFromSet(glm::vec3 position, float extent = 1);
+	int getNumRoutersWithSignal(glm::vec3 position, float extent);
+	std::string getInterferenceString();
 	int getNumActiveRouters(std::vector<bool> routers);
 	bool loadEllipsoid(std::string filename, Ellipsoid&ret, float wifi_num = 0);
 	void loadWifi(std::string filename, std::string floor);
@@ -70,6 +76,6 @@ public:
 	std::map<std::string, std::map<std::string, std::vector<WifiDataEntry>>> getFloorToWifiNameToEntries() {return floorToWifiNameToEntries;}
 	std::map<std::string, std::map<std::string, std::vector<WifiDataEntry>>> getWifiNameToMacToEntries() { return wifiNameToMacToEntries; };
 	WifiDataEntry lastEntry;
-	Ellipsoid *routers;
+	std::vector<Ellipsoid> routers;
 };
 
