@@ -31,6 +31,7 @@ public:
 	void Render(ShaderProgram* sp);
 	void addMesh(Mesh *mesh);
 	void addModel(Model* model);
+	void loadObjf(std::string path);
 	void setModel(bool use_tangents = false);
 	std::vector<Mesh*> getMeshes() { return meshes; }
 };

@@ -24,6 +24,7 @@ TextRenderer::TextRenderer() {
 }
 
 void TextRenderer::SetCharacterSize(int height) {
+	characterSize = height;
 	auto error = FT_Set_Char_Size(
 		arial_face,    /* handle to face object           */
 		0,       /* char_width in 1/64th of points  */
@@ -110,6 +111,26 @@ void TextRenderer::paintGlyph(FT_Bitmap bitmap, unsigned int penX, unsigned int 
 
 			tex[j * width + i] |= bitmap.buffer[q * bitmap.width + p];
 		}
+	}
+}
+
+void TextRenderer::RenderText(glm::uvec2 pen_pos, glm::uvec2 my_target_dims,
+	std::vector<std::string> text, bool reset_text) {
+	float pixel_size = characterSize * 109 / 72.0f;
+	int font_height = ceil(
+		pixel_size *
+		(arial_face->bbox.yMax - arial_face->bbox.yMin) /
+		arial_face->units_per_EM
+	); int font_width = ceil(
+		pixel_size *
+		(arial_face->bbox.xMax - arial_face->bbox.xMin) /
+		arial_face->units_per_EM
+	);
+	
+	for (int i = 0; i < text.size(); i++) {
+		RenderText(glm::uvec2(0, font_height * text.size() - (i + 1) * font_height),
+			glm::uvec2(2560, text.size() * font_height),
+			text.at(i), (i == 0 && reset_text));
 	}
 }
 

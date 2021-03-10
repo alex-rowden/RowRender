@@ -112,7 +112,9 @@ void Model::addModel(Model* model) {
 	}
 }
 
-void Model::loadModel(std::string path, bool import_tangents) {
+
+void Model::loadModel(std::string path, bool import_tangents) { 
+	
 	Assimp::Importer importer;
 	const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate |
 		aiProcess_FlipUVs | aiProcess_GenNormals | aiProcess_FixInfacingNormals |

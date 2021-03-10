@@ -42,6 +42,7 @@
     <ClCompile Include="RowRender.cpp" />
     <ClCompile Include="ShaderProgram.cpp" />
     <ClCompile Include="Shape.cpp" />
+    <ClCompile Include="Source.cpp" />
     <ClCompile Include="TextRenderer.cpp" />
     <ClCompile Include="Texture2D.cpp" />
     <ClCompile Include="VR_Wrapper.cpp" />

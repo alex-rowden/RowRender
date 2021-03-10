@@ -25,6 +25,7 @@ GLuint fhp_tex, bhp_tex;
 bool nearest_router_on = false;
 bool jittered = true;
 int color_offset = 205;
+bool show_analytics = true;
 
 struct gBuffer {
 	GLuint frame_buffer, normal_tex, tangent_tex, 
@@ -518,6 +519,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	// During init, enable debug output
 	glEnable(GL_DEBUG_OUTPUT);
 	glDebugMessageCallback(MessageCallback, 0);
+	glViewport(0, 0, resolution.x, resolution.y);
 
 	//Allow Resizing
 	w.SetFramebuferSizeCallback();
@@ -532,10 +534,12 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	//Enable Text Rendering
 	TextRenderer tr = TextRenderer();
 	TextRenderer popupText = TextRenderer();
+	TextRenderer analyticsText = TextRenderer();
 	int font_size = 64;
 	float hue_start = 0;
 	tr.SetCharacterSize(font_size);
 	popupText.SetCharacterSize(font_size);
+	analyticsText.SetCharacterSize(font_size);
 	float pixel_size = font_size * 109 / 72.0f;
 	int font_height = ceil(
 		pixel_size *
@@ -609,7 +613,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	skybox.setModel();
 	skybox.getMeshes().at(0)->setTexture(skybox_tex, 0);
 
-	//Setup AV Willams Model
+
 	Model AVW("./Content/Models/AVW_sliced.obj", true);
 	AVW.setModel(true);
 	Texture2D white = Texture2D(glm::vec4(1,1,1,1));
@@ -963,6 +967,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 		noise[0]};
 	bool num_samples_changed = false, num_routers_changed = false,
 		render_gui = true;
+	std::vector<std::string> analytics_text;
 	while (!glfwWindowShouldClose(w.getWindow())) {
 		if (w.sleeping) {
 			glfwPollEvents();
@@ -1002,6 +1007,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			skybox_shader.SetUniform("view", glm::mat4(glm::mat3(ViewMat)));
 
 			glDepthMask(GL_FALSE);
+			//TODO: Check if outside before rendering skybox?
 			render(skybox, &skybox_shader);
 			glDepthMask(GL_TRUE);
 
@@ -1033,6 +1039,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				send_data = true;
 			}
 
+			//Model Prepass
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, eyes[i].frame_buffer);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -1061,6 +1068,8 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			
 			//glDepthMask(GL_TRUE);
 			//glClear(GL_DEPTH_BUFFER_BIT);
+			
+			//vr widget prepass if requested (and in vr)
 			if (use_vr && vr.quad_transform != glm::mat4(1)) {
 				glm::mat4 transform = glm::inverse(camera_offset * camera.getView()) *
 					vr.quad_transform *
@@ -1081,6 +1090,8 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				quad.getMeshes().at(0)->setTexture(white, 0);
 			}
 			glDisable(GL_DEPTH_TEST);
+			
+			//Do SSAO prepasses if desired
 			if (ssao_on) {
 				glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].ssao_framebuffer);
 				glClear(GL_COLOR_BUFFER_BIT);
@@ -1097,7 +1108,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				ssao_blur_shader.Use();
 				render(quad, &ssao_blur_shader);
 			}
-
+			//Do LIC precomputation if required
 			if (deferred_shading_bools["lic_on"]) {
 				int num_forces = num_routers;
 				int num_iters = 3;
@@ -1170,6 +1181,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 
 			}
 			glClearColor(0, 0, 0, 0);
+			//Do deferred Rendering with all the needed precomputed textures
 			deferred_shader.Use();
 			deferred_shader.SetEllipsoid(ellipsoid);
 			deferred_shader.SetUniforms(deferred_shading_floats);
@@ -1190,6 +1202,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			deferred_shader.SetUniform("viewPos", camera.getPosition());
 			
 			glm::vec3 selectedPos;
+			//If requested, find selected position, set it, and set popup render text
 			if (send_data) {
 				glm::vec2 index = glm::ivec2(w.currX, (resolution.y - w.currY));
 				selectedPos = fragPosArray[int(index.y * resolution.x + index.x)];
@@ -1213,8 +1226,6 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			}
 			deferred_shader.SetLights(modelLights, camera.getPosition(), deferred_shading_ints["num_point_lights"]);
 
-			
-
 
 			glBindFramebuffer(GL_FRAMEBUFFER, eyes[i].frame_buffer);
 			//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -1223,6 +1234,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			glDepthMask(GL_TRUE);
 			glEnable(GL_DEPTH_TEST);
 
+			//update noise texture if necessary
 			if (num_samples_changed || num_routers_changed) {
 				updateNoise(lic, num_samples, num_routers, noise, antialiased_textures, lic_texture_res, an);
 				for (int i = 0; i < num_routers; i++) {
@@ -1232,6 +1244,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				num_routers_changed = false;
 			}
 			
+			//Render wifi popup if necessary
 			if (renderPopup) {
 				glm::mat4 quad_transform(1);
 				quad.getMeshes().at(0)->setTexture(popup_background, 0);
@@ -1247,6 +1260,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				render(quad, &quad_shader);
 			}
 
+			//Update the router structure if needed (preserver colors)
 			if (updated_routers) {
 				wifi.updateRouterStructure(routers, wifinames, freqs, router_shaders, 2, camera.getPosition(), nearest_router_on);
 				updated_routers = false;
@@ -1315,36 +1329,54 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 					quad.getMeshes().at(0)->setTexture(text);
 				}
 			}
+			//render wifi samples if requested
+			if (deferred_shading_bools["shade_instances"]) {
+				
+				instance_shader.Use();
+				wifi_transforms.clear();
+				if (deferred_shading_bools["shade_instances"])
+					wifi_transforms = wifi.getTransforms(wifinames, routers, wifi_scale);
+
+				std::vector<float> wifi_color_indices = wifi.getColorIndices();
+				if (deferred_shading_bools["shade_instances"])
+					Sphere.getMeshes().at(0)->SetInstanceTransforms(wifi_transforms, wifi_color_indices);
+				instance_shader.SetUniform("projection", ProjectionMat);
+				instance_shader.SetUniform("view", ViewMat);
+				//wifi_transform = glm::scale(glm::mat4(1), wifi_scale);
+
+				instance_shader.SetUniform("transform", wifi_transform);
+				instance_shader.SetUniform("model_transform", glyph_transform);
+				instance_shader.SetUniform("normalMat", glm::mat3(1));
+				instance_shader.SetLights(lights);
+				instance_shader.SetUniform("viewPos", camera.getPosition());
+
+				glBindFramebuffer(GL_FRAMEBUFFER, eyes[i].frame_buffer);
+				if (wifi_transforms.size() > 0)
+					render(Sphere, &instance_shader);
+			}
 			
-
-			//render wifi instances
-			instance_shader.Use();
-			wifi_transforms.clear();
-			if (deferred_shading_bools["shade_instances"])
-				wifi_transforms = wifi.getTransforms(wifinames, routers, wifi_scale);
-
-			std::vector<float> wifi_color_indices = wifi.getColorIndices();
-			if (deferred_shading_bools["shade_instances"])
-				Sphere.getMeshes().at(0)->SetInstanceTransforms(wifi_transforms, wifi_color_indices);
-			instance_shader.SetUniform("projection", ProjectionMat);
-			instance_shader.SetUniform("view", ViewMat);
-			//wifi_transform = glm::scale(glm::mat4(1), wifi_scale);
-
-			instance_shader.SetUniform("transform", wifi_transform);
-			instance_shader.SetUniform("model_transform", glyph_transform);
-			instance_shader.SetUniform("normalMat", glm::mat3(1));
-			instance_shader.SetLights(lights);
-			instance_shader.SetUniform("viewPos", camera.getPosition());
-
-			glBindFramebuffer(GL_FRAMEBUFFER, eyes[i].frame_buffer);
-			if (wifi_transforms.size() > 0 && deferred_shading_bools["shade_instances"])
-				render(Sphere, &instance_shader);
+			//set analytics text if requested
+			if (show_analytics) {
+				analytics_text.clear();
+				analytics_text.emplace_back(std::to_string(wifi.getNumRoutersWithSignalFromSet(camera.getPosition(), deferred_shading_floats["extent"])) + " Displayed routers with signal strength");
+				analytics_text.emplace_back(std::to_string(wifi.getNumRoutersWithSignal(camera.getPosition(), deferred_shading_floats["extent"])) + ": Number of routers with signal strength");
+				if (wifi.routers.size() > 0)
+					analytics_text.emplace_back("Interference: " + wifi.getInterferenceString());
+				analytics_text.emplace_back(getLocationString(camera.getPosition()));
+			}
+			
+			//If in VR, render controllers and laser
 			if (use_vr) {
 				ground_shader.Use();
 				ground_shader.SetUniform("camera", vr.getViewMatrix(curr_eye));
 				glm::mat4 controller_rotation = glm::rotate(glm::mat4(1), glm::radians(90.0f), glm::vec3(1, 0, 0)) * glm::rotate(glm::mat4(1), glm::radians(60.0f), glm::vec3(1, 0, 0));
 				ground_shader.SetUniform("model", vr.getControllerPose(vr.LeftDeviceId) * controller_rotation * glm::scale(glm::mat4(1), .01f * glm::vec3(-1, -1, 1)));
 				render(LeftHand, &ground_shader);
+
+				if (show_analytics) {
+					analyticsText.RenderText(glm::uvec2(0,0), glm::uvec2(2560, 1440), analytics_text);
+				}
+
 				glm::mat4 right_hand_transform = vr.getControllerPose(vr.RightDeviceId)  * controller_rotation * glm::scale(glm::mat4(1), 1.0f * glm::vec3(-1, -1, 1));
 				ground_shader.SetUniform("model", right_hand_transform * glm::scale(glm::mat4(1), .01f * glm::vec3(1,1,1)));
 				render(RightHand, &ground_shader);
@@ -1592,13 +1624,10 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			ImGui::End();
 		}
 
-		if (!use_vr) {
+		if (!use_vr && render_gui && show_analytics) {
 			ImGui::Begin("Analytics");
-			ImGui::Text((std::to_string(wifi.getNumRoutersWithSignalFromSet(camera.getPosition(), deferred_shading_floats["extent"])) + " Displayed routers with signal strength").c_str());
-			ImGui::Text((std::to_string(wifi.getNumRoutersWithSignal(camera.getPosition(), deferred_shading_floats["extent"])) + ": Number of routers with signal strength").c_str());
-			if(wifi.routers.size() > 0)
-				ImGui::Text(("Interference: " + wifi.getInterferenceString()).c_str());
-			ImGui::Text(getLocationString(camera.getPosition()).c_str());
+			for (auto& text : analytics_text)
+				ImGui::Text(text.c_str());
 			ImGui::End();
 		}
 		ImGui::Render();

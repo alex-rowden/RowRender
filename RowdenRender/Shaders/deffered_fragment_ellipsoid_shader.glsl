@@ -124,7 +124,7 @@ float ellipsoidDistance(vec3 fragPos, Ellipsoid ellipsoid) {
 }
 
 float paintTextons(vec3 fragPos, int i, int num_routers_per_freq, int router_counter) {
-	vec3 modified_coords = ellipsoidCoordinates(fragPos, Ellipsoids[i]);
+	//vec3 modified_coords = ellipsoidCoordinates(fragPos, Ellipsoids[i]);
 
 	vec2 index = texture(ellipsoid_coordinates_tex, TexCoord).rg;//(vec2(dot(tangent, modified_coords), dot(bitangent, modified_coords)) + vec2(1)) / 2.0f;
 	index = rotateVector(Ellipsoids[i].r.w * delta_theta, index);
@@ -741,6 +741,7 @@ vec3 calculateColor(vec3 fragPos, vec3 Normal) {
 				//(abs(mod(linear_term * log2(distance / extent), frequency) / (frequency * thickness) - .5) > .2)
 				float iso_band = mod(linear_term * -log2(distance / extent), frequency);
 				float contour_num = ceil(linear_term * -log2(distance / extent) / frequency);
+				
 				if (iso_band/frequency > thickness * pow(.5*contour_num, 3)) {
 					alpha_new = 0;
 				}
@@ -758,8 +759,15 @@ vec3 calculateColor(vec3 fragPos, vec3 Normal) {
 						vec2 projected_coords = vec2(dot(tangent, modified_coords), dot(bitangent, modified_coords));
 						float theta = atan(projected_coords.y, projected_coords.x);
 						float norm_theta = max(theta / PI + 1, 0);
-						if (mod(norm_theta * num_contours / contour_num, 2) < 1) {
-							vec2 index = vec2(mod(norm_theta * num_contours / contour_num, 2),1 - mod(linear_term * -log2(distance / extent), frequency) / (frequency * (thickness * pow(.5 * contour_num, 3))));
+						float num_segments = floor(10 * num_contours / (contour_num * contour_num));
+						if (num_segments < 2) {
+							num_segments = 0;
+						}
+						if (mod(norm_theta * num_segments, 2) < 1.5 &&
+							mod(norm_theta * num_segments, 2) > .5) {
+							vec2 index = vec2(mod(norm_theta * num_segments, 2) - .5f,
+								1 - mod(linear_term * -log2(distance / extent), frequency)
+								/ (frequency * (thickness * pow(.5 * contour_num, 3))));
 							index.y = index.y / num_routers + i / float(num_routers);
 							alpha_new = texture(text_tex, index).r;
 						}
