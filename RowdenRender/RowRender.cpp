@@ -1,4 +1,6 @@
 #include "RowRender.h"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <stb_image_write.h>
 
 //any old render function
 void render(Model mesh, ShaderProgram* sp, int i) {

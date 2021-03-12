@@ -5,7 +5,6 @@ struct Gaussian {
 #pragma once
 
 #define PI 3.1415926535897932384626433
-
 #include <imgui.h>
 #include <examples/imgui_impl_glfw.h>
 #include <examples/imgui_impl_opengl3.h>
@@ -32,6 +31,7 @@ struct Gaussian {
 #include "Model.h"
 #include <openvr.h>
 #include "TextRenderer.h"
+
 
 class Model;
 class ShaderProgram;

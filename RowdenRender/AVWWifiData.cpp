@@ -178,6 +178,34 @@ void AVWWifiData::setNearestNRouters(int n, glm::vec3 position, std::vector<bool
 
 }
 
+void AVWWifiData::setRouters(std::vector<bool>& wifinames, std::vector<bool>& routers, std::vector<bool>& freqs) {
+	
+	int wifinum = 0, router_num = 0, swap_ind = 0, curr_router, swap_freq_ind;
+	Ellipsoid currEllipsoid;
+	std::vector<int> active_freqs = getActiveFreqs(freqs);
+	for (auto name2Mac : wifiNameToMacToEntries) {
+		if (wifinames[wifinum++]) {
+			for (auto mac2Entries : name2Mac.second) {
+				auto loc = std::find(active_freqs.begin(), active_freqs.end(),
+					mac2Entries.second.at(0).freq);
+				if (loc == active_freqs.end())
+					continue;
+				std::string wifiname = name2Mac.first;
+				if (!wifiname.compare(""))
+					wifiname = "empty";
+				currEllipsoid = mac2routers[mac2Entries.first];
+				curr_router = router_num++;
+				auto curr_freq = std::distance(active_freqs.begin(), loc);
+				
+			}
+		}
+		std::fill(routers.begin(), routers.end(), false);
+		std::fill(freqs.begin(), freqs.end(), false);
+		
+	}
+
+}
+
 void AVWWifiData::loadWifi(std::string filename, std::string floor) {
 	int max_rssi = -1000;
 	int min_rssi = 1000;
@@ -494,6 +522,27 @@ std::vector<glm::mat4> AVWWifiData::getTransforms(std::vector<bool> wifinames, s
 		}
 	}
 	return out;
+}
+
+void AVWWifiData::deactivateExtra(std::vector<bool>routers, std::vector<bool>&wifinames,
+									std::vector<bool>&freqs) {
+	std::fill(wifinames.begin(), wifinames.end(), false);
+	std::fill(freqs.begin(), freqs.end(), false);
+	int wifinum = 0;
+	for (auto wifiToMac : wifiNameToMacToEntries) {
+		for (auto MacToEntries : wifiToMac.second) {
+			int index = findIndexToEntry(MacToEntries.first);
+			if (routers.at(index)) {
+				wifinames.at(wifinum) = true;
+				index = std::distance(frequencies.begin(),
+					std::find(frequencies.begin(), frequencies.end(),
+						MacToEntries.second.at(0).freq));
+				freqs.at(index) = true;
+			}
+				
+		}
+		wifinum++;
+	}
 }
 
 void AVWWifiData::pruneEntries() {

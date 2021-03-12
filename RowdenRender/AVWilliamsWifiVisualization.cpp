@@ -114,6 +114,46 @@ Lights setPointLights(int num_lights, float intensity, float linear, float quadr
 	return ret;
 }
 
+void writeBinaryVector(std::vector<bool> vec, std::ofstream&outfile) {
+	size_t size = vec.size();
+	outfile.write((char*)&size, sizeof(size_t));
+	for (int i = 0; i < size; i++) {
+		if (vec.at(i)) {
+			outfile.write("1", 1);
+		}
+		else {
+			outfile.write("0", 1);
+		}
+	}
+}
+
+void readBinaryVector(std::vector<bool>& vec, std::ifstream&infile) {
+	size_t size = 0;
+	infile.read((char*)&size, sizeof(size_t));
+	vec.resize(size);
+	char bit = '0';
+	for (int i = 0; i < size; i++) {
+		infile.read(&bit, 1);
+		if (bit == '1')
+			vec.at(i) = true;
+		else
+			vec.at(i) = false;
+	}
+}
+
+void readStateFile(std::string filename, std::vector<bool>&routers, 
+					std::vector<bool>&wifinames, std::vector<bool>&freqs) {
+	std::ifstream infile(filename.c_str(), std::ios::in);
+	if (!infile.is_open())
+		std::cout << "File not found";
+	else {
+		readBinaryVector(routers, infile);
+		readBinaryVector(wifinames, infile);
+		readBinaryVector(freqs, infile);
+	}
+	infile.close();
+}
+
 void createFramebuffer(glm::vec2 resolution, gBuffer* buffer, bool resize) {
 	//generate framebuffers during resizing
 	if (!resize) {
@@ -476,7 +516,8 @@ std::string getLocationString(glm::vec3 position) {
 
 int AVWilliamsWifiVisualization(bool use_vr) {
 
-	
+	bool start_render = false;
+	std::string gui_type = "demo";
 	//initialize glfw
 	glfwInit();
 	glfwSetErrorCallback(error_callback);
@@ -957,7 +998,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 		{"radius", .05 },
 		{"bias", .025}
 	};
-	int kernelSize = 16;
+	int kernelSize = 6;
 	bool ssao_on = true;
 	
 	const int num_antialiased_textures = 23;
@@ -1109,7 +1150,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				render(quad, &ssao_blur_shader);
 			}
 			//Do LIC precomputation if required
-			if (deferred_shading_bools["lic_on"]) {
+			if (deferred_shading_bools["lic_on"] && start_render) {
 				int num_forces = num_routers;
 				int num_iters = 3;
 				if (lic_shading_bools["multirouter"])
@@ -1437,181 +1478,300 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 		if (render_gui) {
-			ImGui::Begin("Rendering Terms");
-			ImGui::SliderInt("Number of Routers", &num_routers, 1, 20);
-			if (ImGui::Button("Nearest Routers")) {
-				num_routers_changed = true;
-				std::fill(freqs.begin(), freqs.end(), true);
-				wifi.setNearestNRouters(num_routers, camera.getPosition(), wifinames, routers, freqs);
-				deferred_shading_floats["delta_theta"] = 180.f / wifi.getActiveFreqs(freqs).size();
-				updated_routers = true;
-				nearest_router_on = true;
-			}
-			ImGui::SliderInt("Total Lights", &totalLights, 1, 200);
-			ImGui::SliderInt("Lights Shown", &deferred_shading_ints["num_point_lights"], 1, totalLights);
-			ImGui::SliderFloat("constant", &constant, 0, 1);
-			ImGui::SliderFloat("linear", &linear, 0, 1);
-			ImGui::SliderFloat("quadratic", &quadratic, 0, 1);
-			ImGui::SliderFloat("TexCoord Scale", &texcoord_scale, 0, .1);
-			//ImGui::SliderFloat("extent", &deferred_shading_floats["extent"], 0, 3);
-			ImGui::SliderFloat("BillBoard Scale", &billboard_scale, 0, 1);
-			ImGui::Checkbox("Shade Instances", &deferred_shading_bools["shade_instances"]);
-			ImGui::Checkbox("Line Integral Convolution", &deferred_shading_bools["lic_on"]);
-
-			if (deferred_shading_bools["lic_on"]) {
-				ImGui::SliderFloat("Alpha_Boost", &lic_shading_floats["alpha_boost"], 1, 30);
-				ImGui::SliderInt("Power", &lic_shading_ints["power"], 1, 8);
-				ImGui::Checkbox("Screenspcace LIC", &lic_shading_bools["screen_space_lic"]);
-				if (deferred_shading_bools["screen_space_lic"]) {
-					ImGui::SliderFloat("Vector Threshold", &lic_shading_floats["tunable"], 0, 3);
-					ImGui::Checkbox("Hug Walls", &lic_shading_bools["cull_discontinuities"]);
+			if (gui_type == "debug") {
+				ImGui::Begin("Rendering Terms");
+				ImGui::SliderInt("Number of Routers", &num_routers, 1, 20);
+				if (ImGui::Button("Nearest Routers")) {
+					start_render = true;
+					num_routers_changed = true;
+					std::fill(freqs.begin(), freqs.end(), true);
+					wifi.setNearestNRouters(num_routers, camera.getPosition(), wifinames, routers, freqs);
+					deferred_shading_floats["delta_theta"] = 180.f / wifi.getActiveFreqs(freqs).size();
+					updated_routers = true;
+					nearest_router_on = true;
 				}
-				ImGui::Checkbox("Multirouter", &lic_shading_bools["multirouter"]);
-				if (lic_shading_bools["multirouter"]) {
-					ImGui::Checkbox("Use Color Weaving", &deferred_shading_bools["color_weaving"]);
-					if (deferred_shading_bools["color_weaving"]) {
-						ImGui::Checkbox("Use Blending", &deferred_shading_bools["blending"]);
+				ImGui::SliderInt("Total Lights", &totalLights, 1, 200);
+				ImGui::SliderInt("Lights Shown", &deferred_shading_ints["num_point_lights"], 1, totalLights);
+				ImGui::SliderFloat("constant", &constant, 0, 1);
+				ImGui::SliderFloat("linear", &linear, 0, 1);
+				ImGui::SliderFloat("quadratic", &quadratic, 0, 1);
+				ImGui::SliderFloat("TexCoord Scale", &texcoord_scale, 0, .1);
+				//ImGui::SliderFloat("extent", &deferred_shading_floats["extent"], 0, 3);
+				ImGui::SliderFloat("BillBoard Scale", &billboard_scale, 0, 1);
+				ImGui::Checkbox("Shade Instances", &deferred_shading_bools["shade_instances"]);
+				ImGui::Checkbox("Line Integral Convolution", &deferred_shading_bools["lic_on"]);
+
+				if (deferred_shading_bools["lic_on"]) {
+					ImGui::SliderFloat("Alpha_Boost", &lic_shading_floats["alpha_boost"], 1, 30);
+					ImGui::SliderInt("Power", &lic_shading_ints["power"], 1, 8);
+					ImGui::Checkbox("Screenspcace LIC", &lic_shading_bools["screen_space_lic"]);
+					if (deferred_shading_bools["screen_space_lic"]) {
+						ImGui::SliderFloat("Vector Threshold", &lic_shading_floats["tunable"], 0, 3);
+						ImGui::Checkbox("Hug Walls", &lic_shading_bools["cull_discontinuities"]);
 					}
-				}
-				ImGui::Checkbox("Procedural Noise", &lic_shading_bools["procedural_noise"]);
-				if (lic_shading_bools["procedural_noise"]) {
-					ImGui::SliderFloat("Density", &lic_shading_floats["density"], 0, 1);
-					if (!lic_shading_bools["screen_space_lic"])
-						ImGui::SliderFloat("Cling Factor", &deferred_shading_floats["cling"], 0, 1);
-				}
-				else {
-					num_samples_changed = ImGui::SliderInt("num_samples", &num_samples, 12800, 102400 * 16);
-				}
-				ImGui::SliderFloat("Fragment Position Scale", &lic_shading_floats["frag_pos_scale"], 0, 300);
-				ImGui::SliderFloat("Rate", &lic_shading_floats["learning_rate"], 0, .9);
-				ImGui::Checkbox("Use LIC Mask", &lic_shading_bools["use_mask"]);
-
-			}
-			else {
-				ImGui::Checkbox("frequency_bands", &deferred_shading_bools["frequency_bands"]);
-				ImGui::Checkbox("Display Names", &deferred_shading_bools["display_names"]);
-				if (deferred_shading_bools["display_names"]) {
-					ImGui::SliderInt("Number of Dashes", &deferred_shading_ints["num_contours"], 1, 20);
-				}
-				ImGui::SliderFloat("Contour Frequency", &deferred_shading_floats["frequency"], 0, 1);
-				ImGui::SliderFloat("Linear Term", &deferred_shading_floats["linear_term"], 0, 1);
-				ImGui::SliderFloat("thickness", &deferred_shading_floats["thickness"], 0, .1);
-			}
-			ImGui::Checkbox("Invert Color Representation", &deferred_shading_bools["invert_colors"]);
-			ImGui::Checkbox("texton_background", &deferred_shading_bools["texton_background"]);
-
-			if (ImGui::Checkbox("Antialiasing", &deferred_shading_bools["anti_aliasing"])) {
-				for (int i = 0; i < num_routers + 1; i++) {
-					Texture2D texture = antialiased_textures[i];
-					texture.Bind();
-					if (deferred_shading_bools["anti_aliasing"]) {
-						glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY, an);
-						texture.setTexMinMagFilter(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR);
+					ImGui::Checkbox("Multirouter", &lic_shading_bools["multirouter"]);
+					if (lic_shading_bools["multirouter"]) {
+						ImGui::Checkbox("Use Color Weaving", &deferred_shading_bools["color_weaving"]);
+						if (deferred_shading_bools["color_weaving"]) {
+							ImGui::Checkbox("Use Blending", &deferred_shading_bools["blending"]);
+						}
+					}
+					ImGui::Checkbox("Procedural Noise", &lic_shading_bools["procedural_noise"]);
+					if (lic_shading_bools["procedural_noise"]) {
+						ImGui::SliderFloat("Density", &lic_shading_floats["density"], 0, 1);
+						if (!lic_shading_bools["screen_space_lic"])
+							ImGui::SliderFloat("Cling Factor", &deferred_shading_floats["cling"], 0, 1);
 					}
 					else {
-						glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY, 1.0f);
-						texture.setTexMinMagFilter(GL_LINEAR, GL_LINEAR);
+						num_samples_changed = ImGui::SliderInt("num_samples", &num_samples, 12800, 102400 * 16);
 					}
-				}
-			}
-			ImGui::Checkbox("Jittered Colors", &jittered);
-			ImGui::SliderFloat("u stretch", &deferred_shading_floats["u_stretch"], 0, 10);
-			ImGui::SliderFloat("v stretch", &deferred_shading_floats["v_stretch"], 0, 10);
-			ImGui::SliderFloat("distance mask", &deferred_shading_floats["distance_mask"], 0, 3);
-			if (ImGui::SliderInt("Hue Start", &color_offset, 0, 360)) {
-				std::vector<glm::vec4> new_colors(num_routers);
+					ImGui::SliderFloat("Fragment Position Scale", &lic_shading_floats["frag_pos_scale"], 0, 300);
+					ImGui::SliderFloat("Rate", &lic_shading_floats["learning_rate"], 0, .9);
+					ImGui::Checkbox("Use LIC Mask", &lic_shading_bools["use_mask"]);
 
-				maxSeperatedColors(num_routers, new_colors, jittered, color_offset);
-				for (int i = 0; i < num_routers; i++)
-					wifi_colors[i + wifi.getNumWifiNames()] = new_colors[i];
-				wifi_tex.updateTexture(&wifi_colors, wifi.getNumActiveRouters(routers) + wifi.getNumWifiNames(), 1);
-			}
-			//ImGui::SliderFloat("Z Boost", &z_boost, 1, 10);
-			if (ImGui::TreeNode("SSAO Terms")) {
-				if (ImGui::Checkbox("SSAO Enabled", &ssao_on)) {
-					if (!ssao_on) {
-						glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].ssao_blur_framebuffer);
-						glClearColor(1, 1, 1, 1);
-						glClear(GL_COLOR_BUFFER_BIT);
-						glClearColor(0, 0, 0, 0);
-						glBindFramebuffer(GL_FRAMEBUFFER, 0);
+				}
+				else {
+					ImGui::Checkbox("frequency_bands", &deferred_shading_bools["frequency_bands"]);
+					ImGui::Checkbox("Display Names", &deferred_shading_bools["display_names"]);
+					if (deferred_shading_bools["display_names"]) {
+						ImGui::SliderInt("Number of Dashes", &deferred_shading_ints["num_contours"], 1, 20);
 					}
+					ImGui::SliderFloat("Contour Frequency", &deferred_shading_floats["frequency"], 0, 1);
+					ImGui::SliderFloat("Linear Term", &deferred_shading_floats["linear_term"], 0, 1);
+					ImGui::SliderFloat("thickness", &deferred_shading_floats["thickness"], 0, .1);
 				}
-				if (ssao_on) {
-					ImGui::SliderInt("Kernel Size", &kernelSize, 1, 64);
-					ImGui::SliderFloat("Bias", &ssao_shading_floats["bias"], 0, 1);
-					ImGui::SliderFloat("Radius", &ssao_shading_floats["radius"], 0, 3);
-				}
-				ImGui::TreePop();
-			}
+				ImGui::Checkbox("Invert Color Representation", &deferred_shading_bools["invert_colors"]);
+				ImGui::Checkbox("texton_background", &deferred_shading_bools["texton_background"]);
 
-			if (ImGui::TreeNode("Wifi Names")) {
-				for (int i = 0; i < wifinames.size(); i++) {
-					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(wifi_colors.at(i).r, wifi_colors.at(i).g, wifi_colors.at(i).b, wifi_colors.at(i).a));
-					if (ImGui::Selectable(wifi.getWifiName(i).c_str(), wifinames.at(i)))
-					{
-						if (!ImGui::GetIO().KeyCtrl) {    // Clear selection when CTRL is not held
-							std::fill(wifinames.begin(), wifinames.end(), false);
+				if (ImGui::Checkbox("Antialiasing", &deferred_shading_bools["anti_aliasing"])) {
+					for (int i = 0; i < num_routers + 1; i++) {
+						Texture2D texture = antialiased_textures[i];
+						texture.Bind();
+						if (deferred_shading_bools["anti_aliasing"]) {
+							glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY, an);
+							texture.setTexMinMagFilter(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR);
 						}
-						wifinames.at(i) = !wifinames.at(i);
-						updated_routers = true;
-						nearest_router_on = false;
-						if (!wifinames.at(i))
-							wifi.fillRouters(wifi.getWifiName(i).c_str(), routers, false);
-						else
-							wifi.fillRouters(wifi.getWifiName(i).c_str(), routers, true);
-						wifi.setAvailableFreqs(wifi.getSelectedNames(wifinames));
-						std::fill(freqs.begin(), freqs.end(), true);
-						wifi.setAvailableMacs(wifi.getSelectedNames(wifinames));
-
-					}
-					ImGui::PopStyleColor();
-				}
-				ImGui::TreePop();
-			}if (ImGui::TreeNode("Frequencies")) {
-				for (int i = 0; i < wifi.getAvailableFreqs().size(); i++) {
-					if (ImGui::Selectable(std::to_string(wifi.getAvailableFreqs().at(i)).c_str(), freqs.at(i))) {
-						if (!ImGui::GetIO().KeyCtrl)    // Clear selection when CTRL is not held
-							std::fill(freqs.begin(), freqs.end(), false);
-						freqs.at(i) = !freqs.at(i);
-						if (freqs.at(i)) {
-							std::fill(routers.begin(), routers.end(), false);
+						else {
+							glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY, 1.0f);
+							texture.setTexMinMagFilter(GL_LINEAR, GL_LINEAR);
 						}
-						updated_routers = true;
-						nearest_router_on = false;
-						wifi.setAvailableMacs(wifi.getSelectedNames(wifinames), wifi.getSelectedFreqs(freqs));
 					}
 				}
-				ImGui::TreePop();
-			}
+				ImGui::Checkbox("Jittered Colors", &jittered);
+				ImGui::SliderFloat("u stretch", &deferred_shading_floats["u_stretch"], 0, 10);
+				ImGui::SliderFloat("v stretch", &deferred_shading_floats["v_stretch"], 0, 10);
+				ImGui::SliderFloat("distance mask", &deferred_shading_floats["distance_mask"], 0, 3);
+				if (ImGui::SliderInt("Hue Start", &color_offset, 0, 360)) {
+					std::vector<glm::vec4> new_colors(num_routers);
 
-			if (ImGui::TreeNode("Routers")) {
-
-				for (int i = 0; i < wifi.getAvailablesMacs().size(); i++) {
-					if (ImGui::Selectable(wifi.getAvailablesMacs().at(i).c_str(), routers.at(i)))
-					{
-						if (!ImGui::GetIO().KeyCtrl)    // Clear selection when CTRL is not held
-							std::fill(routers.begin(), routers.end(), false);
-						routers.at(i) = !routers.at(i);
-						updated_routers = true;
-						nearest_router_on = false;
-					}
+					maxSeperatedColors(num_routers, new_colors, jittered, color_offset);
+					for (int i = 0; i < num_routers; i++)
+						wifi_colors[i + wifi.getNumWifiNames()] = new_colors[i];
+					wifi_tex.updateTexture(&wifi_colors, wifi.getNumActiveRouters(routers) + wifi.getNumWifiNames(), 1);
 				}
-				ImGui::TreePop();
-			}
+				//ImGui::SliderFloat("Z Boost", &z_boost, 1, 10);
+				if (ImGui::TreeNode("SSAO Terms")) {
+					if (ImGui::Checkbox("SSAO Enabled", &ssao_on)) {
+						if (!ssao_on) {
+							glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].ssao_blur_framebuffer);
+							glClearColor(1, 1, 1, 1);
+							glClear(GL_COLOR_BUFFER_BIT);
+							glClearColor(0, 0, 0, 0);
+							glBindFramebuffer(GL_FRAMEBUFFER, 0);
+						}
+					}
+					if (ssao_on) {
+						ImGui::SliderInt("Kernel Size", &kernelSize, 1, 64);
+						ImGui::SliderFloat("Bias", &ssao_shading_floats["bias"], 0, 1);
+						ImGui::SliderFloat("Radius", &ssao_shading_floats["radius"], 0, 3);
+					}
+					ImGui::TreePop();
+				}
 
-			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-			ImGui::End();
-		}
-		if (nearest_router_on && render_gui) {
-			ImGui::Begin("Nearest Routers");
+				if (ImGui::TreeNode("Wifi Names")) {
+					for (int i = 0; i < wifinames.size(); i++) {
+						ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(wifi_colors.at(i).r, wifi_colors.at(i).g, wifi_colors.at(i).b, wifi_colors.at(i).a));
+						if (ImGui::Selectable(wifi.getWifiName(i).c_str(), wifinames.at(i)))
+						{
+							if (glfwGetKey(w.window, GLFW_KEY_LEFT_CONTROL) != GLFW_PRESS) {    // Clear selection when CTRL is not held
+								std::fill(wifinames.begin(), wifinames.end(), false);
+							}
+							wifinames.at(i) = !wifinames.at(i);
+							updated_routers = true;
+							nearest_router_on = false;
+							if (!wifinames.at(i))
+								wifi.fillRouters(wifi.getWifiName(i).c_str(), routers, false);
+							else
+								wifi.fillRouters(wifi.getWifiName(i).c_str(), routers, true);
+							wifi.setAvailableFreqs(wifi.getSelectedNames(wifinames));
+							std::fill(freqs.begin(), freqs.end(), true);
+							wifi.setAvailableMacs(wifi.getSelectedNames(wifinames));
+
+						}
+						ImGui::PopStyleColor();
+					}
+					ImGui::TreePop();
+				}if (ImGui::TreeNode("Frequencies")) {
+					for (int i = 0; i < wifi.getAvailableFreqs().size(); i++) {
+						if (ImGui::Selectable(std::to_string(wifi.getAvailableFreqs().at(i)).c_str(), freqs.at(i))) {
+							if (glfwGetKey(w.window, GLFW_KEY_LEFT_CONTROL) != GLFW_PRESS)    // Clear selection when CTRL is not held
+								std::fill(freqs.begin(), freqs.end(), false);
+							freqs.at(i) = !freqs.at(i);
+							if (freqs.at(i)) {
+								std::fill(routers.begin(), routers.end(), false);
+							}
+							updated_routers = true;
+							nearest_router_on = false;
+							wifi.setAvailableMacs(wifi.getSelectedNames(wifinames), wifi.getSelectedFreqs(freqs));
+						}
+					}
+					ImGui::TreePop();
+				}
+
+				if (ImGui::TreeNode("Routers")) {
+
+					for (int i = 0; i < wifi.getAvailablesMacs().size(); i++) {
+						if (ImGui::Selectable(wifi.getAvailablesMacs().at(i).c_str(), routers.at(i)))
+						{
+							if (glfwGetKey(w.window, GLFW_KEY_LEFT_CONTROL) != GLFW_PRESS)    // Clear selection when CTRL is not held
+								std::fill(routers.begin(), routers.end(), false);
+							routers.at(i) = !routers.at(i);
+							updated_routers = true;
+							nearest_router_on = false;
+						}
+					}
+					ImGui::TreePop();
+				}
+
+				ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+				ImGui::End();
+			}
+			if (nearest_router_on && render_gui) {
+				ImGui::Begin("Nearest Routers");
 				for (int i = 0; i < wifi.getRouterStrings().size(); i++) {
 					glm::vec4 color = wifi_colors[i + wifi.getNumWifiNames()];
 					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(color.r, color.g, color.b, 1));
 					ImGui::Text(wifi.getRouterStrings().at(i).c_str());
 					ImGui::PopStyleColor();
 				}
-			ImGui::End();
+				ImGui::End();
+			}
+			if (!use_vr && show_analytics) {
+				ImGui::Begin("Analytics");
+				for (auto& text : analytics_text)
+					ImGui::Text(text.c_str());
+				ImGui::End();
+			}
+			if (gui_type == "creator") {
+				ImGui::Begin("Selector");
+				if (ImGui::Button("Display Routers")) {
+					start_render = true;
+					num_routers_changed = true;
+					//std::fill(freqs.begin(), freqs.end(), true);
+					//wifi.setRouters(wifinames, routers, freqs);
+					num_routers = wifi.getNumActiveRouters(routers);
+					deferred_shading_floats["delta_theta"] = 180.f / wifi.getActiveFreqs(freqs).size();
+					updated_routers = true;
+					nearest_router_on = true;
+				}
+				char filename[100];
+				ImGui::InputText("Filename", filename, 100);
+				if (ImGui::Button("Save Set")) {
+					wifi.deactivateExtra(routers, wifinames, freqs);
+					std::ofstream outfile(filename, std::ios::out);
+					writeBinaryVector(routers, outfile);
+					writeBinaryVector(wifinames, outfile);
+					writeBinaryVector(freqs, outfile);
+					outfile.close();
+				}if (ImGui::Button("Load Set")) {
+					std::ifstream infile(filename, std::ios::in);
+					if (!infile.is_open())
+						std::cout << "File not found";
+					else {
+						readBinaryVector(routers, infile);
+						readBinaryVector(wifinames, infile);
+						readBinaryVector(freqs, infile);
+					}
+				}
+				if (ImGui::TreeNode("Wifi Names")) {
+					for (int i = 0; i < wifinames.size(); i++) {
+						ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(wifi_colors.at(i).r, wifi_colors.at(i).g, wifi_colors.at(i).b, wifi_colors.at(i).a));
+						
+						if (ImGui::Selectable(wifi.getWifiName(i).c_str(), wifinames.at(i)))
+						{
+							if (glfwGetKey(w.window, GLFW_KEY_LEFT_CONTROL) != GLFW_PRESS) {    // Clear selection when CTRL is not held
+								std::fill(wifinames.begin(), wifinames.end(), false);
+							}
+							wifinames.at(i) = !wifinames.at(i);
+							updated_routers = true;
+							nearest_router_on = false;
+							if (!wifinames.at(i))
+								wifi.fillRouters(wifi.getWifiName(i).c_str(), routers, false);
+							else
+								wifi.fillRouters(wifi.getWifiName(i).c_str(), routers, true);
+							wifi.setAvailableFreqs(wifi.getSelectedNames(wifinames));
+							std::fill(freqs.begin(), freqs.end(), true);
+							wifi.setAvailableMacs(wifi.getSelectedNames(wifinames));
+
+						}
+						ImGui::PopStyleColor();
+					}
+					ImGui::TreePop();
+				}if (ImGui::TreeNode("Frequencies")) {
+					for (int i = 0; i < wifi.getAvailableFreqs().size(); i++) {
+						if (ImGui::Selectable(std::to_string(wifi.getAvailableFreqs().at(i)).c_str(), freqs.at(i))) {
+							if (glfwGetKey(w.window, GLFW_KEY_LEFT_CONTROL) != GLFW_PRESS)    // Clear selection when CTRL is not held
+								std::fill(freqs.begin(), freqs.end(), false);
+							freqs.at(i) = !freqs.at(i);
+							if (freqs.at(i)) {
+								std::fill(routers.begin(), routers.end(), false);
+							}
+							updated_routers = true;
+							nearest_router_on = false;
+							wifi.setAvailableMacs(wifi.getSelectedNames(wifinames), wifi.getSelectedFreqs(freqs));
+						}
+					}
+					ImGui::TreePop();
+				}
+
+				if (ImGui::TreeNode("Routers")) {
+
+					for (int i = 0; i < wifi.getAvailablesMacs().size(); i++) {
+						if (ImGui::Selectable(wifi.getAvailablesMacs().at(i).c_str(), routers.at(i)))
+						{
+							if (glfwGetKey(w.window, GLFW_KEY_LEFT_CONTROL) != GLFW_PRESS)    // Clear selection when CTRL is not held
+								std::fill(routers.begin(), routers.end(), false);
+							routers.at(i) = !routers.at(i);
+							updated_routers = true;
+							nearest_router_on = false;
+						}
+					}
+					ImGui::TreePop();
+				}
+				ImGui::End();
+			}
+			if (gui_type == "demo") {
+				bool update = false;
+				if (ImGui::Button("2 Routers")) {
+					readStateFile("2_routers.txt", routers, wifinames, freqs);
+					update = true;
+				}if (ImGui::Button("Gap Analysis")) {
+					//readStateFile()
+					std::cout << "Unsuported as of yet" << std::endl;
+				}if (ImGui::Button("Frequency Analysis")) {
+					std::cout << "Unsupported as of yet" << std::endl;
+				}
+				if (update) {
+					start_render = true;
+					num_routers = wifi.getNumActiveRouters(routers);
+					deferred_shading_floats["delta_theta"] = 180.f / wifi.getActiveFreqs(freqs).size();
+					updated_routers = true;
+					nearest_router_on = true;
+					num_routers_changed = true;
+				}
+				ImGui::Checkbox("Line Integral Convolution", &deferred_shading_bools["lic_on"]);
+
+			}
 		}
 		if (renderPopup) {
 			ImGui::Begin("Ellipsoid Distances");
@@ -1624,12 +1784,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			ImGui::End();
 		}
 
-		if (!use_vr && render_gui && show_analytics) {
-			ImGui::Begin("Analytics");
-			for (auto& text : analytics_text)
-				ImGui::Text(text.c_str());
-			ImGui::End();
-		}
+		
 		ImGui::Render();
 
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

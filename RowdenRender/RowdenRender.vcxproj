@@ -32,6 +32,7 @@
     <ClCompile Include="DataBuffer.cpp" />
     <ClCompile Include="DefferedRenderingDemo.cpp" />
     <ClCompile Include="GaussianLoader.cpp" />
+    <ClCompile Include="LICPrecompute.cpp" />
     <ClCompile Include="Lights.cpp" />
     <ClCompile Include="CampusWifiVisualization.cpp" />
     <ClCompile Include="LineIntegralConvolution.cpp" />
@@ -67,6 +68,7 @@
     <ClInclude Include="DataBuffer.h" />
     <ClInclude Include="DefferedRenderingDemo.h" />
     <ClInclude Include="GaussianLoader.h" />
+    <ClInclude Include="LICPrecompute.h" />
     <ClInclude Include="Lights.h" />
     <ClInclude Include="LineIntegralConvolution.h" />
     <ClInclude Include="main.h" />

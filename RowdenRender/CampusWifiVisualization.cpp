@@ -1,5 +1,6 @@
 #pragma once
 #include "RowRender.h"
+#include "CampusWifiVisualization.h"
 #include "WifiData.h"
 
 #include <random>
@@ -18,8 +19,6 @@
 #define MAX(a,b) a<b? b:a
 #define MIN(a,b) a<b? a:b
 
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include <stb_image_write.h>
 
 #define DEBUG true
 #define BENCHMARK false
