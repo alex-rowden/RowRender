@@ -1,6 +1,6 @@
 #version 430
 
-#define NUM_STEPS 12
+#define NUM_STEPS 8
 #define MAX_ROUTERS 20
 #define EPSILON 1e-4
 

@@ -517,7 +517,7 @@ std::string getLocationString(glm::vec3 position) {
 int AVWilliamsWifiVisualization(bool use_vr) {
 
 	bool start_render = false;
-	std::string gui_type = "demo";
+	std::string gui_type = "debug";
 	//initialize glfw
 	glfwInit();
 	glfwSetErrorCallback(error_callback);
@@ -975,7 +975,8 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 		{ "cull_discontinuities", true},
 		{ "multirouter", true},
 		{ "color_weaving", true},
-		{"blending", true}
+		{ "blending", true},
+		{ "render_textons", false}
 	}, lic_shading_bools = {
 		{ "screen_space_lic", true},
 		{ "procedural_noise", false},
@@ -1478,6 +1479,19 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 		if (render_gui) {
+			ImGui::Begin("Gui Selector");
+			if(ImGui::Button("Debug")) {
+				gui_type = "debug";
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Creator")) {
+				gui_type = "creator";
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Demo")) {
+				gui_type = "demo";
+			}
+			ImGui::End();
 			if (gui_type == "debug") {
 				ImGui::Begin("Rendering Terms");
 				ImGui::SliderInt("Number of Routers", &num_routers, 1, 20);
@@ -1496,6 +1510,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				ImGui::SliderFloat("linear", &linear, 0, 1);
 				ImGui::SliderFloat("quadratic", &quadratic, 0, 1);
 				ImGui::SliderFloat("TexCoord Scale", &texcoord_scale, 0, .1);
+				ImGui::Checkbox("Render Textons", &deferred_shading_bools["render_textons"]);
 				//ImGui::SliderFloat("extent", &deferred_shading_floats["extent"], 0, 3);
 				ImGui::SliderFloat("BillBoard Scale", &billboard_scale, 0, 1);
 				ImGui::Checkbox("Shade Instances", &deferred_shading_bools["shade_instances"]);

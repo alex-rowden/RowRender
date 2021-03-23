@@ -60,7 +60,7 @@ bool AVWWifiData::loadEllipsoid(std::string filename, Ellipsoid&ret, float wifi_
 	ret.r = sqrt(abs(glm::vec4(ret.r.y, ret.r.x, ret.r.z, 0) / 3.0f));
 	ret.axis = glm::mat3(glm::row(axis, 0), glm::row(axis, 1), glm::row(axis, 2));
 	if (ret.r.z < .01) {
-		ret.r.z = .707;
+		ret.r.z = .8;
 	}
 	return true;
 }
