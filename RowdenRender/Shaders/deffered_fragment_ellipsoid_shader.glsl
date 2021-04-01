@@ -122,12 +122,14 @@ float ellipsoidDistance(vec3 fragPos, Ellipsoid ellipsoid) {
 	return ellipsoidDistance(fragPos, ellipsoidCoordinates(fragPos, ellipsoid), ellipsoid);
 }
 
-float paintTextons(vec3 fragPos, int i, int num_routers_per_freq, int router_counter, vec3 tangent, vec3 bitangent) {
+float paintTextons(vec3 fragPos, int i, int num_routers_per_freq, int router_counter, vec3 normal) {
 	
 
-	vec2 index = (vec2(dot(abs(tangent), fragPos), dot(abs(bitangent), fragPos)));
-	index = fragPos.xy;
-	//vec2 index = texture(ellipsoid_coordinates_tex, TexCoord).rg;//(vec2(dot(tangent, modified_coords), dot(bitangent, modified_coords)) + vec2(1)) / 2.0f;
+	
+	vec2 index = texture(ellipsoid_coordinates_tex, TexCoord).rg;//(vec2(dot(tangent, modified_coords), dot(bitangent, modified_coords)) + vec2(1)) / 2.0f;
+	if (abs(dot(normal, vec3(0, 0, 1))) > 1e-4) {
+		index = fragPos.xy;
+	}
 	index = rotateVector(Ellipsoids[i].r.w * delta_theta, index);
 	float offset = .5;
 	if (abs(fract(index.g) - .5) < 1 / 4.0f) {
@@ -220,7 +222,7 @@ vec3 calculateColor(vec3 fragPos, vec3 Normal) {
 			vec3 color = texture(wifi_colors, vec2(0, color_ind)).rgb;
 
 			if (!texton_background && (dot(Normal, vec3(0, 0, 1))) == 1) {
-				alpha_new = paintTextons(fragPos, i, num_routers_per_freq[int(Ellipsoids[i].r.w)], router_counter[int(Ellipsoids[i].r.w)], tangent, bitangent);
+				alpha_new = paintTextons(fragPos, i, num_routers_per_freq[int(Ellipsoids[i].r.w)], router_counter[int(Ellipsoids[i].r.w)], Normal);
 				//vec2 index = (vec2(dot(abs(tangent), fragPos), dot(abs(bitangent), fragPos)));
 				
 				//return bitangent;
@@ -312,7 +314,7 @@ vec3 calculateColor(vec3 fragPos, vec3 Normal) {
 			if (distance > extent)
 				continue;
 			vec3 color = texture(wifi_colors, vec2(0, Ellipsoids[i].mu.w)).rgb;;
-			alpha_new = paintTextons(fragPos, i, num_routers_per_freq[int(Ellipsoids[i].r.w)], router_counter[int(Ellipsoids[i].r.w)], tangent, bitangent);
+			alpha_new = paintTextons(fragPos, i, num_routers_per_freq[int(Ellipsoids[i].r.w)], router_counter[int(Ellipsoids[i].r.w)], Normal);
 			router_counter[int(Ellipsoids[i].r.w)]++;
 			ret = alpha_new * (alpha * color) + ret;
 			alpha = (1 - alpha_new) * alpha;

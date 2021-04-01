@@ -10,6 +10,7 @@ struct WifiDataEntry {
 	int floor, RSSI, freq, linkQuality, security, authAlg, cipherAlg;
 };
 
+
 struct VolumeData {
 	std::vector<glm::vec3> data;
 	glm::uvec3 dimensions;
@@ -34,6 +35,7 @@ private:
 	
 	int numRouters = 0;
 	GLuint  uniformBuffer = 1, *block_index, *bindingPoint;
+	bool routers_read = false;
 public:
 	glm::mat4 ellipsoid_transform;
 	glm::vec3 radius_stretch;
@@ -52,6 +54,8 @@ public:
 	int getNumActiveRouters(std::vector<bool> routers);
 	bool loadEllipsoid(std::string filename, Ellipsoid&ret, float wifi_num = 0);
 	void loadWifi(std::string filename, std::string floor);
+	void writeRouters(std::ofstream &out);
+	void readRouters(std::ifstream& in, std::vector<bool>& wifinames, std::vector<bool>& routers, std::vector<bool>& freqs);
 	std::vector<glm::mat4> getTransforms(std::vector<bool> wifiname, std::vector<bool> routers, glm::vec3 scale);
 	void deactivateExtra(std::vector<bool> routers, std::vector<bool>& wifinames, std::vector<bool> &freqs);
 	int getNumWifiNames() { return wifiNameToMacToEntries.size(); }

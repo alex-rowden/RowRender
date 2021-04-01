@@ -16,7 +16,7 @@ uniform int ellipsoid_index_offset, num_ellipsoids, num_routers;
 uniform mat4 ellipsoid_transform;
 uniform vec3 radius_stretch;
 uniform float extent;
-uniform bool invert_colors;
+uniform bool invert_colors, max_lic;
 
 struct Ellipsoid {
 	vec4 mu;
@@ -95,8 +95,15 @@ void main()
 		ellipsoid = Ellipsoids[i + ellipsoid_index_offset];
 		vec4 direction = calculateForce(fragPos, ellipsoid, worldToWallCoords, wallToWorldCoords);
 		if(direction.a > 0){
-			force += direction.xyz;
-			min_alpha = min(direction.a, min_alpha);
+			if(max_lic){
+				if(direction.a < min_alpha){
+					force = direction.xyz;
+					min_alpha = direction.a;
+				}
+			}else{
+				force += direction.xyz;
+				min_alpha = min(direction.a, min_alpha);
+			}
 			found = true;
 		}
 		if(length(direction.xyz) == 0){

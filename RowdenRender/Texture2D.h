@@ -21,6 +21,7 @@ public:
 	Texture2D(unsigned short* vals, int height, int width);
 	unsigned int getID() { return texture; }
 	unsigned int * getIDP() { return &texture; }
+	glm::uvec2 getDims() { return glm::uvec2(height, width); }
 	void init_from_vector(std::vector<glm::vec4> *color, int height, int width);
 	void giveName(std::string);
 	void setBorderColor(glm::vec4 color);
