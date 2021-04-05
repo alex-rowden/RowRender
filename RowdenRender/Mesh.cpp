@@ -1,14 +1,19 @@
  #include "Mesh.h"
 
 Mesh::Mesh() {
+	setupEmpty();
+}
+
+void Mesh::setupEmpty() {
 	verticies = std::vector<float>();
 	indices = std::vector<unsigned int>();
 	texCoords = std::vector<float>();
+	textures = std::vector<Texture2D*>();
 }
 
-
 Mesh::Mesh(std::vector<Shape *> shapes) {
-	Mesh();
+	setupEmpty();
+	
 	for (auto shape : shapes) {
 		for (auto vertex : shape->getVertices()) {
 			verticies.emplace_back(vertex.x);
@@ -37,7 +42,7 @@ Mesh::Mesh(std::vector<Shape *> shapes) {
 	}
 }
 Mesh::Mesh(Shape *shape) {
-	Mesh();
+	setupEmpty();
 	for (auto vertex : shape->getVertices()) {
 		verticies.emplace_back(vertex.x);
 		verticies.emplace_back(vertex.y);
@@ -65,7 +70,7 @@ Mesh::Mesh(Shape *shape) {
 }
 
 Mesh::Mesh(std::vector<glm::vec3> _vertices, std::vector<glm::ivec3> _indices) {
-	Mesh();
+	setupEmpty();
 	for (auto vertex : _vertices) {
 		verticies.emplace_back(vertex.x);
 		verticies.emplace_back(vertex.y);
@@ -231,20 +236,20 @@ void Mesh::SetData(GLenum usage, bool uses_tangents) {
 	glBindVertexArray(0);
 }
 
-void Mesh::addTexture(Texture2D texture) {
+void Mesh::addTexture(Texture2D *texture) {
 	textures.emplace_back(texture);
 }
 
-void Mesh::setTexture(Texture2D texture, int index) {
+void Mesh::setTexture(Texture2D *texture, int index) {
 	if (textures.size() <= index)
 		textures.resize(index + 1);
 	textures[index] = texture;
 
-}void Mesh::setTexture(Texture2D texture) {
+}void Mesh::setTexture(Texture2D *texture) {
 	bool found = false;
 	for (int i = 0; i < textures.size(); i++) {
-		if (texture.name == textures[i].name) {
-			glDeleteTextures(1, textures[i].getIDP());
+		if (texture->name == textures[i]->name) {
+			glDeleteTextures(1, textures[i]->getIDP());
 			textures[i] = texture;
 			found = true;
 		}
@@ -258,7 +263,7 @@ void Mesh::Render(ShaderProgram *shader, int offset) {
 	unsigned int diffuseNr = 1;
 	unsigned int specularNr = 1;
 	if (textures.size() == 0) {
-		textures.emplace_back(Texture2D(Texture2D::COLORS::WHITE));
+		textures.emplace_back(new Texture2D(Texture2D::COLORS::WHITE));
 	}
 	int counter = offset;
 	for (unsigned int i = 0; i < textures.size(); i++)
@@ -266,7 +271,7 @@ void Mesh::Render(ShaderProgram *shader, int offset) {
 		 // activate proper texture unit before binding
 		// retrieve texture number (the N in diffuse_textureN)
 		std::string number;
-		std::string name = textures[i].name;
+		std::string name = textures[i]->name;
 		if (name == "texture_diffuse") {
 			number = std::to_string(diffuseNr++);
 			name = name + number;
@@ -280,7 +285,7 @@ void Mesh::Render(ShaderProgram *shader, int offset) {
 		if(texture_position >= 0){
 			glActiveTexture(GL_TEXTURE0 + counter);
 			glUniform1i(texture_position, counter++);
-			textures[i].Bind();
+			textures[i]->Bind();
 		}
 		//shader.setFloat(("material." + name + number).c_str(), i);
 		

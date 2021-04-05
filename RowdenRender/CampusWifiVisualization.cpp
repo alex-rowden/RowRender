@@ -53,7 +53,7 @@ void setFramebuffers(glm::vec2 resolution) {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glBindTexture(GL_TEXTURE_2D, 0);
-	//RayTraced.getMeshes().at(0)->addTexture(depth_texture);
+	//RayTraced.getMeshes().at(0)->addTexture(&depth_texture);
 
 	glGenFramebuffers(1, &fb);
 	glBindFramebuffer(GL_FRAMEBUFFER, fb);
@@ -281,14 +281,14 @@ int CampusWifiVisualization(bool use_vr) {
 	Model model;
 	LoadCampusModel(&model);
 	Texture2D white = Texture2D(Texture2D::COLORS::WHITE);
-	model.getMeshes()[0]->setTexture(white, 0);
-	model.getMeshes()[0]->setTexture(white, 1);
+	model.getMeshes()[0]->setTexture(&white, 0);
+	model.getMeshes()[0]->setTexture(&white, 1);
 	Model skybox = Model("Content\\Models\\cube\\cube.obj");
 	skybox.setModel();
-	skybox.getMeshes().at(0)->setTexture(skybox_tex, 0);
+	skybox.getMeshes().at(0)->setTexture(&skybox_tex, 0);
 	Model campusMap = Model("Content\\Models\\quad\\quad.obj");
 	campusMap.setModel();
-	campusMap.getMeshes().at(0)->setTexture(texture, 0);
+	campusMap.getMeshes().at(0)->setTexture(&texture, 0);
 	Model RayTraced = Model("Content\\Models\\quad\\quad_centered.obj");
 	RayTraced.setModel();
 	Model Tree = Model("Content\\Models\\tree_scaled.FBX");
@@ -302,7 +302,7 @@ int CampusWifiVisualization(bool use_vr) {
 	normal.resize(normal_x.size() * 2);
 	noise.giveName("noise");
 	Texture2D volume_data[8];
-	RayTraced.getMeshes().at(0)->addTexture(noise);
+	RayTraced.getMeshes().at(0)->addTexture(&noise);
 	for (size_t i = 0; i < normal_x.size(); i++) {
 		normal.at(i * 2) = normal_x.at(i);
 		normal.at(i * 2 + 1) = normal_y.at(i);
@@ -316,8 +316,8 @@ int CampusWifiVisualization(bool use_vr) {
 		normal_data.setTexMinMagFilter(GL_NEAREST, GL_NEAREST);
 		volume_data[i].giveName("volume" + std::to_string(i));
 		normal_data.giveName("normal" + std::to_string(i));
-		RayTraced.getMeshes().at(0)->addTexture(volume_data[i]);
-		RayTraced.getMeshes().at(0)->addTexture(normal_data);
+		RayTraced.getMeshes().at(0)->addTexture(&volume_data[i]);
+		RayTraced.getMeshes().at(0)->addTexture(&normal_data);
 	}
 
 	Texture2D depth_texture = Texture2D();
@@ -325,7 +325,7 @@ int CampusWifiVisualization(bool use_vr) {
 	depth_texture.giveName("depth_tex");
 	
 	temp_tex = depth_texture.getID();
-	RayTraced.getMeshes().at(0)->addTexture(depth_texture);
+	RayTraced.getMeshes().at(0)->addTexture(&depth_texture);
 
 	glm::mat4 transformation = glm::scale(glm::mat4(1), scale * glm::vec3(-1, 1, -1));// glm::scale(glm::mat4(1), glm::vec3(-0.256f, 0.3f, -0.388998f));
 
@@ -572,12 +572,12 @@ int CampusWifiVisualization(bool use_vr) {
 
 	//front_hit.SetTextureID(front_hit_point_tex);
 	front_hit.giveName("fhp");
-	RayTraced.getMeshes().at(0)->addTexture(front_hit);
+	RayTraced.getMeshes().at(0)->addTexture(&front_hit);
 
 
 	//back_hit.SetTextureID(back_hit_point_tex);
 	back_hit.giveName("bhp");
-	RayTraced.getMeshes().at(0)->addTexture(back_hit);
+	RayTraced.getMeshes().at(0)->addTexture(&back_hit);
 
 	//volume_shader.SetUniform1i("numTex", wifi.numSlices);
 	volume_shader.SetUniform("numTex", MIN(wifi.numSlices, 5));
@@ -762,8 +762,8 @@ int CampusWifiVisualization(bool use_vr) {
 			if (enable_color[volume_map] && show_heatmap) {
 				volume_data[volume_map].name = "texture_diffuse";
 				campus_map_sp.SetUniform("heatmap", true);
-				campusMap.getMeshes().at(0)->setTexture(volume_data[volume_map], 0);
-				campusMap.getMeshes().at(0)->setTexture(volume_data[volume_map], 1);
+				campusMap.getMeshes().at(0)->setTexture(&volume_data[volume_map], 0);
+				campusMap.getMeshes().at(0)->setTexture(&volume_data[volume_map], 1);
 				break;
 			}
 		}

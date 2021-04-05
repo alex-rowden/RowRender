@@ -359,5 +359,11 @@
     <None Include="Shaders\ssao_blur.frag">
       <Filter>Source Files\Shaders</Filter>
     </None>
+    <None Include="Shaders\minimap.frag">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\minimap.vert">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

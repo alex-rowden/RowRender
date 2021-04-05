@@ -1,6 +1,6 @@
 #include "CampusWifiVisualization.h"
 #include "AVWilliamsWifiVisualization.h"
-#include "DefferedRenderingDemo.h"
+//#include "DefferedRenderingDemo.h"
 #include "LICPrecompute.h"
 #include <string>
 bool campus = false;

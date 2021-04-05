@@ -45,6 +45,11 @@ struct eyeBuffer {
 	GLuint frame_buffer, screen_tex, depth_render_buf;
 	Texture2D screenTexture;
 };
+
+struct minimapBuffer {
+	GLuint framebuffer, depth_render_buff, minimap_tex;
+	Texture2D minimapTexture;
+};
  
 void maxSeperatedColors(int n, std::vector<glm::vec4>& out, bool ordered = true, float offset=0) {
 	float increment = 360.0f / (n);
@@ -548,6 +553,37 @@ std::string getLocationString(glm::vec3 position) {
 	return ret;
 }
 
+void createMinimapBuffer(glm::uvec2 resolution, minimapBuffer& buffer) {
+	glGenFramebuffers(1, &buffer.framebuffer);
+	glGenRenderbuffers(1, &buffer.depth_render_buff);
+	glGenTextures(1, &buffer.minimap_tex);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, buffer.framebuffer);
+
+	glBindTexture(GL_TEXTURE_2D, buffer.minimap_tex);
+	buffer.minimapTexture = Texture2D();
+	buffer.minimapTexture.SetTextureID(buffer.minimap_tex);
+	buffer.minimapTexture.setDims(resolution.x, resolution.y, 4);
+	buffer.minimapTexture.giveName("minimap_tex");
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, resolution.x, resolution.y, 0, GL_RGBA, GL_FLOAT, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, buffer.minimap_tex, 0);
+
+	glDrawBuffer(GL_COLOR_ATTACHMENT0);
+	
+	glBindRenderbuffer(GL_RENDERBUFFER, buffer.depth_render_buff);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, resolution.x, resolution.y);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, buffer.depth_render_buff);
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+		std::cout << "framebuffer broke" << std::endl;
+		return;
+	}
+}
 
 int AVWilliamsWifiVisualization(bool use_vr) {
 
@@ -670,6 +706,10 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 		ShaderProgram::Shaders::SSAO_BLUR_FRAG,
 		ShaderProgram::Shaders::SCREEN_VERT
 		});
+	ShaderProgram minimap_shader = ShaderProgram(std::vector<std::string>({
+		"shaders/minimap.frag",
+		"shaders/minimap.vert"
+		}));
 
 
 	//Setup Skybox
@@ -687,7 +727,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 
 	Model skybox = Model("./Content/Models/cube/cube.obj");
 	skybox.setModel();
-	skybox.getMeshes().at(0)->setTexture(skybox_tex, 0);
+	skybox.getMeshes().at(0)->setTexture(&skybox_tex, 0);
 
 
 	Model AVW("./Content/Models/AVW_sliced.obj", true);
@@ -697,7 +737,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	//AVW.getMeshes()[0]->setTexture(white, 0);
 	
 	for (int i = 0; i < AVW.getMeshes().size(); i++) {
-		AVW.getMeshes()[i]->setTexture(white, 0);
+		AVW.getMeshes()[i]->setTexture(&white, 0);
 	}
 
 	//AVW.getMeshes()[0]->addTexture(text);
@@ -867,22 +907,42 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	wifi_tex.setTexParameterWrap(GL_CLAMP, GL_CLAMP);
 	std::vector<glm::mat4> wifi_transforms;
 	wifi_tex.giveName("wifi_colors");
-	Sphere.getMeshes().at(0)->setTexture(wifi_tex, 0);
+	Sphere.getMeshes().at(0)->setTexture(&wifi_tex, 0);
 	Texture2D frequency_texture = Texture2D("./Content/Textures/texton_paper_aspect.png");
 	frequency_texture.giveName("frequency_tex");
 	float an = 0.0f;
 
 	Texture2D widget_background = Texture2D("./Content/Textures/quad_background.png");
 	
-	Texture2D minimap_base = Texture2D("./Content/Textures/AVWFloorPlans/1.png");
+	
+
+
 	
 	glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY, &an); 
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY, an);
 	frequency_texture.setTexMinMagFilter(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR);
 	frequency_texture.setTexParameterWrap(GL_REPEAT);
 	//AVW.getMeshes().at(0)->addTexture(frequency_texture);
-	quad.getMeshes().at(0)->setTexture(frequency_texture, 1);
+	quad.getMeshes().at(0)->setTexture(&frequency_texture);
 
+	Texture2D minimap_base[4] = {
+		Texture2D("./Content/Textures/AVWFloorPlans/1c.png"),
+		Texture2D("./Content/Textures/AVWFloorPlans/2c.png"),
+		Texture2D("./Content/Textures/AVWFloorPlans/3c.png"),
+		Texture2D("./Content/Textures/AVWFloorPlans/4c.png"),
+	};
+	int oldFloor = minimap_shader.getFloor(camera.getPosition());
+	minimap_base[oldFloor].name = "minimap_base_tex";
+	int currFloor = oldFloor;
+	for (int i = 0; i < 4; i++) {
+		quad.getMeshes().at(0)->addTexture(&minimap_base[i]);
+	}
+	minimapBuffer minimap_buffer;
+	createMinimapBuffer(minimap_base[0].getDims(), minimap_buffer);
+
+	minimap_shader.SetUniform("bl", glm::vec2(-13.21, -18));
+	minimap_shader.SetUniform("tr", glm::vec2(10.25, 17.659));
+	minimap_shader.SetUniform("aspect", ((float)minimap_base[0].getDims().y / minimap_base[0].getDims().x));
 
 	//std::vector<glm::vec4> heatmap = std::vector<glm::vec4>(2);
 	//heatmap[0] = glm::vec4(1, 1, 1, 1);
@@ -917,22 +977,22 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	gBuffer buffer[1];
 	eyeBuffer eyes[2];
 	createFramebuffers(resolution, buffer, eyes, use_vr, false);
-	quad.getMeshes().at(0)->addTexture(buffer[0].color_texture);
-	quad.getMeshes().at(0)->addTexture(buffer[0].frag_pos_texture);
-	quad.getMeshes().at(0)->addTexture(buffer[0].normal_texture);
-	quad.getMeshes().at(0)->addTexture(buffer[0].ellipsoid_coordinates_texture);
-	quad.getMeshes().at(0)->addTexture(buffer[0].tangent_texture);
-	quad.getMeshes().at(0)->addTexture(buffer[0].force_texture);
-	quad.getMeshes().at(0)->addTexture(buffer[0].lic_texture[0]);
-	quad.getMeshes().at(0)->addTexture(buffer[0].lic_texture[1]);
-	quad.getMeshes().at(0)->addTexture(buffer[0].lic_accum_texture[0]);
-	quad.getMeshes().at(0)->addTexture(buffer[0].lic_accum_texture[1]);
-	quad.getMeshes().at(0)->addTexture(buffer[0].lic_color_texture);
-	quad.getMeshes().at(0)->addTexture(eyes[0].screenTexture);
-	quad.getMeshes().at(0)->addTexture(ssaoNoise_texture);
-	quad.getMeshes().at(0)->addTexture(buffer[0].ssao_texture);
-	quad.getMeshes().at(0)->addTexture(buffer[0].ssao_blur_texture);
-	quad.getMeshes().at(0)->addTexture(wifi_tex);
+	quad.getMeshes().at(0)->addTexture(&buffer[0].color_texture);
+	quad.getMeshes().at(0)->addTexture(&buffer[0].frag_pos_texture);
+	quad.getMeshes().at(0)->addTexture(&buffer[0].normal_texture);
+	quad.getMeshes().at(0)->addTexture(&buffer[0].ellipsoid_coordinates_texture);
+	quad.getMeshes().at(0)->addTexture(&buffer[0].tangent_texture);
+	quad.getMeshes().at(0)->addTexture(&buffer[0].force_texture);
+	quad.getMeshes().at(0)->addTexture(&buffer[0].lic_texture[0]);
+	quad.getMeshes().at(0)->addTexture(&buffer[0].lic_texture[1]);
+	quad.getMeshes().at(0)->addTexture(&buffer[0].lic_accum_texture[0]);
+	quad.getMeshes().at(0)->addTexture(&buffer[0].lic_accum_texture[1]);
+	quad.getMeshes().at(0)->addTexture(&buffer[0].lic_color_texture);
+	quad.getMeshes().at(0)->addTexture(&eyes[0].screenTexture);
+	quad.getMeshes().at(0)->addTexture(&ssaoNoise_texture);
+	quad.getMeshes().at(0)->addTexture(&buffer[0].ssao_texture);
+	quad.getMeshes().at(0)->addTexture(&buffer[0].ssao_blur_texture);
+	quad.getMeshes().at(0)->addTexture(&wifi_tex);
 
 	int num_fb = 1;
 	if (use_vr)
@@ -957,17 +1017,21 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	int old_num_samples = num_samples;
 
 	LineIntegralConvolution lic(lic_texture_res); 
-	lic.fillWithNoise(num_samples);
+	
 	//lic.convolve(fall_off);
 	Texture2D noise[20];
-	noise[0] = Texture2D(lic.getTexture().data(), lic_texture_res.y, lic_texture_res.x);
-	noise[0].setTexMinMagFilter(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR);
-	noise[0].setTexParameterWrap(GL_REPEAT);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY, an);
-	
-	noise[0].giveName("noise_tex");
-	quad.getMeshes().at(0)->setTexture(noise[0]);
+	for (int i = 0; i < 20; i++) {
+		lic.clear();
+		lic.fillWithNoise(num_samples);
+		noise[i] = Texture2D(lic.getTexture().data(), lic_texture_res.y, lic_texture_res.x);
+		noise[i].setTexMinMagFilter(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR);
+		noise[i].setTexParameterWrap(GL_REPEAT);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY, an);
 
+		noise[i].giveName("noise_tex[" 
+			+ std::to_string(i) + "]");
+		quad.getMeshes().at(0)->setTexture(&noise[i]);
+	}
 	glm::vec4* fragPosArray = (glm::vec4*)malloc(sizeof(glm::vec4) * resolution.x * resolution.y);
 	if (!fragPosArray) {
 		std::cerr << "Malloc Error" << std::endl;
@@ -1047,6 +1111,8 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	bool num_samples_changed = false, num_routers_changed = false,
 		render_gui = true;
 	std::vector<std::string> analytics_text;
+
+	
 	while (!glfwWindowShouldClose(w.getWindow())) {
 		if (w.sleeping) {
 			glfwPollEvents();
@@ -1164,9 +1230,9 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				model_shader.SetUniform("camera", ViewMat);
 				model_shader.SetUniform("normalMatrix", glm::mat3(glm::transpose(glm::inverse(transform))));
 				model_shader.SetUniform("texcoord_scale", texcoord_scale);
-				quad.getMeshes().at(0)->setTexture(widget_background, 0);
+				quad.getMeshes().at(0)->setTexture(&widget_background, 0);
 				render(quad, &model_shader);
-				quad.getMeshes().at(0)->setTexture(white, 0);
+				quad.getMeshes().at(0)->setTexture(&white, 0);
 			}
 			glDisable(GL_DEPTH_TEST);
 			
@@ -1304,24 +1370,44 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				Texture2D text(popupText.tex, popupText.height, popupText.width);
 				text.giveName("quad_texture");
 				text.setTexMinMagFilter(GL_LINEAR, GL_LINEAR);
-				quad.getMeshes().at(0)->setTexture(text);
+				quad.getMeshes().at(0)->setTexture(&text);
 				//std::cout << glm::to_string(fragPosArray[int(index.y * resolution.x + index.x)]) << std::endl;
 			}
 			deferred_shader.SetLights(modelLights, camera.getPosition(), deferred_shading_ints["num_point_lights"]);
 
+			//update minimap
+			glViewport(0, 0, minimap_base[0].getDims().x, minimap_base[0].getDims().y);
+			glBindFramebuffer(GL_FRAMEBUFFER, minimap_buffer.framebuffer);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			
+			currFloor = minimap_shader.getFloor(camera.getPosition());
+			if(oldFloor != currFloor) {
+				minimap_base[oldFloor].name = "texture_diffuse";
+				minimap_base[currFloor].name = "minimap_base_tex";
+				
+				oldFloor = currFloor;
+			}
 
+			minimap_shader.SetUniform("playerPos", camera.getPosition());
+			minimap_shader.SetUniform("playerRadius", .02f);
+			minimap_shader.Use();
+			render(quad, &minimap_shader);
+			glViewport(0, 0, resolution.x, resolution.y);
 			glBindFramebuffer(GL_FRAMEBUFFER, eyes[i].frame_buffer);
 			//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			deferred_shader.Use();
 			glDepthMask(GL_FALSE);
  			render(quad, &deferred_shader);
 			glDepthMask(GL_TRUE);
 			glEnable(GL_DEPTH_TEST);
 
+			
+
 			//update noise texture if necessary
 			if (num_samples_changed || num_routers_changed) {
 				updateNoise(lic, num_samples, num_routers, noise, antialiased_textures, lic_texture_res, an);
 				for (int i = 0; i < num_routers; i++) {
-					quad.getMeshes().at(0)->setTexture(noise[i]);
+				//	quad.getMeshes().at(0)->setTexture(&noise[i]);
 				}
 				num_samples_changed = false;
 				num_routers_changed = false;
@@ -1330,7 +1416,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			//Render wifi popup if necessary
 			if (renderPopup) {
 				glm::mat4 quad_transform(1);
-				quad.getMeshes().at(0)->setTexture(popup_background, 0);
+				quad.getMeshes().at(0)->setTexture(&popup_background, 0);
 
 				glm::vec3 pos = glm::lerp(selectedPos, camera.getPosition(), .1f);
 				quad_transform = glm::translate(quad_transform, pos);
@@ -1409,9 +1495,9 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 						tr.RenderText(glm::uvec2(0, font_height * router_strings.size() - (i + 1) * font_height), glm::uvec2(2560, router_strings.size() * font_height), router_strings[router_strings.size() - i - 1], i==0);
 					}
 
-					Texture2D text(tr.tex, tr.height, tr.width);
-					text.giveName("text_tex");
-					quad.getMeshes().at(0)->setTexture(text);
+					//Texture2D text = Texture2D(tr.tex, tr.height, tr.width);
+					//text.giveName("text_tex");
+					//quad.getMeshes().at(0)->setTexture(&text);
 				}
 			}
 			//render wifi samples if requested
@@ -1873,15 +1959,19 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			if (gui_type == "demo") {
 				bool update = false;
 				static int config_ind = -1;
-				const char* const configs[4] = 
+				const int num_configs = 7;
+				const char* const configs[num_configs] = 
 				{
 					"Contour Lines",
 					"Layered LIC",
-					"Mixed_LIC",
-					"Max LIC"
+					"Mixed LIC",
+					"Max LIC",
+					"Mixed w/ Textons",
+					"Max w/ Textons",
+					"Coverage Test"
 				};
 				if (ImGui::Combo("Configuration", &config_ind, 
-					configs, 4
+					configs, num_configs
 				)) {
 					std::string filename = "";
 					switch (config_ind) {
@@ -1896,6 +1986,15 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 						break;
 					case 3:
 						filename = "max_lic.cfg";
+						break;
+					case 4:
+						filename = "interference_mixed.cfg";
+						break;
+					case 5:
+						filename = "interference_max.cfg";
+						break;
+					case 6:
+						filename = "coverage.cfg";
 						break;
 					}
 					std::ifstream infile(filename, std::ios::in);
@@ -1916,14 +2015,19 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				}
 				std::string filename = "";
 				static int set_ind = -1;
-				const char* const router_sets[4] =
+				const int num_router_sets = 8;
+				const char* const router_sets[num_router_sets] =
 				{
 					"2 Routers",
 					"2 Routers Alt",
 					"Frequencey Analysis",
-					"Find Router"
+					"Find Router",
+					"Interference",
+					"Wifiname Coverage",
+					"Frequency Coverage",
+					"Coverage Test"
 				};
-				if (ImGui::Combo("Router Set", &set_ind, router_sets, 4)) {
+				if (ImGui::Combo("Router Set", &set_ind, router_sets, num_router_sets)) {
 					switch (set_ind) {
 					case 0:
 						filename = "2_routers.txt";
@@ -1934,9 +2038,23 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 					case 2:
 						filename = "sparse.txt";
 						break;
-					case 3:
+					case 3: {
 						int rand_num = floor(randomFloats(generator) * 4) + 1;
 						filename = "localize" + std::to_string(rand_num) + ".txt";
+						break;
+					}
+					case 4:
+						filename = "interference.txt";
+						break;
+					case 5:
+						filename = "coverage_name.txt";
+						break;
+					case 6:
+						filename = "coverage_freq.txt";
+						break;
+					case 7:
+						filename = "gap.txt";
+						break;
 					}
 					std::ifstream infile(filename.c_str(), std::ios::in);
 					wifi.readRouters(infile, wifinames, routers, freqs);
@@ -1958,8 +2076,31 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			}
 		}if (render_gui) {
 			ImGui::Begin("Minimap");
-			glm::uvec2 dims = minimap_base.getDims();
-			ImGui::Image((void*)minimap_base.getID(), ImVec2(dims.y / 2, dims.x / 2));
+
+			ImTextureID minimap = (void*)minimap_buffer.minimapTexture.getID();
+			//ImTextureID minimap = (void*)minimap_buffer.minimapTexture.getID();
+			
+			glm::uvec2 dims = minimap_buffer.minimapTexture.getDims();
+			dims.x /= 6;
+			dims.y /= 6;
+			ImVec2 pos = ImGui::GetCursorScreenPos();
+			ImGui::Image(minimap, ImVec2(dims.x , dims.y));
+			if (ImGui::IsItemHovered())
+			{
+				auto io = ImGui::GetIO();
+				
+				ImGui::BeginTooltip();
+				float region_sz = 32.0f;
+				float region_x = io.MousePos.x - pos.x - region_sz * 0.5f; if (region_x < 0.0f) region_x = 0.0f; else if (region_x > dims.x - region_sz) region_x = dims.x - region_sz;
+				float region_y = io.MousePos.y - pos.y - region_sz * 0.5f; if (region_y < 0.0f) region_y = 0.0f; else if (region_y > dims.y - region_sz) region_y = dims.y - region_sz;
+				float zoom = 4.0f;
+				ImGui::Text("Min: (%.2f, %.2f)", region_x, region_y);
+				ImGui::Text("Max: (%.2f, %.2f)", region_x + region_sz, region_y + region_sz);
+				ImVec2 uv0 = ImVec2((region_x) / dims.x, (region_y) / dims.y);
+				ImVec2 uv1 = ImVec2((region_x + region_sz) / dims.x, (region_y + region_sz) / dims.y);
+				ImGui::Image(minimap, ImVec2(region_sz * zoom, region_sz * zoom), uv0, uv1, ImVec4(1.0f, 1.0f, 1.0f, 1.0f), ImVec4(1.0f, 1.0f, 1.0f, 0.5f));
+				ImGui::EndTooltip();
+			}
 			ImGui::End();
 		}
 		if (renderPopup) {

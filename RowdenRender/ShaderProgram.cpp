@@ -58,8 +58,38 @@ ShaderProgram::ShaderProgram(std::vector<Shaders> shaders) {
 	glUseProgram(shaderProgram);
 }
 
+ShaderProgram::ShaderProgram(std::vector<std::string> shaders) {
+	shaderProgram = glCreateProgram();
+	for (int i = 0; i < shaders.size(); i++) {
+		SetupShader(shaders.at(i), i);
+		if (i == 1) {
+			glAttachShader(shaderProgram, vertexShader);
+		}
+		else if (i == 0) {
+			glAttachShader(shaderProgram, fragmentShader);
+		}
+	}
+	GLboolean is_program = glIsProgram(shaderProgram);
+	GLint numShaders;
+	glGetProgramiv(shaderProgram, GL_ATTACHED_SHADERS, &numShaders);
+	glLinkProgram(shaderProgram);
+	glUseProgram(shaderProgram);
+}
+
 void ShaderProgram::Use() {
 	glUseProgram(shaderProgram);
+}
+
+int ShaderProgram::getFloor(glm::vec3 position) {
+	int floor = 0;
+	float z_coord = position.z;
+	if (z_coord > .92)
+		floor++;
+	if (z_coord > 1.92)
+		floor++;
+	if (z_coord > 2.92)
+		floor++;
+	return floor;
 }
 
 void ShaderProgram::SetLights(Lights&lights, glm::vec3 position, int num_lights) {
@@ -385,129 +415,93 @@ void ShaderProgram::program_error_check(Shaders shader) {
 	}
 }
 
-void ShaderProgram::importShaderFile(Shaders shader, std::string *ShaderString) {
+const char* ShaderProgram::getShaderFilename(Shaders shader) {
 	const char* filename;
 	switch (shader) {
 	case Shaders::VERTEX:
-		filename = "shaders/vertex_shader.glsl";
-		break;
+		return "shaders/vertex_shader.glsl";
 	case Shaders::FRAGMENT:
-		filename = "shaders/fragment_shader.glsl";
-		break;
+		return "shaders/fragment_shader.glsl";
 	case Shaders::LIGHT_FRAG:
-		filename = "shaders/light_frag.glsl";
-		break;
+		return "shaders/light_frag.glsl";
 	case Shaders::LIGHT_VERT:
-		filename = "shaders/light_vert.glsl";
-		break;
+		return "shaders/light_vert.glsl";
 	case Shaders::NO_LIGHT_FRAG:
-		filename = "shaders/fragment_shader_no_light.glsl";
-		break;
+		return "shaders/fragment_shader_no_light.glsl";
 	case Shaders::NO_LIGHT_VERT:
-		filename = "shaders/vertex_shader_no_light.glsl";
-		break;
+		return "shaders/vertex_shader_no_light.glsl";
 	case Shaders::SCREEN_FRAG:
-		filename = "shaders/screen_fshader.glsl";
-		break;
+		return "shaders/screen_fshader.glsl";
 	case Shaders::SCREEN_VERT:
-		filename = "shaders/screen_vshader.glsl";
-		break;
+		return "shaders/screen_vshader.glsl";
 	case Shaders::SKY_FRAG:
-		filename = "shaders/sky_fshader.glsl";
-		break;
+		return "shaders/sky_fshader.glsl";
 	case Shaders::SKY_VERT:
-		filename = "shaders/sky_vshader.glsl";
-		break;
+		return "shaders/sky_vshader.glsl";
 	case Shaders::INSTANCE_FRAG:
-		filename = "shaders/instance_fshader.glsl";
-		break;
+		return "shaders/instance_fshader.glsl";
 	case Shaders::INSTANCE_VERT:
-		filename = "shaders/instance_vshader.glsl";
-		break;
+		return "shaders/instance_vshader.glsl";
 	case Shaders::VOLUME_FRAG:
-		filename = "shaders/volume_fragment.glsl";
-		break;
+		return "shaders/volume_fragment.glsl";
 	case Shaders::VOLUME_VERT:
-		filename = "shaders/volume_vertex.glsl";
-		break;
+		return "shaders/volume_vertex.glsl";
 	case Shaders::FRONT_BACK_FRAG:
-		filename = "shaders/front_back_fshader.glsl";
-		break;
+		return "shaders/front_back_fshader.glsl";
 	case Shaders::FRONT_BACK_VERT:
-		filename = "shaders/front_back_vshader.glsl";
-		break;
+		return "shaders/front_back_vshader.glsl";
 	case Shaders::SIGNED_DISTANCE_FRAG:
-		filename = "shaders/signed_distance_fragment.glsl";
-		break;
+		return "shaders/signed_distance_fragment.glsl";
 	case Shaders::FRONT_FRAG:
-		filename = "shaders/front_fshader.glsl";
-		break;
+		return "shaders/front_fshader.glsl";
 	case Shaders::BACK_FRAG:
-		filename = "shaders/back_fshader.glsl";
-		break;
+		return "shaders/back_fshader.glsl";
 	case Shaders::INSTANCE_FRAG_COLOR:
-		filename = "shaders/instance_fshader_color.glsl";
-		break;
+		return "shaders/instance_fshader_color.glsl";
 	case Shaders::INSTANCE_VERT_COLOR:
-		filename = "shaders/instance_vshader_color.glsl";
-		break;
+		return "shaders/instance_vshader_color.glsl";
 	case Shaders::VOLUME_FRAG_3D:
-		filename = "shaders/3d_volume_fragment.glsl";
-		break;
+		return "shaders/3d_volume_fragment.glsl";
 	case Shaders::VOLUME_VERT_3D:
-		filename = "shaders/3d_volume_vertex.glsl";
-		break;
+		return "shaders/3d_volume_vertex.glsl";
 	case Shaders::FRAG_ELLIPSOID:
-		filename = "shaders/fragment_shader_ellipse.glsl";
-		break;
+		return "shaders/fragment_shader_ellipse.glsl";
 	case Shaders::VERT_ELLIPSOID:
-		filename = "shaders/vertex_shader_ellipse.glsl";
-		break;
+		return "shaders/vertex_shader_ellipse.glsl";
 	case Shaders::DEFFERED_RENDER_FRAG:
-		filename = "shaders/deffered_fragment_shader.glsl";
-		break;
+		return "shaders/deffered_fragment_shader.glsl";
 	case Shaders::DEFFERED_RENDER_VERT:
-		filename = "shaders/deffered_vertex_shader.glsl";
-		break;
+		return "shaders/deffered_vertex_shader.glsl";
 	case Shaders::DEFFERED_RENDER_ELLIPSOID_FRAG:
-		filename = "shaders/deffered_fragment_ellipsoid_shader.glsl";
-		break;
+		return "shaders/deffered_fragment_ellipsoid_shader.glsl";
 	case Shaders::DEFFERED_RENDER_ELLIPSOID_VERT:
-		filename = "shaders/deffered_vertex_ellipsoid_shader.glsl";
-		break;
+		return "shaders/deffered_vertex_ellipsoid_shader.glsl";
 	case Shaders::PREPASS_SHADER:
-		filename = "shaders/prepass_shader.glsl";
-		break;
+		return "shaders/prepass_shader.glsl";
 	case Shaders::SSAO_FRAG:
-		filename = "shaders/ssao_frag.glsl";
-		break;
+		return "shaders/ssao_frag.glsl";
 	case Shaders::SSAO_VERT:
-		filename = "shaders/ssao_vert.glsl";
-		break;
+		return "shaders/ssao_vert.glsl";
 	case Shaders::QUAD_RENDER_FRAG:
-		filename = "shaders/quad_shader.frag";
-		break;
+		return "shaders/quad_shader.frag";
 	case Shaders::QUAD_RENDER_VERT:
-		filename = "shaders/quad_shader.vert";
-		break;
+		return "shaders/quad_shader.vert";
 	case Shaders::LIC_PREPASS_FRAG:
-		filename = "shaders/lic_prepass.frag";
-		break;
+		return "shaders/lic_prepass.frag";
 	case Shaders::LIC_PREPASS_VERT:
-		filename = "shaders/lic_prepass.vert";
-		break;
+		return "shaders/lic_prepass.vert";
 	case Shaders::LIC_FRAG:
-		filename = "shaders/lic.frag";
-		break;
+		return "shaders/lic.frag";
 	case Shaders::LIC_ACCUM_FRAG:
-		filename = "shaders/lic_accum.frag";
-		break;
+		return "shaders/lic_accum.frag";
 	case Shaders::SSAO_BLUR_FRAG:
-		filename = "shaders/ssao_blur.frag";
-		break;
+		return "shaders/ssao_blur.frag";
 	default:
 		throw "Not a valid shader";
 	}
+}
+
+void ShaderProgram::importShaderFile(const char *filename, std::string *ShaderString) {
 
 	std::ifstream shader_file;
 
@@ -701,10 +695,40 @@ void ShaderProgram::shader_error_check(Shaders shader) {
 	}
 }
 
-void ShaderProgram::SetupShader(Shaders shader) {
+void ShaderProgram::SetupShader(std::string filename, int shader_num) {
 	std::string shaderString;
-	importShaderFile(shader, &shaderString);
+	importShaderFile(filename.c_str(), &shaderString);
 	const char* shader_source = shaderString.c_str();
+	int success;
+	unsigned int *shader_adr;
+	if (shader_num == 1) {
+		vertexShader = glCreateShader(GL_VERTEX_SHADER);
+		shader_adr = &vertexShader;
+	}
+	else if (shader_num == 0) {
+		fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+		shader_adr = &fragmentShader;
+	}
+	else {
+		std::cerr << "Too many shaders" << std::endl;
+		return;
+	}
+	glShaderSource(*shader_adr, 1, &shader_source, NULL);
+	glCompileShader(*shader_adr);
+	glGetShaderiv(*shader_adr, GL_COMPILE_STATUS, &success);
+	if (!success) {
+		char infoLog[512];
+		glGetShaderInfoLog(*shader_adr, 512, NULL, infoLog);
+		std::cout << "ERROR::SHADER::" << shaderString << "::COMPILATION_FAILED\n" << infoLog << std::endl;
+	}
+
+
+}
+
+void ShaderProgram::SetupShader(Shaders shader) {
+	
+	std::string filename = getShaderFilename(shader);
+	int shader_num = 2;
 	switch (shader) {
 	case Shaders::VERTEX:
 	case Shaders::LIGHT_VERT:
@@ -722,9 +746,7 @@ void ShaderProgram::SetupShader(Shaders shader) {
 	case Shaders::SSAO_VERT:
 	case Shaders::QUAD_RENDER_VERT:
 	case Shaders::LIC_PREPASS_VERT:
-		vertexShader = glCreateShader(GL_VERTEX_SHADER);
-		glShaderSource(vertexShader, 1, &shader_source, NULL);
-		glCompileShader(vertexShader);
+		shader_num = 1;
 		break;
 	case Shaders::FRAGMENT:
 	case Shaders::LIGHT_FRAG:
@@ -749,14 +771,8 @@ void ShaderProgram::SetupShader(Shaders shader) {
 	case Shaders::LIC_FRAG:
 	case Shaders::LIC_ACCUM_FRAG:
 	case Shaders::SSAO_BLUR_FRAG:
-		fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-		glShaderSource(fragmentShader, 1, &shader_source, NULL);
-		glCompileShader(fragmentShader);
-		break;
-	default:
-		throw("Missing Shader Type definition in SetupShader");
+		shader_num = 0;
 	}
-	
+	SetupShader(filename, shader_num);
 
-	shader_error_check(shader);
 }

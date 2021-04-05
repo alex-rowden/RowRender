@@ -35,8 +35,11 @@ public:
 	void SetupShader(Shaders shader);
 	ShaderProgram() {};
 	ShaderProgram(std::vector<Shaders> shaders);
+	ShaderProgram(std::vector<std::string> shaders);
 	
 	void Use();
+
+	int getFloor(glm::vec3 position);
 	
 
 	void SetUniform(std::string uniform_name, glm::vec4 vec);
@@ -75,9 +78,12 @@ public:
 	GLint getShader() { return shaderProgram; }
 private:
 	unsigned int vertexShader, fragmentShader, shaderProgram;
-	void importShaderFile(Shaders shader, std::string *ShaderString);
+	void importShaderFile(const char* shader, std::string *ShaderString);
 	void shader_error_check(Shaders shader);
+	void SetupShader(std::string shaderString, int shader_num);
 	void program_error_check(Shaders shader);
+
+	const char* getShaderFilename(Shaders shader);
 
 };
 

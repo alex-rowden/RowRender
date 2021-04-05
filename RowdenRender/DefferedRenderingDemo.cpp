@@ -188,20 +188,20 @@ int DefferedRenderingDemo() {
 	//Setup Cube
 	Model Cube("./Content/Models/cube/cube.obj");
 	Cube.setModel();
-	Cube.getMeshes().at(0)->addTexture(gBuffer.albedo_tex);
-	Cube.getMeshes().at(0)->addTexture(gBuffer.normal_tex);
-	Cube.getMeshes().at(0)->addTexture(gBuffer.fragPos_tex);
-	Cube.getMeshes().at(0)->addTexture(gBuffer.depth_tex);
-	Cube.getMeshes().at(0)->addTexture(gBuffer.ssao_tex);
+	Cube.getMeshes().at(0)->addTexture(&gBuffer.albedo_tex);
+	Cube.getMeshes().at(0)->addTexture(&gBuffer.normal_tex);
+	Cube.getMeshes().at(0)->addTexture(&gBuffer.fragPos_tex);
+	Cube.getMeshes().at(0)->addTexture(&gBuffer.depth_tex);
+	Cube.getMeshes().at(0)->addTexture(&gBuffer.ssao_tex);
 
 	//Setup Screen Quad
 	Model Quad("./Content/Models/quad/quad_centered.obj");
 	Quad.setModel();
-	Quad.getMeshes().at(0)->addTexture(gBuffer.albedo_tex);
-	Quad.getMeshes().at(0)->addTexture(gBuffer.normal_tex);
-	Quad.getMeshes().at(0)->addTexture(gBuffer.fragPos_tex);
-	Quad.getMeshes().at(0)->addTexture(gBuffer.depth_tex);
-	Quad.getMeshes().at(0)->addTexture(gBuffer.ssao_tex);
+	Quad.getMeshes().at(0)->addTexture(&gBuffer.albedo_tex);
+	Quad.getMeshes().at(0)->addTexture(&gBuffer.normal_tex);
+	Quad.getMeshes().at(0)->addTexture(&gBuffer.fragPos_tex);
+	Quad.getMeshes().at(0)->addTexture(&gBuffer.depth_tex);
+	Quad.getMeshes().at(0)->addTexture(&gBuffer.ssao_tex);
 
 	//Setup camera
 	Camera camera = Camera(glm::vec3(0, -1, 0), glm::vec3(0, 0, 0), 60.0f, w.width / (float)w.height);
@@ -258,7 +258,7 @@ int DefferedRenderingDemo() {
 	ssaoNoise_tex.SetTextureID(noiseTexture);
 	ssaoNoise_tex.giveName("texNoise");
 
-	Quad.getMeshes().at(0)->addTexture(ssaoNoise_tex);
+	Quad.getMeshes().at(0)->addTexture(&ssaoNoise_tex);
 
 	glEnable(GL_DEPTH_TEST);
 

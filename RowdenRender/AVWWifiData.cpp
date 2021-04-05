@@ -353,7 +353,7 @@ void AVWWifiData::readRouters(std::ifstream& in, std::vector<bool>& wifinames, s
 	for (int i = 0; i < MAC.size(); i++) {
 		auto it = wifiNameToMacToEntries.find(names.at(i));
 		int name_index = std::distance(wifiNameToMacToEntries.begin(), it);
-		std::cout << name_index << std::endl;
+		//std::cout << name_index << std::endl;
 		wifinames[name_index] = true;
 	}
 	auto selectedNames = getSelectedNames(wifinames);

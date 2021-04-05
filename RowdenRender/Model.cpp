@@ -181,16 +181,16 @@ Mesh* Model::processMesh(aiMesh* mesh, const aiScene* scene, bool import_tangent
 			std::vector<Texture2D> diffuseMaps = loadMaterialTextures(material,
 				aiTextureType_DIFFUSE, "texture_diffuse");
 			for (auto texture : diffuseMaps) {
-				ret->addTexture(texture);
+				ret->addTexture(&texture);
 			}
 			std::vector<Texture2D> specularMaps = loadMaterialTextures(material,
 				aiTextureType_SPECULAR, "texture_specular");
 			for (auto texture : specularMaps)
-				ret->addTexture(texture);
+				ret->addTexture(&texture);
 		}
 	}
 	for (auto texture : loadEmbeddedTextures(scene, directory)) {
-		ret->addTexture(texture);
+		ret->addTexture(&texture);
 	}
 	return ret;
 }
