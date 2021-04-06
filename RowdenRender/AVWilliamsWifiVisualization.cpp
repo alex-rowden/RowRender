@@ -1278,6 +1278,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 					force_shader.SetUniform("max_lic", lic_shading_bools["max_lic"]);
 					render(quad, &force_shader);
 					glClearColor(1, 1, 1, 0);
+					//glDisable(GL_BLEND);
 					for (int j = 0; j < num_iters; j++) {
 						lic_shader.Use();
 						lic_shading_bools["last_pass"] = (j == (num_iters - 1));
@@ -1303,6 +1304,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 						//}
 						//buffer[0].lic_texture.giveName("noise_tex[" + std::to_string(i) + "]");
 					}
+					//glEnable(GL_BLEND);
 					//noise[i].giveName("noise_tex[" + std::to_string(i) + "]");
 					//buffer[0].lic_texture.giveName("lic_tex");
 					//glEnable(GL_BLEND);
@@ -1310,22 +1312,22 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 					glClearColor(1, 1, 1, 0);
 
 					if (i == 0) {
-						glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].lic_accum_framebuffer[1]);
+						glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].lic_accum_framebuffer[0]);
 						glClear(GL_COLOR_BUFFER_BIT);
 					}
 
-					glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].lic_accum_framebuffer[i % 2]);
+					glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].lic_accum_framebuffer[0]);
 
-					glClear(GL_COLOR_BUFFER_BIT);
+					//glClear(GL_COLOR_BUFFER_BIT);
 
 					lic_accum_shader.Use();
 					lic_accum_shader.SetUniform("camera", ViewMat);
 					lic_accum_shader.SetUniform("projection", ProjectionMat);
 					lic_accum_shader.SetUniform("lic_index", (num_iters + 1) % 2);
-					lic_accum_shader.SetUniform("force_index", (i + 1) % 2);
+					lic_accum_shader.SetUniform("force_index", 0);
 					render(quad, &lic_accum_shader);
 				}
-				deferred_shader.SetUniform("force_index", (num_forces + 1) % 2);
+				deferred_shader.SetUniform("force_index", 0);
 				deferred_shader.SetUniform("num_lic", num_iters % 2);
 
 			}
