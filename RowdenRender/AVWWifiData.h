@@ -44,6 +44,7 @@ public:
 	AVWWifiData();
 	AVWWifiData(ShaderProgram*, int);
 	void pruneEntries();
+	std::vector<std::string> getWifinames() { return wifinames; }
 	std::vector<std::string> getRouterStrings() { return router_strings; }
 	void updateRouterStructure(std::vector<bool>routers, std::vector<bool> wifi_names, std::vector<bool> freqs, ShaderProgram *shader, int num_shaders, glm::vec3 position, bool nearest_router = false);
 	void sortRouters(glm::vec3 position);

@@ -346,6 +346,7 @@ void AVWWifiData::readRouters(std::ifstream& in, std::vector<bool>& wifinames, s
 		MAC.at(i) = addr;
 		router_strings[i] = name + ": " + addr + ": " + dump;
 	}
+	
 	std::fill(wifinames.begin(), wifinames.end(), false);
 	std::fill(freqs.begin(), freqs.end(), false);
 	std::fill(router_bools.begin(), router_bools.end(), false);
@@ -356,8 +357,7 @@ void AVWWifiData::readRouters(std::ifstream& in, std::vector<bool>& wifinames, s
 		//std::cout << name_index << std::endl;
 		wifinames[name_index] = true;
 	}
-	auto selectedNames = getSelectedNames(wifinames);
-	setAvailableFreqs(selectedNames);
+
 	//freqs.resize(available_freqs.size());
 	for (int i = 0; i < MAC.size(); i++) {
 		auto it = wifiNameToMacToEntries.find(names.at(i));
@@ -366,7 +366,6 @@ void AVWWifiData::readRouters(std::ifstream& in, std::vector<bool>& wifinames, s
 		int freq_ind = std::distance(available_freqs.begin(), freq_it);
 		freqs[freq_ind] = true;
 	}
-	setAvailableMacs(selectedNames, getSelectedFreqs(freqs));
 	//router_bools.resize(available_macs.size());
 	for (int i = 0; i < MAC.size(); i++) {
 		auto it = std::find(available_macs.begin(), available_macs.end(), MAC.at(i));

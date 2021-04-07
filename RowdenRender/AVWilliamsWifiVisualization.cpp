@@ -31,13 +31,13 @@ struct gBuffer {
 	GLuint frame_buffer, normal_tex, tangent_tex, 
 		color_tex, frag_pos_tex, color_array_tex,  ellipsoid_coordinates_tex,
 		depth_render_buf, force_framebuffer, force_renderbuffer, force_tex, lic_color_tex,
-		lic_accum_framebuffer[2], lic_accum_renderbuffer[2], 
+		lic_accum_framebuffer, lic_accum_renderbuffer, 
 		ssao_tex, ssao_framebuffer, ssao_renderbuffer, 
 		ssao_blur_tex, ssao_blur_framebuffer, ssao_blur_renderbuffer;
-	GLuint pboIDs[2], lic_tex[2], lic_framebuffer[2], lic_renderbuffer[2], lic_accum_tex[2];
+	GLuint pboIDs[2], lic_tex[2], lic_framebuffer[2], lic_renderbuffer[2], lic_accum_tex;
 	Texture2D color_texture, frag_pos_texture, tangent_texture,
 		normal_texture, ellipsoid_coordinates_texture, force_texture,
-		lic_texture[2], lic_accum_texture[2], lic_color_texture,
+		lic_texture[2], lic_accum_texture, lic_color_texture,
 		ssao_texture, ssao_blur_texture;
 };
 
@@ -212,9 +212,9 @@ void createFramebuffer(glm::vec2 resolution, gBuffer* buffer, bool resize) {
 		glGenFramebuffers(2, buffer->lic_framebuffer);
 		glGenTextures(2, buffer->lic_tex);
 		glGenRenderbuffers(2, buffer->lic_renderbuffer);
-		glGenFramebuffers(2, buffer->lic_accum_framebuffer);
-		glGenTextures(2, buffer->lic_accum_tex);
-		glGenRenderbuffers(2, buffer->lic_accum_renderbuffer);
+		glGenFramebuffers(1, &buffer->lic_accum_framebuffer);
+		glGenTextures(1, &buffer->lic_accum_tex);
+		glGenRenderbuffers(1, &buffer->lic_accum_renderbuffer);
 		glGenFramebuffers(1, &buffer->ssao_framebuffer);
 		glGenTextures(1, &buffer->ssao_tex);
 		glGenRenderbuffers(1, &buffer->ssao_renderbuffer);
@@ -378,33 +378,32 @@ void createFramebuffer(glm::vec2 resolution, gBuffer* buffer, bool resize) {
 			return;
 		}
 	}
-	for (int i = 0; i < 2; i++) {
-		glBindFramebuffer(GL_FRAMEBUFFER, buffer->lic_accum_framebuffer[i]);
+	glBindFramebuffer(GL_FRAMEBUFFER, buffer->lic_accum_framebuffer);
 
-		glBindTexture(GL_TEXTURE_2D, buffer->lic_accum_tex[i]);
-		buffer->lic_accum_texture[i] = Texture2D();
-		buffer->lic_accum_texture[i].SetTextureID(buffer->lic_accum_tex[i]);
-		buffer->lic_accum_texture[i].giveName("lic_accum_tex[" + std::to_string(i) +"]");
+	glBindTexture(GL_TEXTURE_2D, buffer->lic_accum_tex);
+	buffer->lic_accum_texture = Texture2D();
+	buffer->lic_accum_texture.SetTextureID(buffer->lic_accum_tex);
+	buffer->lic_accum_texture.giveName("lic_accum_tex");
 
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, resolution.x, resolution.y, 0, GL_RGBA, GL_FLOAT, 0);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, buffer->lic_accum_tex[i], 0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, resolution.x, resolution.y, 0, GL_RGBA, GL_FLOAT, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, buffer->lic_accum_tex, 0);
 	
-		//drawBuffer = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACMENT0};
-		glDrawBuffers(1, drawBuffer);
+	//drawBuffer = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACMENT0};
+	glDrawBuffers(1, drawBuffer);
 
-		glBindRenderbuffer(GL_RENDERBUFFER, buffer->lic_accum_renderbuffer[i]);
-		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, resolution.x, resolution.y);
-		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, buffer->lic_accum_renderbuffer[i]);
+	glBindRenderbuffer(GL_RENDERBUFFER, buffer->lic_accum_renderbuffer);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, resolution.x, resolution.y);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, buffer->lic_accum_renderbuffer);
 
-		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-			std::cout << "lic accumulation framebuffer broke" << std::endl;
-			return;
-		}
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+		std::cout << "lic accumulation framebuffer broke" << std::endl;
+		return;
 	}
+	
 
 	glBindFramebuffer(GL_FRAMEBUFFER, buffer->ssao_framebuffer);
 
@@ -551,6 +550,18 @@ std::string getLocationString(glm::vec3 position) {
 		ret += "East Hallway";
 	}
 	return ret;
+}
+
+void reset(AVWWifiData wifi,std::vector<bool> wifinames, std::vector<bool> freqs,
+	std::vector<bool> routers) {
+	wifinames.resize(wifi.getNumWifiNames());
+	std::fill(wifinames.begin(), wifinames.end(), true);
+	wifi.setAvailableFreqs(wifi.getWifinames());
+	freqs.resize(wifi.getAvailableFreqs().size());
+	std::fill(freqs.begin(), freqs.end(), true);
+	wifi.setAvailableMacs(wifi.getWifinames(), wifi.getAvailableFreqs());
+	routers.resize(wifi.getAvailablesMacs().size());
+	std::fill(routers.begin(), routers.end(), false);
 }
 
 void createMinimapBuffer(glm::uvec2 resolution, minimapBuffer& buffer) {
@@ -917,7 +928,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	
 
 
-	
+	frequency_texture.Bind();
 	glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY, &an); 
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY, an);
 	frequency_texture.setTexMinMagFilter(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR);
@@ -985,8 +996,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	quad.getMeshes().at(0)->addTexture(&buffer[0].force_texture);
 	quad.getMeshes().at(0)->addTexture(&buffer[0].lic_texture[0]);
 	quad.getMeshes().at(0)->addTexture(&buffer[0].lic_texture[1]);
-	quad.getMeshes().at(0)->addTexture(&buffer[0].lic_accum_texture[0]);
-	quad.getMeshes().at(0)->addTexture(&buffer[0].lic_accum_texture[1]);
+	quad.getMeshes().at(0)->addTexture(&buffer[0].lic_accum_texture);
 	quad.getMeshes().at(0)->addTexture(&buffer[0].lic_color_texture);
 	quad.getMeshes().at(0)->addTexture(&eyes[0].screenTexture);
 	quad.getMeshes().at(0)->addTexture(&ssaoNoise_texture);
@@ -1310,13 +1320,12 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 					//glEnable(GL_BLEND);
 					//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 					glClearColor(1, 1, 1, 0);
-
 					if (i == 0) {
-						glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].lic_accum_framebuffer[0]);
+						glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].lic_accum_framebuffer);
 						glClear(GL_COLOR_BUFFER_BIT);
 					}
 
-					glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].lic_accum_framebuffer[0]);
+					glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].lic_accum_framebuffer);
 
 					//glClear(GL_COLOR_BUFFER_BIT);
 
@@ -1636,9 +1645,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 					nearest_router_on = true;
 				}
 				if (ImGui::Button("Reset")) {
-					std::fill(freqs.begin(), freqs.end(), true);
-					std::fill(wifinames.begin(), wifinames.end(), true);
-					std::fill(routers.begin(), routers.end(), true);
+					reset(wifi, wifinames, freqs, routers);
 				}if (ImGui::TreeNode("Lighting Settings")) {
 					ImGui::SliderInt("Total Lights", &totalLights, 1, 200);
 					ImGui::SliderInt("Lights Shown", &deferred_shading_ints["num_point_lights"], 1, totalLights);
@@ -1840,6 +1847,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 					outfile.close();
 				}if (ImGui::Button("Load Set")) {
 					std::ifstream infile(filename, std::ios::in);
+					reset(wifi, wifinames, freqs, routers);
 					wifi.readRouters(infile, wifinames, routers, freqs);
 					start_render = true;
 					num_routers = wifi.getNumActiveRouters(routers);
@@ -1882,6 +1890,8 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 					writeDictionary(lic_shading_ints, outfile);
 
 					writeDictionary(ssao_shading_floats, outfile);
+
+					outfile << num_samples;
 					
 
 					outfile.close();
@@ -1899,7 +1909,15 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 						readDictionary(lic_shading_ints, infile);
 
 						readDictionary(ssao_shading_floats, infile);
+
+						infile >> std::ws;
+						old_num_samples = num_samples;
+						infile >> num_samples;
+						if (old_num_samples != num_samples) {
+							num_samples_changed = true;
+						}
 					}
+					infile.close();
 				}
 				if (ImGui::TreeNode("Wifi Names")) {
 					for (int i = 0; i < wifinames.size(); i++) {
@@ -2012,6 +2030,12 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 						readDictionary(lic_shading_ints, infile);
 
 						readDictionary(ssao_shading_floats, infile);
+						infile >> std::ws;
+						old_num_samples = num_samples;
+						infile >> num_samples;
+						if (old_num_samples != num_samples) {
+							num_samples_changed = true;
+						}
 					}
 					
 				}
@@ -2059,6 +2083,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 						break;
 					}
 					std::ifstream infile(filename.c_str(), std::ios::in);
+					reset(wifi, wifinames, freqs, routers);
 					wifi.readRouters(infile, wifinames, routers, freqs);
 					start_render = true;
 					num_routers = wifi.getNumActiveRouters(routers);

@@ -14,7 +14,7 @@ void main(){
 	vec2 pos = ((playerPos.xy - bl)/(tr - bl)).yx;
 	pos.y = 1 - pos.y;
 	pos.x = (1 - pos.x);
-	if(distance(TexCoords, pos) < playerRadius){
+	if(distance(TexCoords * vec2(1, aspect), pos * vec2(1, aspect)) < playerRadius){
 		minimap_tex = vec4(1,0,0,1);
 	}else
 		minimap_tex = texture2D(minimap_base_tex, TexCoords);	

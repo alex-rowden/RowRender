@@ -5,7 +5,6 @@ out vec4 LIC;
 in vec2 TexCoord;
 
 uniform sampler2D lic_tex[2];
-uniform sampler2D lic_accum_tex[2];
 uniform int lic_index, force_index;
 
 void main()
