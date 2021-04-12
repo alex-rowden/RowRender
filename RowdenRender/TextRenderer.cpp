@@ -87,7 +87,7 @@ void TextRenderer::makeTex(unsigned int w, unsigned int h)
 {
 	this->width = w;
 	this->height = h;
-	tex = new unsigned char[w * h];
+	this->tex = new unsigned char[w * h];
 	
 }
 void TextRenderer::paintGlyph(FT_Bitmap bitmap, unsigned int penX, unsigned int penY)

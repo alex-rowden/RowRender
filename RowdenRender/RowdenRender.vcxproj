@@ -88,9 +88,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\WifiCampusDataParser\top_half.raw" />
-    <None Include="actions.json" />
-    <None Include="bindings_generic.json" />
     <None Include="box.cu" />
+    <None Include="Content\VR Stuff\actions.json" />
+    <None Include="Content\VR Stuff\bindings_generic.json" />
     <None Include="parallelogram.cu" />
     <None Include="README.md" />
     <None Include="Shaders\3d_volume_fragment.glsl" />

@@ -21,8 +21,13 @@
     },
     {
       "name": "/actions/demo/in/move_quad",
+      "type": "boolean"
+    },
+    {
+      "name": "/actions/demo/in/nearest_router",
       "type":  "boolean"
     }
+   
 
   ],
     "localization" : [

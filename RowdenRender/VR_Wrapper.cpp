@@ -258,7 +258,6 @@ void VR_Wrapper::UpdateActionState() {
 			|| !poseData.bActive || !poseData.pose.bPoseIsValid)
 		{
 			//m_rHand[eHand].m_bShowController = false;
-			std::cerr << "pose invalid: " << error << std::endl;
 		}
 		else
 		{
@@ -275,34 +274,7 @@ void VR_Wrapper::handle_vr_input() {
 		ProcessVREvent(event);
 	}
 	UpdateActionState();
-	/*
-	for (EHand eHand = EHand::Left; eHand <= EHand::Right; ((int&)eHand)++)
-	{
-		vr::InputPoseActionData_t poseData;
-		if (auto error = vr::VRInput()->GetPoseActionDataForNextFrame(m_rHand[(int)eHand].m_actionPose, vr::TrackingUniverseStanding, &poseData, sizeof(poseData), vr::k_ulInvalidInputValueHandle) != vr::VRInputError_None
-			|| !poseData.bActive || !poseData.pose.bPoseIsValid)
-		{
-			std::cout << "failed to get PoseActionData" << error << std::endl;
-			m_rHand[(int)eHand].m_bShowController = false;
-		}
-		else
-		{
-			m_rHand[(int)eHand].m_rmat4Pose = ConvertSteamVRMatrixToMatrix4(poseData.pose.mDeviceToAbsoluteTracking);
-
-			vr::InputOriginInfo_t originInfo;
-			if (vr::VRInput()->GetOriginTrackedDeviceInfo(poseData.activeOrigin, &originInfo, sizeof(originInfo)) == vr::VRInputError_None
-				&& originInfo.trackedDeviceIndex != vr::k_unTrackedDeviceIndexInvalid)
-			{
-				std::string sRenderModelName = GetTrackedDeviceString(vr_pointer, originInfo.trackedDeviceIndex, vr::Prop_RenderModelName_String);
-				if (sRenderModelName != m_rHand[(int)eHand].m_sRenderModelName)
-				{
-					//m_rHand[eHand].m_pRenderModel = FindOrLoadRenderModel(sRenderModelName.c_str());
-					m_rHand[(int)eHand].m_sRenderModelName = sRenderModelName;
-				}
-			}
-		}
-	}
-	*/
+	
 	}
 
 glm::mat4 VR_Wrapper::getSeatedZeroPoseToStandingPose() {

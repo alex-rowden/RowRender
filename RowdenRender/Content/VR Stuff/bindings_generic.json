@@ -34,20 +34,20 @@
             {
                "inputs" : {
                   "position" : {
-                     "output" : "/actions/demo/in/analoginput"
+                     "output" : "/actions/demo/in/num_routers"
                   }
                },
-               "mode" : "trackpad",
-               "path" : "/user/hand/right/input/trackpad"
+               "mode" : "joystick",
+               "path" : "/user/hand/right/input/thumbstick"
             },
             {
                "inputs" : {
                   "click" : {
-                     "output" : "/actions/demo/in/triggerhaptic"
+                     "output" : "/actions/demo/in/nearest_router"
                   }
                },
                "mode" : "button",
-               "path" : "/user/hand/right/input/grip"
+               "path" : "/user/hand/right/input/"
             },
             {
                "inputs" : {

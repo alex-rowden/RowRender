@@ -94,7 +94,7 @@ void main()
 	for(int i = 0; i < num_ellipsoids; i++){
 		ellipsoid = Ellipsoids[i + ellipsoid_index_offset];
 		vec4 direction = calculateForce(fragPos, ellipsoid, worldToWallCoords, wallToWorldCoords);
-		if(direction.a > 0){
+		if( direction.a > .01 - .001){
 			if(max_lic){
 				if(direction.a < min_alpha){
 					force = direction.xyz;
@@ -105,10 +105,14 @@ void main()
 				min_alpha = min(direction.a, min_alpha);
 			}
 			found = true;
-		}
-		if(length(direction.xyz) == 0){
-			force = vec3(0);
-		}if(abs(direction.a) < max_strength){
+		}else if(direction.a > 0){
+			found = false;
+			float color_ind = ellipsoid.mu.w;
+			if (invert_colors)
+				color_ind = ellipsoid.r.w / float(num_routers);
+			color = texture(wifi_colors, vec2(0, color_ind)).rgb;
+			break;
+		}if(direction.a < max_strength && direction.a > 0){
 			max_strength = direction.a;
 			float color_ind = ellipsoid.mu.w;
 			if (invert_colors)

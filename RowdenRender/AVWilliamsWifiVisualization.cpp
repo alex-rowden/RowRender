@@ -181,6 +181,28 @@ void readDictionary(std::map<std::string, T>& dict, std::ifstream&infile) {
 	
 }
 
+float calculateMask(int j, int step_num, bool use_mask) {
+	const int NUM_STEPS = 8; //NOTE: This is set to be the same as in LIC.frag
+	float mask = 0;
+	float total_num_steps = NUM_STEPS * 3;
+	float current_step = NUM_STEPS * step_num + j;
+	if (use_mask) {
+		mask = cos(2. * 3.1415 * (total_num_steps - current_step) / (total_num_steps));
+		return (0.5 + 0.5 * mask);
+	}return total_num_steps - current_step;
+}
+
+float getTotalMaskForStep(int step_num, bool use_mask) {
+	float ret = 0;
+	const int NUM_STEPS = 8; //NOTE: This is set to be the same as in LIC.frag
+
+	
+	for (int j = 0; j < NUM_STEPS; j++){
+		ret += calculateMask(j + NUM_STEPS * step_num , step_num, use_mask);
+	}
+	return ret;
+}
+
 void readStateFile(std::string filename, std::vector<bool>&routers, 
 					std::vector<bool>&wifinames, std::vector<bool>&freqs) {
 	std::ifstream infile(filename.c_str(), std::ios::in);
@@ -552,8 +574,8 @@ std::string getLocationString(glm::vec3 position) {
 	return ret;
 }
 
-void reset(AVWWifiData wifi,std::vector<bool> wifinames, std::vector<bool> freqs,
-	std::vector<bool> routers) {
+void reset(AVWWifiData wifi,std::vector<bool> &wifinames, std::vector<bool> &freqs,
+	std::vector<bool> &routers) {
 	wifinames.resize(wifi.getNumWifiNames());
 	std::fill(wifinames.begin(), wifinames.end(), true);
 	wifi.setAvailableFreqs(wifi.getWifinames());
@@ -748,7 +770,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	//AVW.getMeshes()[0]->setTexture(white, 0);
 	
 	for (int i = 0; i < AVW.getMeshes().size(); i++) {
-		AVW.getMeshes()[i]->setTexture(&white, 0);
+		AVW.getMeshes()[i]->setTexture(&white);
 	}
 
 	//AVW.getMeshes()[0]->addTexture(text);
@@ -781,6 +803,9 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	//Setup ground rendering
 	Model quad("./Content/Models/quad/quad_centered.obj", true);
 	quad.setModel(true);
+	Model ground_quad("./Content/Models/quad/quad_centered.obj", false);
+	ground_quad.setModel(false);
+	ground_quad.getMeshes().at(0)->addTexture(&white);
 	glm::mat4 ground_transform(1);
 	ground_transform = glm::scale(ground_transform, glm::vec3(15, 19, 2));
 	ground_transform = glm::translate(ground_transform, glm::vec3(0, 0, -.101));
@@ -1003,6 +1028,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	quad.getMeshes().at(0)->addTexture(&buffer[0].ssao_texture);
 	quad.getMeshes().at(0)->addTexture(&buffer[0].ssao_blur_texture);
 	quad.getMeshes().at(0)->addTexture(&wifi_tex);
+	quad.getMeshes().at(0)->addTexture(&white);
 
 	int num_fb = 1;
 	if (use_vr)
@@ -1121,6 +1147,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	bool num_samples_changed = false, num_routers_changed = false,
 		render_gui = true;
 	std::vector<std::string> analytics_text;
+	bool trigger_nearest_router = false;
 
 	
 	while (!glfwWindowShouldClose(w.getWindow())) {
@@ -1219,7 +1246,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			ground_shader.SetUniform("camera", ViewMat);
 			ground_shader.SetUniform("model", ground_transform);
 			ground_shader.SetUniform("heatmap", 0);
-			render(quad, &ground_shader);
+			render(ground_quad, &ground_shader);
 			
 			//glDepthMask(GL_TRUE);
 			//glClear(GL_DEPTH_BUFFER_BIT);
@@ -1272,6 +1299,14 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				if (lic_shading_bools["max_lic"]) {
 					num_forces = 1;
 				}
+				float masks[3] = {0,0,0};
+				if (true) {
+					float running_total = 0;
+					for (int i = 1; i < 3; i++) {
+						running_total += getTotalMaskForStep(i - 1, lic_shading_bools["use_mask"]);
+						masks[i] = running_total;
+					}
+				}
 				for (int i = 0; i < num_forces; i++) {
 					glClearColor(0, 0, 0, 0);
 					force_shader.Use();
@@ -1289,6 +1324,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 					render(quad, &force_shader);
 					glClearColor(1, 1, 1, 0);
 					//glDisable(GL_BLEND);
+					
 					for (int j = 0; j < num_iters; j++) {
 						lic_shader.Use();
 						lic_shading_bools["last_pass"] = (j == (num_iters - 1));
@@ -1302,6 +1338,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 						lic_shader.SetUniform("ellipsoid_index_offset", i);
 						lic_shader.SetUniform("router_num", i);
 						lic_shader.SetUniform("step_num", j);
+						lic_shader.SetUniform("curr_mask", masks[j]);
 						//lic_shader.SetUniform("multirouter", lic_shading_bools["multirouter"]);
 
 						//glClearColor(1, 1, 1, 0);
@@ -1506,9 +1543,9 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 						tr.RenderText(glm::uvec2(0, font_height * router_strings.size() - (i + 1) * font_height), glm::uvec2(2560, router_strings.size() * font_height), router_strings[router_strings.size() - i - 1], i==0);
 					}
 
-					//Texture2D text = Texture2D(tr.tex, tr.height, tr.width);
-					//text.giveName("text_tex");
-					//quad.getMeshes().at(0)->setTexture(&text);
+					Texture2D *text = new Texture2D(tr.tex, tr.height, tr.width);
+					text->giveName("text_tex");
+					quad.getMeshes().at(0)->setTexture(text);
 				}
 			}
 			//render wifi samples if requested
@@ -1580,6 +1617,13 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 						rayPicker(forward, position, glm::vec3(0), vr.teleport_position);
 						
 						deferred_shader.SetUniform("selectedPos", glm::vec3(vr.teleport_position.r, vr.teleport_position.g, vr.teleport_position.b));
+						right_hand_transform = right_hand_transform *
+							glm::rotate(glm::mat4(1),
+								glm::radians(-120.0f), glm::vec3(1, 0, 0)) *
+							glm::scale(glm::mat4(1), glm::vec3(-.2, -100, -.2));
+						ground_shader.SetUniform("model", right_hand_transform* glm::scale(glm::mat4(1), .01f * glm::vec3(1, 1, 1)));
+
+						render(Cylinder, &ground_shader);
 						//vr.ray_picker_enable = false;
 					}else if (vr.teleport_position != glm::vec3()) {
 						camera.setPosition(glm::vec3(vr.teleport_position.x, vr.teleport_position.y, camera.getPosition().z));
@@ -1597,13 +1641,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 						vr.quad_transform = vr.getControllerPose(vr.LeftDeviceId);
 					}
 				}
-				right_hand_transform = right_hand_transform *
-					glm::rotate(glm::mat4(1),
-						 glm::radians(-120.0f), glm::vec3(1, 0, 0)) *
-					glm::scale(glm::mat4(1), glm::vec3(-.2, -100, -.2));
-				ground_shader.SetUniform("model", right_hand_transform * glm::scale(glm::mat4(1), .01f * glm::vec3(1, 1, 1)));
-
-				render(Cylinder, &ground_shader);
+				
 				vr.composite(curr_eye, eyes[i].screen_tex);
 			}
 		}
@@ -1635,7 +1673,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			if (gui_type == "debug") {
 				ImGui::Begin("Rendering Terms");
 				ImGui::SliderInt("Number of Routers", &num_routers, 1, 20);
-				if (ImGui::Button("Nearest Routers")) {
+				if (ImGui::Button("Nearest Routers") || trigger_nearest_router) {
 					start_render = true;
 					num_routers_changed = true;
 					std::fill(freqs.begin(), freqs.end(), true);
@@ -1978,7 +2016,112 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			}
 			if (gui_type == "demo") {
 				bool update = false;
+				static bool set_use_case = false;
 				static int config_ind = -1;
+				static int set_ind = -1;
+				static int use_case_ind = -1;
+
+				const int num_use_cases = 9;
+				const char* const use_cases[num_use_cases] = {
+					"Localize 1",				//0
+					"Localize 2",				//1
+					"Coverage - Contour",		//2
+					"Coverage - Layered LIC",	//3
+					"Interference - Mixed LIC",	//4
+					"Interference - Max LIC",	//5
+					"Test Use Case",			//6
+					"Mixed LIC Explanation",	//7
+					"Max LIC Explanation",		//8
+				};
+
+				if (ImGui::Combo("Use Cases", &use_case_ind,
+					use_cases, num_use_cases)) {
+					set_use_case = true;
+					glm::vec3 new_camera_pos = glm::vec3(-.032911, 11.68143, 2.214213);
+					glm::vec3 new_camera_dir = glm::vec3(.89027, -.430448, -.090891);
+
+					switch (use_case_ind) {
+					case 0:
+						config_ind = 0;
+						set_ind = 8;
+						new_camera_pos = glm::vec3(
+							1.639865, 11.5868, 2.3963
+						);
+						new_camera_dir = glm::vec3(
+							-.986163, -.129348, .10369
+						);
+						break;
+					case 1:
+						config_ind = 1;
+						set_ind = 9;
+						new_camera_pos = glm::vec3(
+							-7.166709, 11.603663, 2.372158
+						);
+						new_camera_dir = glm::vec3(
+							.948736, -.301454, -.095
+						);
+						break;
+					case 2:
+						config_ind = 0;
+						set_ind = 7;
+						new_camera_pos = glm::vec3(
+							2.842, 10.2, 3.38
+						);
+						new_camera_dir = glm::vec3(
+							.88, .454, -.13488
+						);
+						break;
+					case 3:
+						config_ind = 1;
+						set_ind = 7;
+						new_camera_pos = glm::vec3(
+							8.658, 15.663932, .347995
+						);
+						new_camera_dir = glm::vec3(
+							-.995577, -.079694, -.05
+						);
+						break;
+					case 4:
+						config_ind = 4;
+						set_ind = 4;
+						break;
+					case 5:
+						config_ind = 5;
+						set_ind = 4;
+						break;
+					case 6:
+						config_ind = 0;
+						set_ind = 0;
+						break;
+					case 7:
+						config_ind = 2;
+						set_ind = 10;
+						new_camera_pos = glm::vec3(
+							2.438988, 14.275912, 2.3579358
+						);
+						new_camera_dir = glm::vec3(
+							0.995877, -.043959, -.079358
+						);
+						break;
+					case 8:
+						config_ind = 3;
+						set_ind = 10;
+						new_camera_pos = glm::vec3(
+							2.438988, 14.275912, 2.3579358
+						);
+						new_camera_dir = glm::vec3(
+							0.995877, -.043959, -.079358
+						);
+						break;
+					}
+					camera.setPosition(new_camera_pos);
+					camera.setDirection(new_camera_dir);
+				}
+				else {
+					set_use_case = false;
+				}
+
+
 				const int num_configs = 7;
 				const char* const configs[num_configs] = 
 				{
@@ -1990,33 +2133,21 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 					"Max w/ Textons",
 					"Coverage Test"
 				};
+				
 				if (ImGui::Combo("Configuration", &config_ind, 
 					configs, num_configs
-				)) {
+				) || set_use_case) {
 					std::string filename = "";
-					switch (config_ind) {
-					case 0:
-						filename = "contour.cfg";
-						break;
-					case 1:
-						filename = "layered_lic.cfg";
-						break;
-					case 2:
-						filename = "mixed_lic.cfg";
-						break;
-					case 3:
-						filename = "max_lic.cfg";
-						break;
-					case 4:
-						filename = "interference_mixed.cfg";
-						break;
-					case 5:
-						filename = "interference_max.cfg";
-						break;
-					case 6:
-						filename = "coverage.cfg";
-						break;
-					}
+					const char* const config_filenames[num_configs] = {
+						"contour.cfg",
+						"layered_lic.cfg",
+						"mixed_lic.cfg",
+						"max_lic.cfg",
+						"interference_mixed.cfg",
+						"interference_max.cfg",
+						"coverage.cfg"
+					};
+					filename = config_filenames[config_ind];
 					std::ifstream infile(filename, std::ios::in);
 					if (!infile.is_open())
 						std::cout << "File not found";
@@ -2040,48 +2171,46 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 					
 				}
 				std::string filename = "";
-				static int set_ind = -1;
-				const int num_router_sets = 8;
+				
+				const int num_router_sets = 11;
 				const char* const router_sets[num_router_sets] =
 				{
-					"2 Routers",
-					"2 Routers Alt",
-					"Frequencey Analysis",
-					"Find Router",
-					"Interference",
-					"Wifiname Coverage",
-					"Frequency Coverage",
-					"Coverage Test"
+					"2 Routers",			//0
+					"2 Routers Alt",		//1
+					"Frequencey Analysis",	//2	
+					"Find Router",			//3
+					"Interference",			//4
+					"Wifiname Coverage",	//5
+					"Frequency Coverage",	//6
+					"Coverage Test",		//7
+					"Localization 1",		//8
+					"Localization 2",		//9
+					"Stacked"				//10
 				};
-				if (ImGui::Combo("Router Set", &set_ind, router_sets, num_router_sets)) {
-					switch (set_ind) {
-					case 0:
-						filename = "2_routers.txt";
-						break;
-					case 1:
-						filename = "closer_routers.txt";
-						break;
-					case 2:
-						filename = "sparse.txt";
-						break;
-					case 3: {
+				if (ImGui::Combo("Router Set", &set_ind, router_sets, 
+					num_router_sets) || set_use_case) {
+
+					const char* const set_filenames[num_router_sets] = {
+						"2_routers.txt",
+						"closer_routers.txt",
+						"sparse.txt",
+						"",
+						"interference.txt",
+						"coverage_name.txt",
+						"coverage_freq.txt",
+						"gap.txt",
+						"localize1.txt",
+						"localize3.txt",
+						"stacked_routers.txt",
+					};
+					filename = set_filenames[set_ind];
+					if(filename == ""){
 						int rand_num = floor(randomFloats(generator) * 4) + 1;
 						filename = "localize" + std::to_string(rand_num) + ".txt";
 						break;
 					}
-					case 4:
-						filename = "interference.txt";
-						break;
-					case 5:
-						filename = "coverage_name.txt";
-						break;
-					case 6:
-						filename = "coverage_freq.txt";
-						break;
-					case 7:
-						filename = "gap.txt";
-						break;
-					}
+					
+					
 					std::ifstream infile(filename.c_str(), std::ios::in);
 					reset(wifi, wifinames, freqs, routers);
 					wifi.readRouters(infile, wifinames, routers, freqs);
@@ -2094,7 +2223,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 					nearest_router_on = true;
 					num_routers_changed = true;
 					infile.close();
-					
+
 				}
 				
 				

@@ -19,8 +19,8 @@ private:
 	std::string directory;
 	void processNode(aiNode* node, const aiScene* scene, bool import_tangents);
 	Mesh *processMesh(aiMesh* mesh, const aiScene* scene, bool import_tangents);
-	std::vector<Texture2D> loadMaterialTextures(aiMaterial* mat, aiTextureType type, std::string typeName);
-	std::vector<Texture2D> loadEmbeddedTextures(const aiScene* scene, const std::string& path);
+	std::vector<Texture2D*> loadMaterialTextures(aiMaterial* mat, aiTextureType type, std::string typeName);
+	std::vector<Texture2D*> loadEmbeddedTextures(const aiScene* scene, const std::string& path);
 	
 public:
 	Model(const char* path, bool use_tangents = false) { loadModel(std::string(path), use_tangents); };

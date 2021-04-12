@@ -20,7 +20,7 @@ uniform sampler2D normal_tex,
 uniform int ellipsoid_index_offset, num_ellipsoids, router_num, power, step_num;
 uniform bool screen_space_lic, procedural_noise, cull_discontinuities, use_mask, last_pass, multirouter;
 uniform float alpha_boost, learning_rate,
-frag_pos_scale, density;
+frag_pos_scale, density, curr_mask;
 
 uniform mat4 projection, camera;
 
@@ -74,8 +74,10 @@ float noise(vec3 x) {
 
 float calculateMask(int dir, int j) {
 	float mask = 0;
+	float total_num_steps = NUM_STEPS * 3;
+	float current_step = NUM_STEPS * step_num + j;
 	if (use_mask) {
-		mask = cos(2. * 3.1415 * (NUM_STEPS - j) / (NUM_STEPS));
+		mask = cos(2. * 3.1415 * (total_num_steps - current_step) / (total_num_steps));
 		return (0.5 + 0.5 * mask);
 	}return NUM_STEPS - dir * j;
 }
@@ -92,6 +94,7 @@ vec4 renderLIC(vec3 fragPos, vec3 tangent, vec3 bitangent, vec3 Normal) {
 	
 	vec3 color = vec3(0);
 	color = texture(lic_color_tex, TexCoord).rgb;
+	vec3 originalColor = color;
 	float signal_strength = 1;
 	
 	float alpha_new = 0;
@@ -106,7 +109,7 @@ vec4 renderLIC(vec3 fragPos, vec3 tangent, vec3 bitangent, vec3 Normal) {
 
 	vec3 oldFragPos = fragPos, oldTangent = tangent, oldNormal = Normal,
 		oldBitangent = bitangent, originalFragPos = fragPos, originalTangent = tangent;
-	float norm;
+	float norm = curr_mask;;
 	float val;
 	float step_size = learning_rate * .02;
 
@@ -154,7 +157,7 @@ vec4 renderLIC(vec3 fragPos, vec3 tangent, vec3 bitangent, vec3 Normal) {
 				else if(step_num == 2)
 					lic = texture(lic_tex[1], uv);
 				
-				val += mask * lic.a;
+				val += mask * lic.a * curr_mask;
 				if(lic.a > 0 && multirouter){
 					if(!found && direction4.a > 0){
 						color = vec3(0);
@@ -201,7 +204,8 @@ vec4 renderLIC(vec3 fragPos, vec3 tangent, vec3 bitangent, vec3 Normal) {
 				if(j == 0)
 					return vec4(0);
 				break;
-			}if(j == 0 && direction4.a < .0001 && last_pass){
+			}//Make contour line
+			if(j == 0 && direction4.a < .0001 && last_pass){
 				return vec4(texture(lic_color_tex, uv).rgb, 1);
 			}
 			vec3 force = dir * (direction) / magnitude;
@@ -276,14 +280,17 @@ vec4 renderLIC(vec3 fragPos, vec3 tangent, vec3 bitangent, vec3 Normal) {
 	
 	//alpha_new = alpha_boost * alpha_new;
 	//if(last_pass)
+	
 	alpha_new = float(alpha_boost * pow(alpha_new, power));
 	
 	//alpha_new = sqrt(alpha_new);
 	//alpha_new *= alpha_new;
 	//alpha_new *= (1 - .9 * distance / extent);
 	alpha_new = min(alpha_new, 1);
-	if (signal_strength != 0) {
+	if (signal_strength != 0 && multirouter) {
 		color = color / signal_strength;
+	}else if(!multirouter){
+		color = (originalColor * .85f) + (vec3(1) * .15f);
 	}
 	if(last_pass){
 		alpha_new *=  pow(first_signal_strength, .1);

@@ -230,12 +230,6 @@
       <Filter>Source Files\Cuda Code</Filter>
     </None>
     <None Include="..\WifiCampusDataParser\top_half.raw" />
-    <None Include="actions.json">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="bindings_generic.json">
-      <Filter>Source Files</Filter>
-    </None>
     <None Include="README.md">
       <Filter>Resource Files</Filter>
     </None>
@@ -364,6 +358,12 @@
     </None>
     <None Include="Shaders\minimap.vert">
       <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Content\VR Stuff\actions.json">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Content\VR Stuff\bindings_generic.json">
+      <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>
 </Project>
