@@ -574,6 +574,21 @@ std::string getLocationString(glm::vec3 position) {
 	return ret;
 }
 
+void startNearestRouters(std::vector<bool>&wifinames, 
+	std::vector<bool>&routers, std::vector<bool>&freqs,
+	Camera&camera, AVWWifiData&wifi,int&num_routers, 
+	std::map<std::string, float>&deferred_shading_floats,
+	bool&start_render, bool&num_routers_changed, bool&updated_routers
+	) {
+	start_render = true;
+	num_routers_changed = true;
+	std::fill(freqs.begin(), freqs.end(), true);
+	wifi.setNearestNRouters(num_routers, camera.getPosition(), wifinames, routers, freqs);
+	deferred_shading_floats["delta_theta"] = 180.f / wifi.getActiveFreqs(freqs).size();
+	updated_routers = true;
+	nearest_router_on = true;
+}
+
 void reset(AVWWifiData wifi,std::vector<bool> &wifinames, std::vector<bool> &freqs,
 	std::vector<bool> &routers) {
 	wifinames.resize(wifi.getNumWifiNames());
@@ -621,7 +636,7 @@ void createMinimapBuffer(glm::uvec2 resolution, minimapBuffer& buffer) {
 int AVWilliamsWifiVisualization(bool use_vr) {
 
 	bool start_render = false;
-	std::string gui_type = "debug";
+	std::string gui_type = "demo";
 	//initialize glfw
 	glfwInit();
 	glfwSetErrorCallback(error_callback);
@@ -1029,6 +1044,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	quad.getMeshes().at(0)->addTexture(&buffer[0].ssao_blur_texture);
 	quad.getMeshes().at(0)->addTexture(&wifi_tex);
 	quad.getMeshes().at(0)->addTexture(&white);
+	quad.getMeshes().at(0)->addTexture(&frequency_texture);
 
 	int num_fb = 1;
 	if (use_vr)
@@ -1147,8 +1163,14 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	bool num_samples_changed = false, num_routers_changed = false,
 		render_gui = true;
 	std::vector<std::string> analytics_text;
-	bool trigger_nearest_router = false;
+	bool trigger_nearest_router = false, update_config = false;
 
+	static int config_ind = -1;
+	const int num_configs = 7;
+	if (use_vr) {
+		vr.left_hand->counter_min.x = 0;
+		vr.left_hand->counter_max.x = num_configs - 1;
+	}
 	
 	while (!glfwWindowShouldClose(w.getWindow())) {
 		if (w.sleeping) {
@@ -1601,7 +1623,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				render(RightHand, &ground_shader);
 				
 				if (i == 0) {
-					if (vr.right_trigger) {
+					if (vr.right_hand->trigger) {
 						//glm::vec3 forward = vr.getControllerPose(vr.RightDeviceId) *controller_rotation* glm::vec4(-1, 0, 0,0);
 						glm::vec3 forward, pos2;
 						glm::quat  orientation;
@@ -1630,7 +1652,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 						vr.teleport_position = glm::vec3();
 					}
 					
-					if (vr.left_trigger) {
+					if (vr.left_hand->trigger) {
 						glm::vec3 forward;
 						glm::quat  orientation;
 						glm::vec3 skew, scale;
@@ -1652,6 +1674,12 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 		render2quad.Use();
 		render(quad, &render2quad);
 		
+		if (vr.right_hand->a) {
+			startNearestRouters(wifinames, routers, freqs,
+				camera, wifi, num_routers, deferred_shading_floats,
+				start_render, num_routers_changed, updated_routers);
+		}
+		
 		//Render ImGUI
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
@@ -1670,17 +1698,17 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				gui_type = "demo";
 			}
 			ImGui::End();
+			
+
 			if (gui_type == "debug") {
 				ImGui::Begin("Rendering Terms");
-				ImGui::SliderInt("Number of Routers", &num_routers, 1, 20);
-				if (ImGui::Button("Nearest Routers") || trigger_nearest_router) {
-					start_render = true;
-					num_routers_changed = true;
-					std::fill(freqs.begin(), freqs.end(), true);
-					wifi.setNearestNRouters(num_routers, camera.getPosition(), wifinames, routers, freqs);
-					deferred_shading_floats["delta_theta"] = 180.f / wifi.getActiveFreqs(freqs).size();
-					updated_routers = true;
-					nearest_router_on = true;
+				if (use_vr && ImGui::SliderInt("Number of Routers", &num_routers, 1, 20)) {
+					vr.right_hand->joystick_counter.x = num_routers;
+				}
+				if (ImGui::Button("Nearest Routers")) {
+					startNearestRouters(wifinames, routers, freqs,
+						camera, wifi, num_routers, deferred_shading_floats,
+						start_render, num_routers_changed, updated_routers);
 				}
 				if (ImGui::Button("Reset")) {
 					reset(wifi, wifinames, freqs, routers);
@@ -2017,7 +2045,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			if (gui_type == "demo") {
 				bool update = false;
 				static bool set_use_case = false;
-				static int config_ind = -1;
+				
 				static int set_ind = -1;
 				static int use_case_ind = -1;
 
@@ -2122,7 +2150,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				}
 
 
-				const int num_configs = 7;
+				
 				const char* const configs[num_configs] = 
 				{
 					"Contour Lines",
@@ -2136,7 +2164,8 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				
 				if (ImGui::Combo("Configuration", &config_ind, 
 					configs, num_configs
-				) || set_use_case) {
+				) || set_use_case || update_config) {
+					update_config = false;
 					std::string filename = "";
 					const char* const config_filenames[num_configs] = {
 						"contour.cfg",
@@ -2280,6 +2309,12 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			pos.z += vr.adjusted_height;
 			vr.adjusted_height = 0;
 			camera.setPosition(pos);
+			num_routers = floor(vr.right_hand->joystick_counter.x);
+			int next_config = floor(vr.left_hand->joystick_counter.x);
+			if (next_config != config_ind) {
+				config_ind = next_config;
+				update_config = true;
+			}
 		}
 		ImGuiIO& io = ImGui::GetIO();
 		w.release_input = io.WantCaptureKeyboard;

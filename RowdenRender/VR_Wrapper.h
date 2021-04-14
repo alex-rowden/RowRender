@@ -7,7 +7,14 @@ class VR_Wrapper
 {
 public:
 	uint32_t LeftDeviceId, RightDeviceId;
-
+	struct ControllerButtons {
+		bool trigger, a, b;
+		glm::vec2 joystick_raw_position, joystick_counter,
+			counter_min = glm::vec2(1, 0),
+			counter_max = glm::vec2(19, 19);
+	}controllers[2], 
+		*right_hand = &controllers[1],
+		*left_hand = &controllers[0];
 	enum class EHand
 	{
 		Left = 0,
@@ -27,16 +34,19 @@ public:
 		None = -1,
 	};
 	IVRSystem* vr_pointer = NULL;
-	VRActionHandle_t m_actionSet, trigger_right, trigger_left;
+	VRActionHandle_t m_actionSet, trigger_right,
+		trigger_left, a_button, b_button, x_button,
+		y_button, joysticks[2];
 	vr::TrackedDevicePose_t trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
 	glm::mat4 DevicePose[vr::k_unMaxTrackedDeviceCount];
 	char DevClassChar[k_unMaxTrackedDeviceCount];
 	int validPoseCount = 0;
 	std::string strPoseClasses;
-	bool right_trigger = false, left_trigger = false;
 	float adjusted_height = 0;
 	glm::vec3 teleport_position;
 	glm::mat4 quad_transform;
+	float counter_speed = 5;
+	float joystick_threshold = .5;
 	//VR_Wrapper();
 	void initialize();
 	bool initCompositor();

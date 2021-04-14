@@ -31,14 +31,23 @@
                "mode" : "button",
                "path" : "/user/hand/right/input/trigger"
             },
-            {
+          {
+            "inputs": {
+              "position": {
+                "output": "/actions/demo/in/right_joy"
+              }
+            },
+            "mode": "joystick",
+            "path": "/user/hand/right/input/joystick"
+          },
+          {
                "inputs" : {
                   "position" : {
-                     "output" : "/actions/demo/in/num_routers"
+                     "output" : "/actions/demo/in/left_joy"
                   }
                },
                "mode" : "joystick",
-               "path" : "/user/hand/right/input/thumbstick"
+               "path" : "/user/hand/left/input/joystick"
             },
             {
                "inputs" : {
@@ -47,7 +56,7 @@
                   }
                },
                "mode" : "button",
-               "path" : "/user/hand/right/input/"
+               "path" : "/user/hand/right/input/a"
             },
             {
                "inputs" : {

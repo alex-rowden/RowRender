@@ -25,7 +25,15 @@
     },
     {
       "name": "/actions/demo/in/nearest_router",
-      "type":  "boolean"
+      "type": "boolean"
+    },
+    {
+      "name": "/actions/demo/in/right_joy",
+      "type": "vector2"
+    },
+    {
+      "name": "/actions/demo/in/left_joy",
+      "type": "vector2"
     }
    
 

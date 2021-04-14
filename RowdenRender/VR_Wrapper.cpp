@@ -44,12 +44,13 @@ void VR_Wrapper::ProcessVREvent(const vr::VREvent_t& event) {
 		printf("%s Button %s pressed\n", EHand2str(left_or_right(event)), ButtonCode2str(event));
 		if (left_or_right(event) == VR_Wrapper::EHand::Right) {
 			if (ButtonCode2Button(event) == VR_Wrapper::Button::Trigger) {
-				std::cout << "Run Ray Picking" << std::endl;
+				//std::cout << "Run Ray Picking" << std::endl;
 				
 			}if (ButtonCode2Button(event) == VR_Wrapper::Button::B) {
 				//adjusted_height += 1.01;
 			}if (ButtonCode2Button(event) == VR_Wrapper::Button::A) {
 				//adjusted_height -= 1.01;
+				std::cout << "Button A Pressed" << std::endl;
 			}
 		}
 	case vr::VREvent_ButtonTouch:
@@ -220,6 +221,19 @@ void VR_Wrapper::setActionHandles()
 		std::cout << "right trigger error " << ret << std::endl;
 	}
 	
+	ret = vr::VRInput()->GetActionHandle("/actions/demo/in/nearest_router", &a_button);
+	if (ret != vr::EVRInputError::VRInputError_None) {
+		std::cout << "a button error " << ret << std::endl;
+	}
+
+	ret = vr::VRInput()->GetActionHandle("/actions/demo/in/right_joy", &joysticks[1]); //right_joystick
+	if (ret != vr::EVRInputError::VRInputError_None) {
+		std::cout << "right joystick error " << ret << std::endl;
+	}
+	ret = vr::VRInput()->GetActionHandle("/actions/demo/in/left_joy", &joysticks[0]); //left_joystick
+	if (ret != vr::EVRInputError::VRInputError_None) {
+		std::cout << "left joystick error " << ret << std::endl;
+	}
 }
 
 //straight up stolen from openvr sample
@@ -242,15 +256,53 @@ bool GetDigitalActionState(vr::VRActionHandle_t action, vr::VRInputValueHandle_t
 	return actionData.bActive && actionData.bState;
 }
 
+vr::InputAnalogActionData_t GetAnalogActionState(vr::VRActionHandle_t action, vr::VRInputValueHandle_t* pDevicePath = nullptr) {
+	vr::InputAnalogActionData_t actionData;
+	auto ret = vr::VRInput()->GetAnalogActionData(action, &actionData, sizeof(actionData), vr::k_ulInvalidInputValueHandle);
+	if (pDevicePath)
+	{
+		*pDevicePath = vr::k_ulInvalidInputValueHandle;
+		if (actionData.bActive)
+		{
+			vr::InputOriginInfo_t originInfo;
+			if (vr::VRInputError_None == vr::VRInput()->GetOriginTrackedDeviceInfo(actionData.activeOrigin, &originInfo, sizeof(originInfo)))
+			{
+				*pDevicePath = originInfo.devicePath;
+			}
+		}
+	}
+	if (ret != vr::EVRInputError::VRInputError_None) {
+		std::cerr << "Analog Action State Broke: " << actionData.activeOrigin << std::endl;
+	}
+	return actionData;
+}
+
 void VR_Wrapper::UpdateActionState() {
 	vr::VRActiveActionSet_t actionSet = { 0 };
 	actionSet.ulActionSet = m_actionSet;
 	if (vr::VRInput()->UpdateActionState(&actionSet, sizeof(actionSet), 1) != vr::EVRInputError::VRInputError_None) {
 		std::cerr << "error updating Action State" << std::endl;
 	}
-	right_trigger = GetDigitalActionState(trigger_right);
-	left_trigger = GetDigitalActionState(trigger_left);
-	
+	right_hand->trigger = GetDigitalActionState(trigger_right);
+	left_hand->trigger = GetDigitalActionState(trigger_left);
+	right_hand->a = GetDigitalActionState(a_button);
+	for (int j = 0; j < 2; j++) {
+		auto actionData = GetAnalogActionState(joysticks[j]);
+		controllers[j].joystick_raw_position = glm::vec2(actionData.x, actionData.y);
+
+		for (int i = 0; i < 2; i++) {
+			float increment = actionData.x;
+			if (i == 1)
+				increment = actionData.y;
+			if (abs(controllers[j].joystick_raw_position[i]) > joystick_threshold) {
+				controllers[j].joystick_counter[i] -= increment * (actionData.fUpdateTime * counter_speed);
+				controllers[j].joystick_counter[i] = std::max(controllers[j].joystick_counter[i],
+					controllers[j].counter_min[i]);
+				controllers[j].joystick_counter[i] = std::min(controllers[j].joystick_counter[i],
+					controllers[j].counter_max[i]);
+			}
+		}
+	}
 	for (int eHand = 0; eHand < 2; eHand++)
 	{
 		vr::InputPoseActionData_t poseData;

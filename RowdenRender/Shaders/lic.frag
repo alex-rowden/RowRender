@@ -302,7 +302,7 @@ void main(){
 	
 	vec3 fragPos = texture(fragPos_tex, TexCoord).xyz;
 	vec3 normal = texture(normal_tex, TexCoord).xyz;
-	if(abs(dot(normal, vec3(0,0,1))) > ( EPSILON)){
+	if(abs(dot(normal, vec3(0,0,1))) > (1- EPSILON)){
 		LIC = vec4(0,0,0,0);
 		return;
 	}
