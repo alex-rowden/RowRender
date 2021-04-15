@@ -294,12 +294,34 @@ void VR_Wrapper::UpdateActionState() {
 			float increment = actionData.x;
 			if (i == 1)
 				increment = actionData.y;
+			
 			if (abs(controllers[j].joystick_raw_position[i]) > joystick_threshold) {
-				controllers[j].joystick_counter[i] -= increment * (actionData.fUpdateTime * counter_speed);
+				if (controllers[j].mode == Joystick_Mode::Scroll) {
+					controllers[j].joystick_counter[i] -= increment * (actionData.fUpdateTime * counter_speed);
+				}
+				else if (controllers[j].mode == Joystick_Mode::Impulse) {
+					if (sgn(increment) != sgn(edges[j][i])) {
+						if (sgn(increment) == 0) {
+							edges[j][i] = 0;
+						}
+						else if (sgn(increment) > 0) {
+							edges[j][i] = 1;
+							controllers[j].joystick_counter[i]++;
+						}
+						else {
+							edges[j][i] = -1;
+							controllers[j].joystick_counter[i]--;
+						}
+
+					}
+				}
 				controllers[j].joystick_counter[i] = std::max(controllers[j].joystick_counter[i],
 					controllers[j].counter_min[i]);
 				controllers[j].joystick_counter[i] = std::min(controllers[j].joystick_counter[i],
 					controllers[j].counter_max[i]);
+			}
+			else {
+				edges[j][i] = 0;
 			}
 		}
 	}

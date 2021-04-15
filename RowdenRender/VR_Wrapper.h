@@ -7,11 +7,17 @@ class VR_Wrapper
 {
 public:
 	uint32_t LeftDeviceId, RightDeviceId;
+	enum class Joystick_Mode {
+		Scroll,
+		Impulse,
+		Movement
+	};
 	struct ControllerButtons {
 		bool trigger, a, b;
 		glm::vec2 joystick_raw_position, joystick_counter,
 			counter_min = glm::vec2(1, 0),
 			counter_max = glm::vec2(19, 19);
+		Joystick_Mode mode = Joystick_Mode::Impulse;
 	}controllers[2], 
 		*right_hand = &controllers[1],
 		*left_hand = &controllers[0];
@@ -21,6 +27,8 @@ public:
 		Right = 1,
 		None = -1,
 	};
+
+	
 
 	enum class Button {
 		X = 0,
@@ -47,6 +55,7 @@ public:
 	glm::mat4 quad_transform;
 	float counter_speed = 5;
 	float joystick_threshold = .5;
+	char edges[2][2] = { { 0,0 }, {0,0} }; //[controller][x,y]
 	//VR_Wrapper();
 	void initialize();
 	bool initCompositor();

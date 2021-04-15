@@ -69,6 +69,10 @@ std::string getexepath()
 	return std::string(result, GetModuleFileName(NULL, result, MAX_PATH));
 }
 */
+template <typename T> int sgn(T val) {
+	return (T(0) < val) - (val < T(0));
+}
+
 void MessageCallback(GLenum source,
 	GLenum type,
 	GLuint id,
