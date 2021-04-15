@@ -23,7 +23,7 @@ public:
 	void SetInstanceTransforms(std::vector<glm::mat4>);
 	void SetInstanceTransforms(std::vector<glm::mat4>, std::vector<float>);
 	
-	void Render(ShaderProgram* shader, int);
+	void Render(ShaderProgram* shader, int, std::vector<Texture2D*> = std::vector<Texture2D *>());
 	void Render(ShaderProgram* shader) { Render(shader, 0); };
 	bool isLight() { return is_light; }
 

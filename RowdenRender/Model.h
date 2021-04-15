@@ -27,8 +27,9 @@ public:
 	Model(std::string string, bool use_tangents = false) { loadModel(string, use_tangents); }
 	Model() {};
 	void Render(ShaderProgram* sp, glm::mat4, glm::mat4, glm::mat4);
-	void Render(ShaderProgram* sp, std::vector<Mesh*> meshes);
+	void Render(ShaderProgram* sp, std::vector<Mesh*> meshes, std::vector<Texture2D*> = std::vector<Texture2D*>());
 	void Render(ShaderProgram* sp);
+	void Render(ShaderProgram* sp, std::vector<Texture2D*> textures);
 	void addMesh(Mesh *mesh);
 	void addModel(Model* model);
 	void loadObjf(std::string path);

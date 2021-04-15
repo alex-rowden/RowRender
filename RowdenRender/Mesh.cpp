@@ -258,7 +258,7 @@ void Mesh::setTexture(Texture2D *texture, int index) {
 		textures.emplace_back(texture);
 }
 
-void Mesh::Render(ShaderProgram *shader, int offset) {
+void Mesh::Render(ShaderProgram *shader, int offset, std::vector<Texture2D*> tex_override) {
 								  
 	unsigned int diffuseNr = 1;
 	unsigned int specularNr = 1;
@@ -266,9 +266,17 @@ void Mesh::Render(ShaderProgram *shader, int offset) {
 		textures.emplace_back(new Texture2D(Texture2D::COLORS::WHITE));
 	}
 	int counter = offset;
+	for (int i = 0; i < tex_override.size(); i++) {
+		glActiveTexture(GL_TEXTURE0 + counter);
+		GLint texture_position = glGetUniformLocation(shader->getShader(), "texture_diffuse" + diffuseNr++);
+
+		glUniform1i(texture_position, counter++);
+		tex_override[i]->Bind();
+
+	}
 	for (unsigned int i = 0; i < textures.size(); i++)
 	{
-		 // activate proper texture unit before binding
+		// activate proper texture unit before binding
 		// retrieve texture number (the N in diffuse_textureN)
 		std::string number;
 		std::string name = textures[i]->name;
@@ -280,16 +288,18 @@ void Mesh::Render(ShaderProgram *shader, int offset) {
 			number = std::to_string(specularNr++);
 			name = name + number;
 		}
-		
+
 		GLint texture_position = glGetUniformLocation(shader->getShader(), name.c_str());
-		if(texture_position >= 0){
+		if (texture_position >= 0) {
 			glActiveTexture(GL_TEXTURE0 + counter);
 			glUniform1i(texture_position, counter++);
 			textures[i]->Bind();
 		}
 		//shader.setFloat(("material." + name + number).c_str(), i);
-		
+
 	}
+	
+	
 	
 	glBindVertexArray(VertexArrayObject);
 	if(num_instances == 0)

@@ -1243,6 +1243,8 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				send_data = true;
 			}
 
+			
+
 			//Model Prepass
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, eyes[i].frame_buffer);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -1270,9 +1272,6 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			ground_shader.SetUniform("heatmap", 0);
 			render(ground_quad, &ground_shader);
 			
-			//glDepthMask(GL_TRUE);
-			//glClear(GL_DEPTH_BUFFER_BIT);
-			
 			//vr widget prepass if requested (and in vr)
 			if (use_vr && vr.quad_transform != glm::mat4(1)) {
 				glm::mat4 transform = glm::inverse(camera_offset * camera.getView()) *
@@ -1293,6 +1292,10 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				render(quad, &model_shader);
 				quad.getMeshes().at(0)->setTexture(&white, 0);
 			}
+			//glDepthMask(GL_TRUE);
+			//glClear(GL_DEPTH_BUFFER_BIT);
+			
+			
 			glDisable(GL_DEPTH_TEST);
 			
 			//Do SSAO prepasses if desired
@@ -1620,7 +1623,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 
 				glm::mat4 right_hand_transform = vr.getControllerPose(vr.RightDeviceId)  * controller_rotation * glm::scale(glm::mat4(1), 1.0f * glm::vec3(-1, -1, 1));
 				ground_shader.SetUniform("model", right_hand_transform * glm::scale(glm::mat4(1), .01f * glm::vec3(1,1,1)));
-				render(RightHand, &ground_shader);
+				//render(RightHand, &ground_shader);
 				
 				if (i == 0) {
 					if (vr.right_hand->trigger) {
@@ -1645,26 +1648,44 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 							glm::scale(glm::mat4(1), glm::vec3(-.2, -100, -.2));
 						ground_shader.SetUniform("model", right_hand_transform* glm::scale(glm::mat4(1), .01f * glm::vec3(1, 1, 1)));
 
-						render(Cylinder, &ground_shader);
+						
 						//vr.ray_picker_enable = false;
 					}else if (vr.teleport_position != glm::vec3()) {
 						camera.setPosition(glm::vec3(vr.teleport_position.x, vr.teleport_position.y, camera.getPosition().z));
 						vr.teleport_position = glm::vec3();
 					}
 					
+					
 					if (vr.left_hand->trigger) {
-						glm::vec3 forward;
-						glm::quat  orientation;
-						glm::vec3 skew, scale;
-						glm::vec4 perspective;
-						glm::vec3 position;
 						//glm::decompose(vr.getControllerPose(vr.LeftDeviceId), scale, orientation, position, skew, perspective);
 						//auto inv_view = glm::inverse(camera_offset * camera.getView());
 						vr.quad_transform = vr.getControllerPose(vr.LeftDeviceId);
 					}
 				}
-				
+				if(vr.right_hand->trigger)
+					render(Cylinder, &ground_shader);
+				glm::mat4 transform = glm::inverse(camera_offset * camera.getView()) *
+					vr.getControllerPose(vr.RightDeviceId) *
+					glm::scale(
+						glm::rotate(
+							glm::mat4(1),
+							glm::radians(-90.0f),
+							glm::vec3(1, 0, 0)),
+						glm::vec3(.2))
+					;;
+				//vr.getViewMatrix(curr_eye) * camera_offset * ViewMat
+				ground_shader.SetUniform("model", transform);
+				ground_shader.SetUniform("camera", ViewMat);
+				//ground_shader.SetUniform("normalMatrix", glm::mat3(glm::transpose(glm::inverse(transform))));
+				//model_shader.SetUniform("texcoord_scale", texcoord_scale);
+				//quad.getMeshes().at(0)->setTexture(&minimap_buffer.minimapTexture, 0);
+				std::vector<Texture2D*> mmap;
+				mmap.emplace_back(&minimap_buffer.minimapTexture);
+				quad.Render(&ground_shader, mmap);
+				//quad.getMeshes().at(0)->setTexture(&white, 0);
 				vr.composite(curr_eye, eyes[i].screen_tex);
+
+				
 			}
 		}
 		glFlush(); 
@@ -1872,8 +1893,8 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 					}
 					ImGui::TreePop();
 				}
-
-				ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+				if(!use_vr)
+					ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 				ImGui::End();
 			}
 			if (nearest_router_on && render_gui) {

@@ -64,11 +64,15 @@ void Model::Render(ShaderProgram* sp) {
 	Render(sp, meshes);
 }
 
-void Model::Render(ShaderProgram *sp, std::vector<Mesh*> render_meshes) {
+void Model::Render(ShaderProgram* sp, std::vector<Texture2D*> textures) {
+	Render(sp, meshes, textures);
+}
+
+void Model::Render(ShaderProgram *sp, std::vector<Mesh*> render_meshes, std::vector<Texture2D*> textures) {
 	sp->Use();
 
 	for (auto mesh : render_meshes) {
-		mesh->Render(sp);
+		mesh->Render(sp, 0, textures);
 	}
 }
 
