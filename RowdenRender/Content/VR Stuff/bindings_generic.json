@@ -21,16 +21,16 @@
                "path" : "/user/hand/left/output/haptic"
             }
          ],
-         "sources" : [
-            {
-               "inputs" : {
-                  "click" : {
-                     "output" : "/actions/demo/in/select"
-                  }
-               },
-               "mode" : "button",
-               "path" : "/user/hand/right/input/trigger"
+        "sources": [
+          {
+            "inputs": {
+              "click": {
+                "output": "/actions/demo/in/select"
+              }
             },
+            "mode": "button",
+            "path": "/user/hand/right/input/trigger"
+          },
           {
             "inputs": {
               "position": {
@@ -41,60 +41,69 @@
             "path": "/user/hand/right/input/joystick"
           },
           {
-               "inputs" : {
-                  "position" : {
-                     "output" : "/actions/demo/in/left_joy"
-                  }
-               },
-               "mode" : "joystick",
-               "path" : "/user/hand/left/input/joystick"
+            "inputs": {
+              "click": {
+                "output": "/actions/demo/in/right_grip"
+              }
             },
-            {
-               "inputs" : {
-                  "click" : {
-                     "output" : "/actions/demo/in/nearest_router"
-                  }
-               },
-               "mode" : "button",
-               "path" : "/user/hand/right/input/a"
+            "mode": "button",
+            "path": "/user/hand/right/input/grip"
+          },
+          {
+            "inputs": {
+              "position": {
+                "output": "/actions/demo/in/left_joy"
+              }
             },
-            {
-               "inputs" : {
-                  "click" : {
-                     "output" : "/actions/demo/in/move_quad"
-                  }
-               },
-               "mode" : "button",
-               "path" : "/user/hand/left/input/trigger"
+            "mode": "joystick",
+            "path": "/user/hand/left/input/joystick"
+          },
+          {
+            "inputs": {
+              "click": {
+                "output": "/actions/demo/in/nearest_router"
+              }
             },
-            {
-               "inputs" : {
-                  "click" : {
-                     "output" : "/actions/demo/in/triggerhaptic"
-                  }
-               },
-               "mode" : "button",
-               "path" : "/user/hand/left/input/grip"
+            "mode": "button",
+            "path": "/user/hand/right/input/a"
+          },
+          {
+            "inputs": {
+              "click": {
+                "output": "/actions/demo/in/move_quad"
+              }
             },
-            {
-               "inputs" : {
-                  "click" : {
-                     "output" : "/actions/demo/in/hidethiscontroller"
-                  }
-               },
-               "mode" : "button",
-               "path" : "/user/hand/left/input/application_menu"
+            "mode": "button",
+            "path": "/user/hand/left/input/trigger"
+          },
+          {
+            "inputs": {
+              "click": {
+                "output": "/actions/demo/in/triggerhaptic"
+              }
             },
-            {
-               "inputs" : {
-                  "click" : {
-                     "output" : "/actions/demo/in/hidethiscontroller"
-                  }
-               },
-               "mode" : "button",
-               "path" : "/user/hand/right/input/application_menu"
-            }
-         ]
+            "mode": "button",
+            "path": "/user/hand/left/input/grip"
+          },
+          {
+            "inputs": {
+              "click": {
+                "output": "/actions/demo/in/hidethiscontroller"
+              }
+            },
+            "mode": "button",
+            "path": "/user/hand/left/input/application_menu"
+          },
+          {
+            "inputs": {
+              "click": {
+                "output": "/actions/demo/in/hidethiscontroller"
+              }
+            },
+            "mode": "button",
+            "path": "/user/hand/right/input/application_menu"
+          }
+        ]
       }
    },
    "controller_type" : "generic",

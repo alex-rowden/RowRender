@@ -234,6 +234,10 @@ void VR_Wrapper::setActionHandles()
 	if (ret != vr::EVRInputError::VRInputError_None) {
 		std::cout << "left joystick error " << ret << std::endl;
 	}
+	ret = vr::VRInput()->GetActionHandle("/actions/demo/in/right_grip", &grip_right); //left_joystick
+	if (ret != vr::EVRInputError::VRInputError_None) {
+		std::cout << "left joystick error " << ret << std::endl;
+	}
 }
 
 //straight up stolen from openvr sample
@@ -286,6 +290,7 @@ void VR_Wrapper::UpdateActionState() {
 	right_hand->trigger = GetDigitalActionState(trigger_right);
 	left_hand->trigger = GetDigitalActionState(trigger_left);
 	right_hand->a = GetDigitalActionState(a_button);
+	right_hand->grip = GetDigitalActionState(grip_right);
 	for (int j = 0; j < 2; j++) {
 		auto actionData = GetAnalogActionState(joysticks[j]);
 		controllers[j].joystick_raw_position = glm::vec2(actionData.x, actionData.y);

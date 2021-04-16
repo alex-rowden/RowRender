@@ -13,7 +13,7 @@ public:
 		Movement
 	};
 	struct ControllerButtons {
-		bool trigger, a, b;
+		bool trigger, a, b, grip;
 		glm::vec2 joystick_raw_position, joystick_counter,
 			counter_min = glm::vec2(1, 0),
 			counter_max = glm::vec2(19, 19);
@@ -44,7 +44,7 @@ public:
 	IVRSystem* vr_pointer = NULL;
 	VRActionHandle_t m_actionSet, trigger_right,
 		trigger_left, a_button, b_button, x_button,
-		y_button, joysticks[2];
+		y_button, joysticks[2], grip_right;
 	vr::TrackedDevicePose_t trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
 	glm::mat4 DevicePose[vr::k_unMaxTrackedDeviceCount];
 	char DevClassChar[k_unMaxTrackedDeviceCount];

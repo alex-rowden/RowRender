@@ -28,6 +28,10 @@
       "type": "boolean"
     },
     {
+      "name": "/actions/demo/in/right_grip",
+      "type":  "boolean"
+    },
+    {
       "name": "/actions/demo/in/right_joy",
       "type": "vector2"
     },

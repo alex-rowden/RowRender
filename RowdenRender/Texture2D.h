@@ -22,6 +22,7 @@ public:
 	unsigned int getID() { return texture; }
 	unsigned int * getIDP() { return &texture; }
 	glm::uvec2 getDims() { return glm::uvec2(width, height); }
+	float getAspectRatio() { return width / (float)height; }
 	void init_from_vector(std::vector<glm::vec4> *color, int height, int width);
 	void giveName(std::string);
 	void setBorderColor(glm::vec4 color);
