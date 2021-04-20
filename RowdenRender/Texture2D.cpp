@@ -9,6 +9,7 @@ Texture2D::Texture2D() {
 
 
 Texture2D::Texture2D(const char * filename) {
+	stbi_set_flip_vertically_on_load(true);
 	unsigned char * data = loadTextureData(filename);
 	if (!data) {
 		std::cerr << "Failed to load texture at :" << filename << std::endl;
