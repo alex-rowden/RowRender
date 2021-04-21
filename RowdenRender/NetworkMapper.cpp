@@ -39,7 +39,7 @@ std::vector<std::string> GetData()
 
 	// GUID Variable
 	GUID guidInterface = { 0 };
-	
+	std::cout << "In GetData" << std::endl;
 	//creating session handle for the client to connect to server.
 	hResult = WlanOpenHandle(dwClientVersion, NULL, &pdwNegotiatedVersion, &phClientHandle);
 	if (hResult != ERROR_SUCCESS)
@@ -54,6 +54,7 @@ std::vector<std::string> GetData()
 		}
 		return std::vector<std::string>();
 	}
+	std::cout << "Passed WlanOpenHandle" << std::endl;
 
 	//Enumerates all the wifi adapters currently enabled on PC.
 	//Returns the list of interface list that are enabled on PC.
@@ -63,6 +64,7 @@ std::vector<std::string> GetData()
 		printf("failed WlanEnumInterfaces check adapter is on=%d \n", hResult);
 		return std::vector<std::string>();
 	}
+	std::cout << "Passed WlanEnumInterfaces" << std::endl;
 	//Get the first GUID assume one adapter
 	guidInterface = pIfList->InterfaceInfo[0].InterfaceGuid;
 
@@ -81,6 +83,7 @@ std::vector<std::string> GetData()
 		printf("######## FuncWlanScan<---######## \n \n");
 		return std::vector<std::string>();
 	}
+	std::cout << "Passed WlanRegisterNotification" << std::endl;
 	hResult = WlanScan(phClientHandle, &guidInterface, NULL, NULL, NULL);
 	if (hResult != ERROR_SUCCESS)
 	{
@@ -88,15 +91,16 @@ std::vector<std::string> GetData()
 		return std::vector<std::string>();
 	}
 	Sleep(1000);
+	std::cout << "Passed WlanScan" << std::endl;
 	hResult = WlanGetAvailableNetworkList(phClientHandle,
 		&guidInterface,
 		NULL,
 		NULL,
 		&pBssList);
-
+	std::cout << "Passed AvalableNetworkList" << std::endl;
 	std::vector<std::string> output;
 	if (hResult == ERROR_SUCCESS && pBssList) {
-
+		std::cout << pBssList->dwNumberOfItems << std::endl;
 
 		for (unsigned int i = 0; i < pBssList->dwNumberOfItems; i++)
 		{
@@ -109,17 +113,18 @@ std::vector<std::string> GetData()
 				NULL,
 				&pWlanBssList);
 			if (hResult != ERROR_SUCCESS || !pBssList) {
-				printf("Failed to get BssList\n");
+				std::cout << "Falied to get NetworkBssList " << i << std::endl;
 				break;
 			}
 			else {
+				std::cout << "Passed WlanGetNetworkBssList" << std::endl;
 				LONG rssi = pWlanBssList->wlanBssEntries[0].lRssi;
 				unsigned char* dot_mac = pWlanBssList->wlanBssEntries[0].dot11Bssid;
-				char mac_addr[19];
-				sprintf_s(mac_addr, "%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x",
+				char mac_addr[100];
+				sprintf_s(mac_addr, 100,"%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x",
 					dot_mac[0], dot_mac[1], dot_mac[2], dot_mac[3], dot_mac[4], dot_mac[5], dot_mac[6], dot_mac[7]);
-				printf("%s:%s = %ld\n", pBssList->Network[i].dot11Ssid.ucSSID, mac_addr, rssi);
-
+				//printf("%s:%s = %ld\n", pBssList->Network[i].dot11Ssid.ucSSID, mac_addr, rssi);
+				std::cout << mac_addr << std::endl;
 				std::stringstream ss;
 				ss << pBssList->Network[i].dot11Ssid.ucSSID <<
 					" " << mac_addr <<
@@ -132,10 +137,6 @@ std::vector<std::string> GetData()
 				std::string address = ss.str();
 
 				output.emplace_back(address);
-
-				if (!pBssList) {
-					break;
-				}
 			}
 		}
 	}
@@ -158,12 +159,21 @@ std::vector<std::string> wifi_sample() {
 void getSamples(std::vector<rpc::client*>client_list, glm::vec2 sample_pos, std::ofstream&out) {
 	out << sample_pos.x << " " << sample_pos.y << " " << client_list.size() << std::endl;
 	for (int i = 0; i < client_list.size(); i++) {
-		auto ret = client_list.at(i)->call("wifi_sample").as<std::vector<std::string>>();
-		out << ret.size() << std::endl;
-		for (auto str : ret) {
-			out << str << std::endl;
+		try {
+			auto ret = client_list.at(i)->call("wifi_sample").as<std::vector<std::string>>();
+			out << ret.size() << std::endl;
+			for (auto str : ret) {
+				out << str << std::endl;
+			}
+		}
+		catch (rpc::timeout& t) {
+			std::cout << "Error calling function " << t.what() << std::endl;
 		}
 	}
+}
+
+int test() {
+	return 1;
 }
 
 int NetworkMapper(bool isServer, int floor) {
@@ -172,7 +182,7 @@ int NetworkMapper(bool isServer, int floor) {
 		rpc::server srv(8080);
 
 		srv.bind("wifi_sample", &wifi_sample);
-
+		srv.bind("test_connect", &test);
 		srv.run();
 
 		return 0;
@@ -226,6 +236,7 @@ int NetworkMapper(bool isServer, int floor) {
 		std::vector<rpc::client*> client_list;
 
 		int counter = 0;
+
 		for (int i = 0; i < 4; i++, counter++) {
 			std::string srv = "";
 			std::getline(std::cin, srv);
@@ -234,6 +245,29 @@ int NetworkMapper(bool isServer, int floor) {
 			}
 			std::cout << srv << std::endl;
 			rpc::client* c = new rpc::client(srv, 8080);
+			/*
+			c->set_timeout(1000);
+			try {
+				if (c->call("wifi_test").as<std::vector<std::string>>().size() != 0) {
+					std::cout << "connected" << std::endl;
+				}
+			}
+			catch (rpc::timeout &t) {
+				std::cout << "didn't connect to server: " << t.what() << std::endl;
+				i--;
+				counter--;
+				continue;
+			}
+			*/
+			Sleep(1000);
+			if (c->get_connection_state() != rpc::client::connection_state::connected) {
+				std::cout << "Not connected" << std::endl;
+				i--; counter--;
+				continue;
+			}
+			else {
+				std::cout << "Connected" << std::endl;
+			}
 			client_list.emplace_back(c);
 		}
 		if (client_list.size() < 1) {

@@ -385,3 +385,4 @@ healthchecksdb
 *.objf
 
 /RowdenRender/Content/Data/NetworkReader-Callibration
+/RowdenRender/DataCollection1.txt

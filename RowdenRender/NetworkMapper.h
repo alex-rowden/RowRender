@@ -7,6 +7,7 @@
 #include "rpc/server.h"
 #include "rpc/client.h"
 #include "rpc/this_handler.h"
+#include <rpc/rpc_error.h>
 #include "RowRender.h"
 
 
