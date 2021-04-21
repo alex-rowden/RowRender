@@ -26,10 +26,26 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 	if (width == 0 || height == 0) {
 		this_window->sleeping = true;
 	}
-	glViewport(0, 0, width, height);
-	this_window->width = width;
-	this_window->height = height;
-	this_window->setResized(true);
+	else {
+		glViewport(0, 0, width, height);
+		this_window->width = width;
+		this_window->height = height;
+		this_window->setResized(true);
+	}
+}
+
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
+	Window* w = (Window*)glfwGetWindowUserPointer(window);
+	if (button == GLFW_MOUSE_BUTTON_LEFT) {
+		if (action == GLFW_PRESS) {
+			w->left_mouse.click = true;
+		}
+	}
+	else if (button == GLFW_MOUSE_BUTTON_RIGHT) {
+		if (action == GLFW_PRESS) {
+			w->right_mouse.click = true;
+		}
+	}
 }
 
 //void standard_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
@@ -188,14 +204,18 @@ void Window::SetFramebuferSizeCallback() {
 	glfwSetWindowSizeCallback(window, framebuffer_size_callback); //Set framebuffer callback
 }
 
+void Window::SetMouseButtonCallback() {
+	glfwSetMouseButtonCallback(window, mouse_button_callback); //Set mouse button callback
+}
+
 void Window::SetVersion(float version) {
 	SetVersion((int)version, (int)(version * 10) % 10);
 }
 
 void Window::setFullScreen(bool set) {
 	const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-	width = mode->width;
-	height = mode->height;
+	this->width = mode->width;
+	this->height = mode->height;
 	if(set)
 		glfwSetWindowMonitor(window, glfwGetPrimaryMonitor(), 0, 0, mode->width, mode->height, mode->refreshRate);
 	else {
@@ -231,6 +251,7 @@ void Window::SetViewportSize(int width, int height) {
 	glViewport(0, 0, width, height); //Set viewport to full window size
 }
 
+
 void Window::SetCamera(Camera* _camera) {
 	camera = _camera;
 	//glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -240,7 +261,7 @@ void Window::SetCamera(Camera* _camera) {
 //Process each input frame, by default uses standard input processor
 void Window::ProcessFrame(bool useStandard) {
 	glfwPollEvents();//get polled events
-	glfwMakeContextCurrent(window); //focus on the new window
+	//glfwMakeContextCurrent(window); //focus on the new window
 	standardInputProcessor(window); //get keypresses etc.
 	glfwSwapBuffers(window); //dual buffer swap
 	

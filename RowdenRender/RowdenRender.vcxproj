@@ -102,6 +102,7 @@
     <None Include="Shaders\deffered_fragment_shader.glsl" />
     <None Include="Shaders\deffered_vertex_ellipsoid_shader.glsl" />
     <None Include="Shaders\deffered_vertex_shader.glsl" />
+    <None Include="Shaders\dot.frag" />
     <None Include="Shaders\fragment_shader.glsl" />
     <None Include="Shaders\fragment_shader_ellipse.glsl" />
     <None Include="Shaders\fragment_shader_no_light.glsl" />

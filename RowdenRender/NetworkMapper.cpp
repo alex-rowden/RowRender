@@ -144,15 +144,25 @@ std::vector<std::string> GetData()
 
 
 
-std::string wifi_sample() {
+std::vector<std::string> wifi_sample() {
 	std::cout << "Called" << std::endl;
-	return "TestOut";
+	auto ret = GetData();
+	if (ret.size() > 0)
+		return ret;
+	//return dummy data
+	ret.emplace_back(std::string("Dummy data"));
+	return ret;
 }
 
 
-void getSamples(std::vector<rpc::client*>client_list) {
+void getSamples(std::vector<rpc::client*>client_list, glm::vec2 sample_pos, std::ofstream&out) {
+	out << sample_pos.x << " " << sample_pos.y << " " << client_list.size() << std::endl;
 	for (int i = 0; i < client_list.size(); i++) {
-		std::cout << client_list.at(i)->call("wifi_sample").as<std::string>() << std::endl;
+		auto ret = client_list.at(i)->call("wifi_sample").as<std::vector<std::string>>();
+		out << ret.size() << std::endl;
+		for (auto str : ret) {
+			out << str << std::endl;
+		}
 	}
 }
 
@@ -183,8 +193,12 @@ int NetworkMapper(bool isServer, int floor) {
 			return false;
 		}
 		//make window fullscreen
-		window.setFullScreen(true);
+		window.setFullScreen(false);
 		glm::uvec2 resolution(window.width, window.height);
+
+		Camera camera = Camera(glm::vec3(0), glm::vec3(0), 45, 1); //dummy camera. Will not be used but I wrote a bad standard callback function and don't want to write another one
+
+		window.SetCamera(&camera);
 
 		// During init, enable debug output
 		glEnable(GL_DEBUG_OUTPUT);
@@ -193,29 +207,24 @@ int NetworkMapper(bool isServer, int floor) {
 
 		//Allow Resizing
 		window.SetFramebuferSizeCallback();
+		//Allow mouse button presses
+		window.SetMouseButtonCallback();
 
-		ShaderProgram screen_shader({
-			ShaderProgram::Shaders::SCREEN_FRAG,
-			ShaderProgram::Shaders::SCREEN_VERT
-			});
+		ShaderProgram dot_shader(std::vector<std::string>({
+			"shaders/dot.frag",
+			"shaders/screen_vshader.glsl"
+			}));
 
 		Model quad("./Content/Models/quad/quad_centered.obj");
 		quad.setModel(false);
 		
 		Texture2D floorplan(("./Content/Textures/AVWFloorPlans/" + std::to_string(floor) + "c.png").c_str());
 		quad.getMeshes().at(0)->addTexture(&floorplan);
-		while (!glfwWindowShouldClose(window.getWindow())) {
-			glClear(GL_COLOR_BUFFER_BIT);
-			quad.Render(&screen_shader);
-			window.ProcessFrame();
-			glFinish();
-		}
-
-		glfwTerminate();
-
+		
+		//get servers
 		std::cout << "Enter Server Addresses" << std::endl;
 		std::vector<rpc::client*> client_list;
-		
+
 		int counter = 0;
 		for (int i = 0; i < 4; i++, counter++) {
 			std::string srv = "";
@@ -224,9 +233,47 @@ int NetworkMapper(bool isServer, int floor) {
 				break;
 			}
 			std::cout << srv << std::endl;
-			rpc::client *c = new rpc::client(srv, 8080);
+			rpc::client* c = new rpc::client(srv, 8080);
 			client_list.emplace_back(c);
 		}
+		if (client_list.size() < 1) {
+			rpc::client* c = new rpc::client("localhost", 8080);
+			client_list.emplace_back(c);
+		}
+
+		//variables
+		glm::vec2 mousePosTex = glm::vec2(.5, .5);
+		float radius = .005;
+
+		//Ready outfile
+		std::ofstream out(("DataCollection" + std::to_string(floor) + ".txt").c_str(), std::ios::app);
+
+		glEnable(GL_BLEND);
+		while (!glfwWindowShouldClose(window.getWindow())) {
+			glClear(GL_COLOR_BUFFER_BIT);
+			if (window.left_mouse.click) {
+				window.left_mouse.click = false;
+				mousePosTex = glm::vec2(window.currX / window.width, (1 - window.currY / window.height));
+				getSamples(client_list,  mousePosTex, out);
+			}if (window.right_mouse.click) {
+				window.right_mouse.click = false;
+				out << "Delete" << std::endl;
+			}
+
+			dot_shader.Use();
+			dot_shader.SetUniform("mousePos", mousePosTex);
+			dot_shader.SetUniform("radius", radius);
+			dot_shader.SetUniform("aspect", ((float)floorplan.getDims().y / floorplan.getDims().x));
+
+			quad.Render(&dot_shader);
+
+			window.ProcessFrame();
+			glFinish();
+		}
+
+		glfwTerminate();
+		out.close();
+		
 			
 		/*
 		for (int i = 0; i < counter; i++) {

@@ -7,6 +7,10 @@ class Window
 public:
 	GLFWwindow* window;
 	
+	struct {
+		bool click = false;
+	}right_mouse, left_mouse, middle_mouse;
+
 	Window(const char* name, int resolution_x, int resolution_y);
 	Window(const char* name) { Window(name, 800, 800); }
 	void SetCamera(Camera* camera);
@@ -18,6 +22,7 @@ public:
 	void ProcessFrame(void (*processInputFunc)(GLFWwindow*), bool useStandard = false);
 	void SetViewportSize(int width, int height);
 	void SetFramebuferSizeCallback();
+	void SetMouseButtonCallback();
 	void standardInputProcessor(GLFWwindow* window);
 	void setSpeed(float speed) { this->speed = speed; };
 	void setResized(bool resize) { resized = resize; }
