@@ -85,7 +85,7 @@ std::vector<std::string> GetData()
 	if (hResult != ERROR_SUCCESS)
 	{
 		printf("failed WlanScan check adapter is enabled=%d \n ", hResult);
-
+		return std::vector<std::string>();
 	}
 	Sleep(1000);
 	hResult = WlanGetAvailableNetworkList(phClientHandle,
