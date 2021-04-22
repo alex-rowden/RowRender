@@ -39,7 +39,6 @@ std::vector<std::string> GetData()
 
 	// GUID Variable
 	GUID guidInterface = { 0 };
-	std::cout << "In GetData" << std::endl;
 	//creating session handle for the client to connect to server.
 	hResult = WlanOpenHandle(dwClientVersion, NULL, &pdwNegotiatedVersion, &phClientHandle);
 	if (hResult != ERROR_SUCCESS)
@@ -54,7 +53,6 @@ std::vector<std::string> GetData()
 		}
 		return std::vector<std::string>();
 	}
-	std::cout << "Passed WlanOpenHandle" << std::endl;
 
 	//Enumerates all the wifi adapters currently enabled on PC.
 	//Returns the list of interface list that are enabled on PC.
@@ -64,7 +62,6 @@ std::vector<std::string> GetData()
 		printf("failed WlanEnumInterfaces check adapter is on=%d \n", hResult);
 		return std::vector<std::string>();
 	}
-	std::cout << "Passed WlanEnumInterfaces" << std::endl;
 	//Get the first GUID assume one adapter
 	guidInterface = pIfList->InterfaceInfo[0].InterfaceGuid;
 
@@ -83,7 +80,6 @@ std::vector<std::string> GetData()
 		printf("######## FuncWlanScan<---######## \n \n");
 		return std::vector<std::string>();
 	}
-	std::cout << "Passed WlanRegisterNotification" << std::endl;
 	hResult = WlanScan(phClientHandle, &guidInterface, NULL, NULL, NULL);
 	if (hResult != ERROR_SUCCESS)
 	{
@@ -91,16 +87,13 @@ std::vector<std::string> GetData()
 		return std::vector<std::string>();
 	}
 	Sleep(1000);
-	std::cout << "Passed WlanScan" << std::endl;
 	hResult = WlanGetAvailableNetworkList(phClientHandle,
 		&guidInterface,
 		NULL,
 		NULL,
 		&pBssList);
-	std::cout << "Passed AvalableNetworkList" << std::endl;
 	std::vector<std::string> output;
 	if (hResult == ERROR_SUCCESS && pBssList) {
-		std::cout << pBssList->dwNumberOfItems << std::endl;
 
 		for (unsigned int i = 0; i < pBssList->dwNumberOfItems; i++)
 		{
@@ -117,14 +110,12 @@ std::vector<std::string> GetData()
 				break;
 			}
 			else {
-				std::cout << "Passed WlanGetNetworkBssList" << std::endl;
 				LONG rssi = pWlanBssList->wlanBssEntries[0].lRssi;
 				unsigned char* dot_mac = pWlanBssList->wlanBssEntries[0].dot11Bssid;
 				char mac_addr[100];
 				sprintf_s(mac_addr, 100,"%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x",
 					dot_mac[0], dot_mac[1], dot_mac[2], dot_mac[3], dot_mac[4], dot_mac[5], dot_mac[6], dot_mac[7]);
 				//printf("%s:%s = %ld\n", pBssList->Network[i].dot11Ssid.ucSSID, mac_addr, rssi);
-				std::cout << mac_addr << std::endl;
 				std::stringstream ss;
 				ss << pBssList->Network[i].dot11Ssid.ucSSID <<
 					" " << mac_addr <<
@@ -158,9 +149,15 @@ std::vector<std::string> wifi_sample() {
 
 void getSamples(std::vector<rpc::client*>client_list, glm::vec2 sample_pos, std::ofstream&out) {
 	out << sample_pos.x << " " << sample_pos.y << " " << client_list.size() << std::endl;
+	std::vector<std::future<clmdep_msgpack::v1::object_handle>> futures;
 	for (int i = 0; i < client_list.size(); i++) {
+		auto ret = client_list.at(i)->async_call("wifi_sample");
+		futures.emplace_back(std::move(ret));
+		
+	}for (int i = 0; i < client_list.size(); i++) {
 		try {
-			auto ret = client_list.at(i)->call("wifi_sample").as<std::vector<std::string>>();
+			futures.at(i).wait();
+			auto ret = futures.at(i).get().as<std::vector<std::string>>();
 			out << ret.size() << std::endl;
 			for (auto str : ret) {
 				out << str << std::endl;
