@@ -94,7 +94,7 @@ int ShaderProgram::getFloor(glm::vec3 position) {
 
 void ShaderProgram::SetLights(Lights&lights, glm::vec3 position, int num_lights) {
 	if (num_lights != -1) {
-	float z_boost = 0;
+	float z_boost = -.1;
 	float z_coord = position.z;
 	if (z_coord > .92)
 		z_boost += 1.01;
