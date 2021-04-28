@@ -950,6 +950,10 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	wifi.loadWifi("./Content/Data/AVW2.txt", "2");
 	wifi.loadWifi("./Content/Data/AVW3.txt", "3");
 	wifi.loadWifi("./Content/Data/AVW4.txt", "4");
+	wifi.loadWifi("./Content/Data/DataCollection1.txt", "1", false);
+	wifi.loadWifi("./Content/Data/DataCollection2.txt", "2", false);
+	wifi.loadWifi("./Content/Data/DataCollection3.txt", "3", false);
+	wifi.loadWifi("./Content/Data/DataCollection4.txt", "4", false);
 	wifi.pruneEntries();
 	wifi.setupStructures();
 	std::vector<glm::vec4> wifi_colors(wifi.getNumWifiNames());
@@ -1021,7 +1025,10 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	float transparency = 1;
 
 	std::fill(routers.begin(), routers.end(), false);
-	std::fill(old_routers.begin(), old_routers.end(), true);
+
+	wifi.setNewOld(new_routers, old_routers);
+
+	std::fill(new_routers.begin(), new_routers.end(), false);
 
 	static std::vector<bool> freqs(wifi.getAvailableFreqs().size());
 	std::fill(freqs.begin(), freqs.end(), true);

@@ -20,13 +20,18 @@ struct VolumeData {
 	int getSize() { return dimensions.x * dimensions.y * dimensions.z; }
 };
 
+struct OldNewEllipsoids {
+	Ellipsoid first, second;
+	bool old_router, new_router;
+};
+
 class AVWWifiData
 {
 private:
 	std::map<std::string, std::map<std::string, std::vector<WifiDataEntry>>> floorToWifiNameToEntries;
 	std::map<std::string, std::map<std::string, std::pair<std::vector<WifiDataEntry>,
 		std::vector<WifiDataEntry>>>> wifiNameToMacToEntries;
-	std::map<std::string, Ellipsoid> mac2routers;
+	std::map<std::string, OldNewEllipsoids> mac2routers;
 	std::vector<std::string> available_macs;
 	std::vector<int> available_freqs;
 	std::vector<std::string> wifinames;
@@ -77,6 +82,7 @@ public:
 	std::vector<int> getAvailableFreqs() { return available_freqs; }
 	std::vector<int> getActiveFreqs(std::vector<bool>);
 	void setRenderText(std::vector<std::string>&text, glm::vec3 samplePosition, std::vector<bool> routers);
+	void setNewOld(std::vector<bool>& new_routers, std::vector<bool>& old_routers);
 	void setupStructures();
 	void setNearestNRouters(int n, glm::vec3 position, std::vector<bool>&wifi_bools,
 		std::vector<bool>&routers, std::vector<bool>&freqs,
