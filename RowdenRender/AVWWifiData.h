@@ -57,7 +57,7 @@ public:
 	std::string getInterferenceString();
 	int getNumActiveRouters(std::vector<bool> routers);
 	bool loadEllipsoid(std::string filename, Ellipsoid&ret, float wifi_num = 0);
-	void loadWifi(std::string filename, std::string floor, bool legacy = false);
+	void loadWifi(std::string filename, std::string floor, bool legacy = true);
 	void writeRouters(std::ofstream &out);
 	void readRouters(std::ifstream& in, std::vector<bool>& wifinames, std::vector<bool>& routers, std::vector<bool>& freqs);
 	std::vector<glm::mat4> getTransforms(std::vector<bool> wifiname, std::vector<bool> routers,
@@ -78,7 +78,9 @@ public:
 	std::vector<int> getActiveFreqs(std::vector<bool>);
 	void setRenderText(std::vector<std::string>&text, glm::vec3 samplePosition, std::vector<bool> routers);
 	void setupStructures();
-	void setNearestNRouters(int, glm::vec3, std::vector<bool>&, std::vector<bool>&, std::vector<bool>&);
+	void setNearestNRouters(int n, glm::vec3 position, std::vector<bool>&wifi_bools,
+		std::vector<bool>&routers, std::vector<bool>&freqs,
+		std::vector<bool>&old_routers, std::vector<bool>&new_routers);
 	void setRouters(std::vector<bool>& wifinames, std::vector<bool>& routers, std::vector<bool>& freqs);
 	void fillRouters(std::string wifiname, std::vector<bool> &routers, bool onoff);
 	inline int findIndexToEntry(std::string wifiname);

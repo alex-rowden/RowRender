@@ -62,6 +62,7 @@ bool AVWWifiData::loadEllipsoid(std::string filename, Ellipsoid&ret, float wifi_
 	if (ret.r.z < .01) {
 		ret.r.z = .8;
 	}
+	ret.mu.z += 1;
 	return true;
 }
 
@@ -122,13 +123,14 @@ void AVWWifiData::setRenderText(std::vector<std::string>&text, glm::vec3 sampleP
 	}
 }
 
-void AVWWifiData::setNearestNRouters(int n, glm::vec3 position, std::vector<bool>& wifinames, std::vector<bool>& routers, std::vector<bool>&freqs) {
+void AVWWifiData::setNearestNRouters(int n, glm::vec3 position, std::vector<bool>& wifi_bools, std::vector<bool>& routers, std::vector<bool>&freqs, 
+	std::vector<bool>&old_routers, std::vector<bool>&new_routers) {
 	std::vector<float> min_distances(n);
 	std::fill(min_distances.begin(), min_distances.end(), std::numeric_limits<float>().max());
 	std::vector<int> min_indices(n);
 	bool empty = true;
 	for (int i = 0; i < wifinames.size(); i++) {
-		if (wifinames.at(i)) {
+		if (wifi_bools.at(i)) {
 			empty = false;
 			break;
 		}
@@ -139,30 +141,44 @@ void AVWWifiData::setNearestNRouters(int n, glm::vec3 position, std::vector<bool
 	std::vector<int> active_freqs = getActiveFreqs(freqs);
 	std::vector<int> freq_indices(n);
 	for (auto name2Mac : wifiNameToMacToEntries) {
-		if (wifinames[wifinum++] || empty) {
+		if (wifi_bools[wifinum++] || empty) {
 			for (auto mac2Entries : name2Mac.second) {
-				auto loc = std::find(active_freqs.begin(), active_freqs.end(),
-					mac2Entries.second.second.at(0).freq);
-				if(loc == active_freqs.end())
-					continue;
-				std::string wifiname = name2Mac.first;
-				if (!wifiname.compare(""))
-					wifiname = "empty";
-				currEllipsoid = mac2routers[mac2Entries.first];
-				currDist = ellipsoidDistance(position, currEllipsoid);
-				curr_router = router_num++;
-				auto curr_freq = std::distance(active_freqs.begin(), loc);
-				for (int i = 0; i < n; i++) {
-					if (currDist < min_distances[i]) {
-						swap_dist = min_distances[i];
-						swap_ind = min_indices[i];
-						swap_freq_ind = freq_indices[i];
-						min_distances[i] = currDist;
-						min_indices[i] = curr_router;
-						freq_indices[i] = curr_freq;
-						currDist = swap_dist;
-						curr_router = swap_ind;
-						curr_freq = swap_freq_ind;
+				for (int old_new = 0; old_new < 2; old_new++) {
+					auto EntriesList = mac2Entries.second.first;
+					if (old_new == 0) {
+						if (!old_routers.at(wifinum)) {
+							continue;
+						}
+					}
+					else {
+						if (!new_routers.at(wifinum)) {
+							continue;
+						}
+						EntriesList = mac2Entries.second.second;
+					}
+					auto loc = std::find(active_freqs.begin(), active_freqs.end(),
+						EntriesList.at(0).freq);
+					if (loc == active_freqs.end())
+						continue;
+					std::string wifiname = name2Mac.first;
+					if (!wifiname.compare(""))
+						wifiname = "empty";
+					currEllipsoid = mac2routers[mac2Entries.first];
+					currDist = ellipsoidDistance(position, currEllipsoid);
+					curr_router = router_num++;
+					auto curr_freq = std::distance(active_freqs.begin(), loc);
+					for (int i = 0; i < n; i++) {
+						if (currDist < min_distances[i]) {
+							swap_dist = min_distances[i];
+							swap_ind = min_indices[i];
+							swap_freq_ind = freq_indices[i];
+							min_distances[i] = currDist;
+							min_indices[i] = curr_router;
+							freq_indices[i] = curr_freq;
+							currDist = swap_dist;
+							curr_router = swap_ind;
+							curr_freq = swap_freq_ind;
+						}
 					}
 				}
 			}

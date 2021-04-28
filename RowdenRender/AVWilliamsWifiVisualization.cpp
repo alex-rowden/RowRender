@@ -575,7 +575,8 @@ std::string getLocationString(glm::vec3 position) {
 }
 
 void startNearestRouters(std::vector<bool>&wifinames, 
-	std::vector<bool>&routers, std::vector<bool>&freqs,
+	std::vector<bool>&routers, std::vector<bool>&freqs, 
+	std::vector<bool> old_routers, std::vector<bool> new_routers,
 	Camera&camera, AVWWifiData&wifi,int&num_routers, 
 	std::map<std::string, float>&deferred_shading_floats,
 	bool&start_render, bool&num_routers_changed, bool&updated_routers
@@ -583,7 +584,8 @@ void startNearestRouters(std::vector<bool>&wifinames,
 	start_render = true;
 	num_routers_changed = true;
 	std::fill(freqs.begin(), freqs.end(), true);
-	wifi.setNearestNRouters(num_routers, camera.getPosition(), wifinames, routers, freqs);
+	wifi.setNearestNRouters(num_routers, camera.getPosition(), wifinames, routers,
+		freqs, old_routers, new_routers);
 	deferred_shading_floats["delta_theta"] = 180.f / wifi.getActiveFreqs(freqs).size();
 	updated_routers = true;
 	nearest_router_on = true;
@@ -1015,9 +1017,11 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	wifi.setAvailableMacs(wifi.getSelectedNames(wifinames));
 	
 	static std::vector<bool> routers(wifi.getAvailablesMacs().size());
+	static std::vector<bool> old_routers(wifi.getAvailablesMacs().size()), new_routers(wifi.getAvailablesMacs().size());
 	float transparency = 1;
 
 	std::fill(routers.begin(), routers.end(), false);
+	std::fill(old_routers.begin(), old_routers.end(), true);
 
 	static std::vector<bool> freqs(wifi.getAvailableFreqs().size());
 	std::fill(freqs.begin(), freqs.end(), true);
@@ -1508,7 +1512,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 
 			//Update the router structure if needed (preserver colors)
 			if (updated_routers) {
-				wifi.updateRouterStructure(routers, wifinames, freqs, router_shaders, 2, camera.getPosition(), nearest_router_on);
+				wifi.updateRouterStructure(routers, wifinames, freqs, old_routers, new_routers, router_shaders, 2, camera.getPosition(), nearest_router_on);
 				updated_routers = false;
 				if (nearest_router_on) {
 					std::vector<glm::vec4> new_wifi_colors(wifi.getNumActiveRouters(routers));
@@ -1583,7 +1587,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				instance_shader.Use();
 				wifi_transforms.clear();
 				if (deferred_shading_bools["shade_instances"])
-					wifi_transforms = wifi.getTransforms(wifinames, routers, wifi_scale);
+					wifi_transforms = wifi.getTransforms(wifinames, routers, old_routers, new_routers, wifi_scale);
 
 				std::vector<float> wifi_color_indices = wifi.getColorIndices();
 				if (deferred_shading_bools["shade_instances"])
@@ -1676,13 +1680,9 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 								glm::vec3(1, 0, 0)),
 							glm::vec3(minimap_buffer.minimapTexture.getAspectRatio(),1,1) * .2f)
 						;;
-					//vr.getViewMatrix(curr_eye) * camera_offset * ViewMat
 					ground_shader.SetUniform("model", transform);
 					ground_shader.SetUniform("camera", ViewMat);
 					ground_shader.SetUniform("flip_texture", true);
-					//ground_shader.SetUniform("normalMatrix", glm::mat3(glm::transpose(glm::inverse(transform))));
-					//model_shader.SetUniform("texcoord_scale", texcoord_scale);
-					//quad.getMeshes().at(0)->setTexture(&minimap_buffer.minimapTexture, 0);
 					std::vector<Texture2D*> mmap;
 					mmap.emplace_back(&minimap_buffer.minimapTexture);
 					quad.Render(&ground_shader, mmap);
@@ -1707,6 +1707,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 		
 		if (vr.right_hand->a) {
 			startNearestRouters(wifinames, routers, freqs,
+				old_routers, new_routers,
 				camera, wifi, num_routers, deferred_shading_floats,
 				start_render, num_routers_changed, updated_routers);
 		}
@@ -1733,11 +1734,12 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 
 			if (gui_type == "debug") {
 				ImGui::Begin("Rendering Terms");
-				if (use_vr && ImGui::SliderInt("Number of Routers", &num_routers, 1, 20)) {
+				if (use_vr || ImGui::SliderInt("Number of Routers", &num_routers, 1, 20)) {
 					vr.right_hand->joystick_counter.x = num_routers;
 				}
 				if (ImGui::Button("Nearest Routers")) {
 					startNearestRouters(wifinames, routers, freqs,
+						old_routers, new_routers,
 						camera, wifi, num_routers, deferred_shading_floats,
 						start_render, num_routers_changed, updated_routers);
 				}
