@@ -6,7 +6,7 @@ function [table] = getAVWData(legacy)
         fourth_floor = readAVW('.\Content\Data\AVW4.txt', 3);
     else
         offset = .03;
-        step = .125;
+        step = .15;
         first_floor = readAVW('.\Content\Data\DataCollection1.txt', 0, offset, step);
         second_floor = readAVW('.\Content\Data\DataCollection2.txt', 1, offset, step);
         third_floor = readAVW('.\Content\Data\DataCollection3.txt', 2, offset, step);
