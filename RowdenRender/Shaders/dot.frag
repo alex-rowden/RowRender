@@ -9,7 +9,7 @@ uniform float radius, aspect;
 
 void main()
 {
-	FragColor = texture2D(texture_diffuse1, vec2(TexCoords.x, 1 - TexCoords.y));
+	FragColor = texture2D(texture_diffuse1, TexCoords);
 	if(distance(TexCoords * vec2(1, aspect), mousePos * vec2(1, aspect)) < radius){
 		FragColor = vec4(1,0,0,1);		
 	}

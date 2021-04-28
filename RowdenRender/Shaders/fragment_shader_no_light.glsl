@@ -15,7 +15,7 @@ void main()
 		FragColor = vec4(texture(texture_diffuse1, TexCoord).r + increment, 0, 0, 1);
 	else {
 		float text = texture(text_tex, TexCoord).r;
-		FragColor = texture(texture_diffuse1, vec2(TexCoord.x, 1 - TexCoord.y)).rgba;
+		FragColor = texture(texture_diffuse1, TexCoord).rgba;
 		FragColor.a = 1;
 		if (false) {
 			FragColor = vec4(0, 0, 0, 1);

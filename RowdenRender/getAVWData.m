@@ -13,5 +13,4 @@ function [table] = getAVWData(legacy)
         fourth_floor = readAVW('.\Content\Data\DataCollection4.txt', 3, offset, step);
     end
     table = [first_floor; second_floor; third_floor; fourth_floor];
-
 end

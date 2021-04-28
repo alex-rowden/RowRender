@@ -1273,7 +1273,6 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			ground_shader.SetUniform("camera", ViewMat);
 			ground_shader.SetUniform("model", ground_transform);
 			ground_shader.SetUniform("heatmap", 0);
-			ground_shader.SetUniform("flip_texture", false);
 			render(ground_quad, &ground_shader);
 			
 			//vr widget prepass if requested (and in vr)
@@ -1450,7 +1449,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				quad.getMeshes().at(0)->setTexture(&text);
 				//std::cout << glm::to_string(fragPosArray[int(index.y * resolution.x + index.x)]) << std::endl;
 			}
-			deferred_shader.SetLights(modelLights, camera.getPosition() + vr.adjusted_height, deferred_shading_ints["num_point_lights"]);
+			deferred_shader.SetLights(modelLights, camera.getPosition(), deferred_shading_ints["num_point_lights"]);
 
 			//update minimap
 			glViewport(0, 0, minimap_base[0].getDims().x, minimap_base[0].getDims().y);
@@ -1679,7 +1678,6 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 					//vr.getViewMatrix(curr_eye) * camera_offset * ViewMat
 					ground_shader.SetUniform("model", transform);
 					ground_shader.SetUniform("camera", ViewMat);
-					ground_shader.SetUniform("flip_texture", true);
 					//ground_shader.SetUniform("normalMatrix", glm::mat3(glm::transpose(glm::inverse(transform))));
 					//model_shader.SetUniform("texcoord_scale", texcoord_scale);
 					//quad.getMeshes().at(0)->setTexture(&minimap_buffer.minimapTexture, 0);
@@ -1689,7 +1687,6 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				}
 				else {
 					ground_shader.SetUniform("model", right_hand_transform* glm::scale(glm::mat4(1), .01f * glm::vec3(1, 1, 1)));
-					ground_shader.SetUniform("flip_texture", false);
 					render(RightHand, &ground_shader);
 				}
 				
@@ -2228,14 +2225,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 							num_samples_changed = true;
 						}
 					}
-					start_render = true;
-					num_routers_changed = true;
-					//std::fill(freqs.begin(), freqs.end(), true);
-					//wifi.setRouters(wifinames, routers, freqs);
-					num_routers = wifi.getNumActiveRouters(routers);
-					deferred_shading_floats["delta_theta"] = 180.f / wifi.getActiveFreqs(freqs).size();
-					updated_routers = true;
-					nearest_router_on = true;
+					
 				}
 				std::string filename = "";
 				
