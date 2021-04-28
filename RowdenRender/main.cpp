@@ -5,7 +5,7 @@
 #include "LICPrecompute.h"
 #include <string>
 bool campus = false;
-bool use_vr = true;
+bool use_vr = false;
 int main(int argc, char *argv[]) {
 	if (argc > 1) {
 		if (std::string(argv[1]) == "campus")
