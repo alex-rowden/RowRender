@@ -12,7 +12,7 @@ uniform vec2 bl, tr;
 
 void main(){
 	vec2 pos = ((playerPos.xy - bl)/(tr - bl)).yx;
-	pos.y = 1 - pos.y;
+	pos.y = pos.y;
 	pos.x = (1 - pos.x);
 	if(distance(TexCoords * vec2(1, aspect), pos * vec2(1, aspect)) < playerRadius){
 		minimap_tex = vec4(1,0,0,1);
