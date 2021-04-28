@@ -62,6 +62,7 @@ bool AVWWifiData::loadEllipsoid(std::string filename, Ellipsoid&ret, float wifi_
 	if (ret.r.z < .01) {
 		ret.r.z = .8;
 	}
+	ret.mu.z += 1;
 	return true;
 }
 

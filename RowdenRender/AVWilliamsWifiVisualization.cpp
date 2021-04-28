@@ -1733,7 +1733,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 
 			if (gui_type == "debug") {
 				ImGui::Begin("Rendering Terms");
-				if (use_vr && ImGui::SliderInt("Number of Routers", &num_routers, 1, 20)) {
+				if (use_vr || ImGui::SliderInt("Number of Routers", &num_routers, 1, 20)) {
 					vr.right_hand->joystick_counter.x = num_routers;
 				}
 				if (ImGui::Button("Nearest Routers")) {
