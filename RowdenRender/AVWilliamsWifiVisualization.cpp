@@ -1639,6 +1639,11 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 						//auto inv_view = glm::inverse(camera_offset * camera.getView());
 						vr.quad_transform = vr.getControllerPose(vr.LeftDeviceId);
 					}
+					if (vr.left_hand->a) {
+						camera.setPosition(camera.getPosition() + glm::vec3(0, 0, -1));
+					}if (vr.left_hand->b) {
+						camera.setPosition(camera.getPosition() + glm::vec3(0, 0, 1));
+					}
 				}
 				if (vr.right_hand->trigger) {
 					//glm::vec3 forward = vr.getControllerPose(vr.RightDeviceId) *controller_rotation* glm::vec4(-1, 0, 0,0);

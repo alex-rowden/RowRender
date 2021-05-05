@@ -28,6 +28,14 @@
       "type": "boolean"
     },
     {
+      "name": "/actions/demo/in/x_button",
+      "type": "boolean"
+    },
+    {
+      "name": "/actions/demo/in/y_button",
+      "type": "boolean"
+    },
+    {
       "name": "/actions/demo/in/right_grip",
       "type":  "boolean"
     },

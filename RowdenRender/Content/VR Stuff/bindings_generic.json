@@ -70,6 +70,24 @@
           {
             "inputs": {
               "click": {
+                "output": "/actions/demo/in/x_button"
+              }
+            },
+            "mode": "button",
+            "path": "/user/hand/left/input/x"
+          },
+          {
+            "inputs": {
+              "click": {
+                "output": "/actions/demo/in/y_button"
+              }
+            },
+            "mode": "button",
+            "path": "/user/hand/left/input/y"
+          },
+          {
+            "inputs": {
+              "click": {
                 "output": "/actions/demo/in/move_quad"
               }
             },

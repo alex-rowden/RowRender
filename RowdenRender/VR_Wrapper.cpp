@@ -234,9 +234,17 @@ void VR_Wrapper::setActionHandles()
 	if (ret != vr::EVRInputError::VRInputError_None) {
 		std::cout << "left joystick error " << ret << std::endl;
 	}
-	ret = vr::VRInput()->GetActionHandle("/actions/demo/in/right_grip", &grip_right); //left_joystick
+	ret = vr::VRInput()->GetActionHandle("/actions/demo/in/right_grip", &grip_right); //right grip
 	if (ret != vr::EVRInputError::VRInputError_None) {
-		std::cout << "left joystick error " << ret << std::endl;
+		std::cout << "right grip error " << ret << std::endl;
+	}
+	ret = vr::VRInput()->GetActionHandle("/actions/demo/in/x_button", &x_button); //x
+	if (ret != vr::EVRInputError::VRInputError_None) {
+		std::cout << "x button error " << ret << std::endl;
+	}
+	ret = vr::VRInput()->GetActionHandle("/actions/demo/in/y_button", &y_button); //y
+	if (ret != vr::EVRInputError::VRInputError_None) {
+		std::cout << "y button error " << ret << std::endl;
 	}
 }
 
@@ -254,6 +262,9 @@ bool GetDigitalActionState(vr::VRActionHandle_t action, vr::VRInputValueHandle_t
 			if (vr::VRInputError_None == vr::VRInput()->GetOriginTrackedDeviceInfo(actionData.activeOrigin, &originInfo, sizeof(originInfo)))
 			{
 				*pDevicePath = originInfo.devicePath;
+			}
+			else {
+				std::cout << "error here";
 			}
 		}
 	}
@@ -291,6 +302,22 @@ void VR_Wrapper::UpdateActionState() {
 	left_hand->trigger = GetDigitalActionState(trigger_left);
 	right_hand->a = GetDigitalActionState(a_button);
 	right_hand->grip = GetDigitalActionState(grip_right);
+	bool x_curr_pressed = GetDigitalActionState(x_button);
+	bool y_curr_pressed = GetDigitalActionState(y_button);
+	if (x_curr_pressed && !left_hand->a_pressed) {
+		left_hand->a = true;
+	}
+	else{
+		left_hand->a = false;
+	}
+	if (y_curr_pressed && !left_hand->b_pressed) {
+		left_hand->b = true;
+	}
+	else{
+		left_hand->b = false;
+	}
+	left_hand->a_pressed = x_curr_pressed;
+	left_hand->b_pressed = y_curr_pressed;
 	for (int j = 0; j < 2; j++) {
 		auto actionData = GetAnalogActionState(joysticks[j]);
 		controllers[j].joystick_raw_position = glm::vec2(actionData.x, actionData.y);

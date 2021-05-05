@@ -13,7 +13,7 @@ public:
 		Movement
 	};
 	struct ControllerButtons {
-		bool trigger, a, b, grip;
+		bool trigger, a, b, grip, a_pressed, b_pressed;
 		glm::vec2 joystick_raw_position, joystick_counter,
 			counter_min = glm::vec2(1, 0),
 			counter_max = glm::vec2(19, 19);
