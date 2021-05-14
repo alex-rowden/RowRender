@@ -26,6 +26,7 @@ bool nearest_router_on = false;
 bool jittered = true;
 int color_offset = 205;
 bool show_analytics = true;
+bool demo_mode = true;
 
 struct gBuffer {
 	GLuint frame_buffer, normal_tex, tangent_tex, 
@@ -643,7 +644,8 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	
 	VR_Wrapper vr = VR_Wrapper();
 
-	glm::uvec2 resolution = glm::uvec2(0, 0);
+	glm::uvec2 render_resolution = glm::uvec2(0, 0);
+	glm::uvec2 screen_size = glm::uvec2(0, 0);
 	glm::mat4 camera_offset = glm::mat4(1);
 	if (use_vr) {
 		vr.initialize();
@@ -655,13 +657,16 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 		vr.SetActionManifestPath(std::string(path) + "/Content/VR Stuff/actions.json");
 		vr.setActionHandles();
 		camera_offset = vr.getSeatedZeroPoseToStandingPose();
-		resolution = vr.getRenderTargetSize();
-		std::cout << "resolution: " << glm::to_string(resolution) << std::endl;
+		render_resolution = vr.getRenderTargetSize();
+		std::cout << "resolution: " << glm::to_string(render_resolution) << std::endl;
 	}
 	//Open and setup window
 	
-	Window w = Window("AV Williams Wifi Visualization", resolution.x, resolution.y);
-	resolution = glm::uvec2(w.width, w.height);
+	Window w = Window("AV Williams Wifi Visualization", render_resolution.x, render_resolution.y);
+	screen_size = glm::uvec2(w.width, w.height);
+	if (!use_vr) {
+		render_resolution = screen_size;
+	}
 	//glViewPort(0, 0, resolution.x, resolution.y);
 	//w.SetViewportSize(resolution.x, resolution.y);
 	//if(!use_vr)
@@ -679,7 +684,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	// During init, enable debug output
 	glEnable(GL_DEBUG_OUTPUT);
 	glDebugMessageCallback(MessageCallback, 0);
-	glViewport(0, 0, resolution.x, resolution.y);
+	glViewport(0, 0, render_resolution.x, render_resolution.y);
 
 	//Allow Resizing
 	w.SetFramebuferSizeCallback();
@@ -1027,7 +1032,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 
 	gBuffer buffer[1];
 	eyeBuffer eyes[2];
-	createFramebuffers(resolution, buffer, eyes, use_vr, false);
+	createFramebuffers(render_resolution, buffer, eyes, use_vr, false);
 	quad.getMeshes().at(0)->addTexture(&buffer[0].color_texture);
 	quad.getMeshes().at(0)->addTexture(&buffer[0].frag_pos_texture);
 	quad.getMeshes().at(0)->addTexture(&buffer[0].normal_texture);
@@ -1084,7 +1089,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			+ std::to_string(i) + "]");
 		quad.getMeshes().at(0)->setTexture(&noise[i]);
 	}
-	glm::vec4* fragPosArray = (glm::vec4*)malloc(sizeof(glm::vec4) * resolution.x * resolution.y);
+	glm::vec4* fragPosArray = (glm::vec4*)malloc(sizeof(glm::vec4) * render_resolution.x * render_resolution.y);
 	if (!fragPosArray) {
 		std::cerr << "Malloc Error" << std::endl;
 	}
@@ -1153,8 +1158,8 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	};
 	
 	int kernelSize = 6;
-	bool ssao_on = true;
-	glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].ssao_framebuffer);
+	bool ssao_on = false;
+	glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].ssao_blur_framebuffer);
 	glClearColor(1, 1, 1, 1);
 	glClear(GL_COLOR_BUFFER_BIT);
 	glClearColor(0, 0, 0, 0);
@@ -1181,9 +1186,9 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			continue;
 		}
 		if (w.getResized()) {
-			resolution.x = w.width;
-			resolution.y = w.height;
-			createFramebuffers(resolution, buffer, eyes, use_vr, true);
+			render_resolution.x = w.width;
+			render_resolution.y = w.height;
+			createFramebuffers(render_resolution, buffer, eyes, use_vr, true);
 			w.setResized(false);
 		}
 		//clear default framebuffer
@@ -1226,7 +1231,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			if (i == 0 && w.signal && !polling_pbo) {
 				glReadBuffer(GL_COLOR_ATTACHMENT2);
 				glBindBuffer(GL_PIXEL_PACK_BUFFER, buffer->pboIDs[odd_or_even_frame]);
-				glReadPixels(0, 0, resolution.x, resolution.y, GL_BGRA, GL_FLOAT, 0);
+				glReadPixels(0, 0, render_resolution.x, render_resolution.y, GL_BGRA, GL_FLOAT, 0);
 				block = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 				//odd_or_even_frame = (odd_or_even_frame + 1) % 2;
 				glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
@@ -1303,7 +1308,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			glDisable(GL_DEPTH_TEST);
 			
 			//Do SSAO prepasses if desired
-			if (!use_vr && ssao_on) {
+			if (ssao_on) {
 				glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].ssao_framebuffer);
 				glClear(GL_COLOR_BUFFER_BIT);
 				ssao_shader.Use();
@@ -1312,7 +1317,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 
 				ssao_shader.SetUniform("ViewMat", (ViewMat));
 				ssao_shader.SetUniform("projection", ProjectionMat);
-				ssao_shader.SetUniform("noiseScale", glm::vec2(resolution) / 4.0f);
+				ssao_shader.SetUniform("noiseScale", glm::vec2(render_resolution) / 4.0f);
 				render(quad, &ssao_shader);
 				glBindFramebuffer(GL_FRAMEBUFFER, buffer[0].ssao_blur_framebuffer);
 				glClear(GL_COLOR_BUFFER_BIT);
@@ -1430,8 +1435,8 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			glm::vec3 selectedPos;
 			//If requested, find selected position, set it, and set popup render text
 			if (send_data) {
-				glm::vec2 index = glm::ivec2(w.currX, (resolution.y - w.currY));
-				selectedPos = fragPosArray[int(index.y * resolution.x + index.x)];
+				glm::vec2 index = glm::ivec2(w.currX, (render_resolution.y - w.currY));
+				selectedPos = fragPosArray[int(index.y * render_resolution.x + index.x)];
 				selectedPos = glm::vec3(selectedPos.b, selectedPos.g, selectedPos.r);
 				deferred_shader.SetUniform("selectedPos", selectedPos);
 				renderPopup = wifi.getNumActiveRouters(routers) > 0;
@@ -1469,7 +1474,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			minimap_shader.SetUniform("playerRadius", .02f);
 			minimap_shader.Use();
 			render(quad, &minimap_shader);
-			glViewport(0, 0, resolution.x, resolution.y);
+			glViewport(0, 0, render_resolution.x, render_resolution.y);
 			glBindFramebuffer(GL_FRAMEBUFFER, eyes[i].frame_buffer);
 			//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			deferred_shader.Use();
@@ -1500,7 +1505,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				quad_shader.SetUniform("camera", ViewMat);
 				quad_shader.SetUniform("projection", ProjectionMat);
 				quad_shader.SetUniform("quad_center", pos);
-				quad_shader.SetUniform("billboardSize", glm::vec2(popupText.width/(float)resolution.x, popupText.height/(float)resolution.y) * billboard_scale);
+				quad_shader.SetUniform("billboardSize", glm::vec2(popupText.width/(float)render_resolution.x, popupText.height/(float)render_resolution.y) * billboard_scale);
 				quad_shader.SetUniform("num_routers", wifi.getNumActiveRouters(routers));
 				quad_shader.SetUniform("model", quad_transform);
 				render(quad, &quad_shader);
@@ -1618,8 +1623,8 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				ground_shader.Use();
 				ground_shader.SetUniform("camera", vr.getViewMatrix(curr_eye));
 				glm::mat4 controller_rotation = glm::rotate(glm::mat4(1), glm::radians(90.0f), glm::vec3(1, 0, 0)) * glm::rotate(glm::mat4(1), glm::radians(60.0f), glm::vec3(1, 0, 0));
-				ground_shader.SetUniform("model", vr.getControllerPose(vr.LeftDeviceId) * controller_rotation * glm::scale(glm::mat4(1), .01f * glm::vec3(-1, -1, 1)));
-				render(LeftHand, &ground_shader);
+				glm::mat4 left_hand_transform = vr.getControllerPose(vr.LeftDeviceId) * controller_rotation * glm::scale(glm::mat4(1), 1.0f * glm::vec3(-1, -1, 1));
+				
 
 				if (show_analytics) {
 					analyticsText.RenderText(glm::uvec2(0,0), glm::uvec2(2560, 1440), analytics_text);
@@ -1628,24 +1633,40 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				
 				
 				if (i == 0) {
-					if (!vr.right_hand->trigger &&vr.teleport_position != glm::vec3()) {
-						camera.setPosition(glm::vec3(vr.teleport_position.x, vr.teleport_position.y, camera.getPosition().z));
-						vr.teleport_position = glm::vec3();
-					}
 					
 					
-					if (vr.left_hand->trigger) {
+					if (vr.left_hand->grip) {
 						//glm::decompose(vr.getControllerPose(vr.LeftDeviceId), scale, orientation, position, skew, perspective);
 						//auto inv_view = glm::inverse(camera_offset * camera.getView());
 						vr.quad_transform = vr.getControllerPose(vr.LeftDeviceId);
 					}
-					if (vr.left_hand->a) {
+					if (vr.right_hand->a) {
 						camera.setPosition(camera.getPosition() + glm::vec3(0, 0, -1));
-					}if (vr.left_hand->b) {
+					}if (vr.right_hand->b) {
 						camera.setPosition(camera.getPosition() + glm::vec3(0, 0, 1));
 					}
 				}
-				if (vr.right_hand->trigger) {
+
+				if (vr.right_hand->grip) {
+					glm::mat4 transform = glm::inverse(camera_offset * camera.getView()) *
+						vr.getControllerPose(vr.RightDeviceId) *
+						glm::scale(
+							glm::rotate(
+								glm::mat4(1),
+								glm::radians(90.0f),
+								glm::vec3(1, 0, 0)),
+							glm::vec3(minimap_buffer.minimapTexture.getAspectRatio(),1,1) * .2f);
+					//vr.getViewMatrix(curr_eye) * camera_offset * ViewMat
+					ground_shader.SetUniform("model", transform);
+					ground_shader.SetUniform("camera", ViewMat);
+					ground_shader.SetUniform("flip_texture", false);
+					//ground_shader.SetUniform("normalMatrix", glm::mat3(glm::transpose(glm::inverse(transform))));
+					//model_shader.SetUniform("texcoord_scale", texcoord_scale);
+					//quad.getMeshes().at(0)->setTexture(&minimap_buffer.minimapTexture, 0);
+					std::vector<Texture2D*> mmap;
+					mmap.emplace_back(&minimap_buffer.minimapTexture);
+					quad.Render(&ground_shader, mmap);
+				}if (!vr.left_hand->trigger && vr.right_hand->trigger) {
 					//glm::vec3 forward = vr.getControllerPose(vr.RightDeviceId) *controller_rotation* glm::vec4(-1, 0, 0,0);
 					glm::vec3 forward, pos2;
 					glm::quat  orientation;
@@ -1671,31 +1692,52 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 					ground_shader.SetUniform("model", cylinder_mat * glm::scale(glm::mat4(1), .01f * glm::vec3(1, 1, 1)));
 
 					Cylinder.Render(&ground_shader, cyl);
-				}if (vr.right_hand->grip) {
-					glm::mat4 transform = glm::inverse(camera_offset * camera.getView()) *
-						vr.getControllerPose(vr.RightDeviceId) *
-						glm::scale(
-							glm::rotate(
-								glm::mat4(1),
-								glm::radians(-90.0f),
-								glm::vec3(1, 0, 0)),
-							glm::vec3(minimap_buffer.minimapTexture.getAspectRatio(),1,1) * .2f)
-						;;
-					//vr.getViewMatrix(curr_eye) * camera_offset * ViewMat
-					ground_shader.SetUniform("model", transform);
-					ground_shader.SetUniform("camera", ViewMat);
-					ground_shader.SetUniform("flip_texture", true);
-					//ground_shader.SetUniform("normalMatrix", glm::mat3(glm::transpose(glm::inverse(transform))));
-					//model_shader.SetUniform("texcoord_scale", texcoord_scale);
-					//quad.getMeshes().at(0)->setTexture(&minimap_buffer.minimapTexture, 0);
-					std::vector<Texture2D*> mmap;
-					mmap.emplace_back(&minimap_buffer.minimapTexture);
-					quad.Render(&ground_shader, mmap);
 				}
 				else {
-					ground_shader.SetUniform("model", right_hand_transform* glm::scale(glm::mat4(1), .01f * glm::vec3(1, 1, 1)));
+					ground_shader.SetUniform("model", right_hand_transform * glm::scale(glm::mat4(1), .01f * glm::vec3(1, 1, 1)));
 					ground_shader.SetUniform("flip_texture", false);
 					render(RightHand, &ground_shader);
+				}
+				
+				if (vr.left_hand->trigger && !vr.right_hand->trigger) {
+					//glm::vec3 forward = vr.getControllerPose(vr.RightDeviceId) *controller_rotation* glm::vec4(-1, 0, 0,0);
+					glm::vec3 forward, pos2;
+					glm::quat  orientation;
+					glm::vec3 skew, scale;
+					glm::vec4 perspective;
+					glm::vec3 position;
+
+					glm::decompose(vr.getControllerPose(vr.LeftDeviceId), scale, orientation, position, skew, perspective);
+					auto inv_view = glm::inverse(camera_offset * camera.getView());
+					position = glm::vec3(inv_view * glm::vec4(position, 1));
+
+					forward = glm::normalize(glm::vec3(inv_view * vr.getControllerPose(vr.LeftDeviceId) * glm::rotate(glm::mat4(1), glm::radians(60.0f), glm::vec3(1, 0, 0)) * glm::rotate(glm::mat4(1), glm::radians(120.0f), glm::vec3(1, 0, 0)) * glm::vec4(0, 0, -1, 0)));
+					rayPicker(forward, position, glm::vec3(0), vr.teleport_position);
+
+					deferred_shader.SetUniform("selectedPos", glm::vec3(vr.teleport_position.r, vr.teleport_position.g, vr.teleport_position.b));
+					glm::mat4 cylinder_mat = left_hand_transform *
+						glm::rotate(glm::mat4(1),
+							glm::radians(-120.0f), glm::vec3(1, 0, 0)) *
+						glm::scale(glm::mat4(1), glm::vec3(-.2, -100, -.2));
+
+					std::vector<Texture2D*> cyl;
+					cyl.emplace_back(&white);
+					ground_shader.SetUniform("model", cylinder_mat * glm::scale(glm::mat4(1), .01f * glm::vec3(1, 1, 1)));
+
+					Cylinder.Render(&ground_shader, cyl);
+				}
+				else {
+					ground_shader.SetUniform("model", left_hand_transform * glm::scale(glm::mat4(1), .01f * glm::vec3(1, 1, 1)));
+					ground_shader.SetUniform("flip_texture", false);
+					render(LeftHand, &ground_shader);
+				}
+				if (vr.right_hand->trigger == vr.left_hand->trigger) {
+					if(!vr.right_hand->trigger && vr.teleport_position != glm::vec3())
+						camera.setPosition(glm::vec3(vr.teleport_position.x, vr.teleport_position.y, camera.getPosition().z));
+
+					vr.teleport_position = glm::vec3();
+					deferred_shader.SetUniform("selectedPos", glm::vec3(vr.teleport_position.r, vr.teleport_position.g, vr.teleport_position.b));
+
 				}
 				
 				vr.composite(curr_eye, eyes[i].screen_tex);
@@ -1706,11 +1748,12 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 		glFlush(); 
 		
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glViewport(0, 0, screen_size.x, screen_size.y);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		render2quad.Use();
 		render(quad, &render2quad);
 		
-		if (vr.right_hand->a) {
+		if (!demo_mode && vr.left_hand->a) {
 			startNearestRouters(wifinames, routers, freqs,
 				camera, wifi, num_routers, deferred_shading_floats,
 				start_render, num_routers_changed, updated_routers);
@@ -1738,8 +1781,10 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 
 			if (gui_type == "debug") {
 				ImGui::Begin("Rendering Terms");
-				if (use_vr || ImGui::SliderInt("Number of Routers", &num_routers, 1, 20)) {
-					vr.right_hand->joystick_counter.x = num_routers;
+				if (ImGui::SliderInt("Number of Routers", &num_routers, 1, 20)) {
+					if (!demo_mode && use_vr) {
+						vr.right_hand->joystick_counter.x = num_routers;
+					}
 				}
 				if (ImGui::Button("Nearest Routers")) {
 					startNearestRouters(wifinames, routers, freqs,
@@ -1944,7 +1989,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				ImGui::InputText("Filename", filename, 100);
 				if (ImGui::Button("Save Set")) {
 					//wifi.deactivateExtra(routers, wifinames, freqs);
-					std::ofstream outfile(filename, std::ios::out);
+					std::ofstream outfile(std::string("Content/RouterSets/") + filename, std::ios::out);
 					wifi.writeRouters(outfile);
 					outfile.close();
 				}if (ImGui::Button("Load Set")) {
@@ -1961,27 +2006,9 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 					num_routers_changed = true;
 					infile.close();
 				}
-				if (ImGui::Button("Legacy Load Set")) {
-					std::ifstream infile(filename, std::ios::in);
-					if (!infile.is_open())
-						std::cout << "File not found";
-					else {
-						readBinaryVector(routers, infile);
-						readBinaryVector(wifinames, infile);
-						readBinaryVector(freqs, infile);
-					}
-					start_render = true;
-					num_routers = wifi.getNumActiveRouters(routers);
-					wifi.setAvailableMacs(wifi.getSelectedNames(wifinames));
-
-					deferred_shading_floats["delta_theta"] = 180.f / wifi.getActiveFreqs(freqs).size();
-					updated_routers = true;
-					nearest_router_on = true;
-					num_routers_changed = true;
-				}
 				
 				if (ImGui::Button("Save Configuration")) {
-					std::ofstream outfile(filename, std::ios::out);
+					std::ofstream outfile(std::string("Content/Config/") + filename, std::ios::out);
 
 					writeDictionary(deferred_shading_bools, outfile);
 					writeDictionary(deferred_shading_floats, outfile);
@@ -1998,7 +2025,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 
 					outfile.close();
 				}if (ImGui::Button("Load Configuration")) {
-					std::ifstream infile(filename, std::ios::in);
+					std::ifstream infile(std::string("Content/Config/") + filename, std::ios::in);
 					if (!infile.is_open())
 						std::cout << "File not found";
 					else {
@@ -2085,7 +2112,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				static int set_ind = -1;
 				static int use_case_ind = -1;
 
-				const int num_use_cases = 9;
+				const int num_use_cases = 11;
 				const char* const use_cases[num_use_cases] = {
 					"Localize 1",				//0
 					"Localize 2",				//1
@@ -2096,6 +2123,8 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 					"Test Use Case",			//6
 					"Mixed LIC Explanation",	//7
 					"Max LIC Explanation",		//8
+					"Three Way Interference",	//9
+					"5 routers",				//10
 				};
 
 				if (ImGui::Combo("Use Cases", &use_case_ind,
@@ -2177,7 +2206,28 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 							0.995877, -.043959, -.079358
 						);
 						break;
+					case 9:
+						config_ind = 6;
+						set_ind = 11;
+						new_camera_pos = glm::vec3(
+							-1.284, 15.486, 1.543
+							);
+						new_camera_dir = glm::vec3(
+							.981, -.104, -.161
+						);
+						break;
+					case 10:
+						config_ind = 6;
+						set_ind = 12;
+						new_camera_pos = glm::vec3(
+							-4.63, 11.4789, 2.35659
+							);
+						new_camera_dir = glm::vec3(
+							.99, .063, -.155
+						);
+						break;
 					}
+
 					camera.setPosition(new_camera_pos);
 					camera.setDirection(new_camera_dir);
 				}
@@ -2189,13 +2239,13 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				
 				const char* const configs[num_configs] = 
 				{
-					"Contour Lines",
-					"Layered LIC",
-					"Mixed LIC",
-					"Max LIC",
-					"Mixed w/ Textons",
-					"Max w/ Textons",
-					"Coverage Test"
+					"Contour Lines",	//0
+					"Layered LIC",		//1
+					"Mixed LIC",		//2
+					"Max LIC",			//3
+					"Mixed w/ Textons",	//4
+					"Max w/ Textons",	//5
+					"Coverage Test"		//6
 				};
 				
 				if (ImGui::Combo("Configuration", &config_ind, 
@@ -2212,7 +2262,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 						"interference_max.cfg",
 						"coverage.cfg"
 					};
-					filename = config_filenames[config_ind];
+					filename = std::string("Content/Config/") + config_filenames[config_ind];
 					std::ifstream infile(filename, std::ios::in);
 					if (!infile.is_open())
 						std::cout << "File not found";
@@ -2241,10 +2291,12 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 					deferred_shading_floats["delta_theta"] = 180.f / wifi.getActiveFreqs(freqs).size();
 					updated_routers = true;
 					nearest_router_on = true;
+					if (use_vr)
+						vr.left_hand->setCounterx(config_ind);
 				}
 				std::string filename = "";
 				
-				const int num_router_sets = 11;
+				const int num_router_sets = 13;
 				const char* const router_sets[num_router_sets] =
 				{
 					"2 Routers",			//0
@@ -2257,7 +2309,9 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 					"Coverage Test",		//7
 					"Localization 1",		//8
 					"Localization 2",		//9
-					"Stacked"				//10
+					"Stacked",				//10
+					"3 Way Interference",	//11
+					"5 routers"				//12
 				};
 				if (ImGui::Combo("Router Set", &set_ind, router_sets, 
 					num_router_sets) || set_use_case) {
@@ -2274,16 +2328,18 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 						"localize1.txt",
 						"localize3.txt",
 						"stacked_routers.txt",
+						"three_way_interference.txt",
+						"5_routers.txt"
 					};
 					filename = set_filenames[set_ind];
 					if(filename == ""){
-						int rand_num = floor(randomFloats(generator) * 4) + 1;
+						int rand_num = floor(randomFloats(generator) * 5) + 1;
 						filename = "localize" + std::to_string(rand_num) + ".txt";
-						break;
+						
 					}
 					
 					
-					std::ifstream infile(filename.c_str(), std::ios::in);
+					std::ifstream infile(("Content/RouterSets/" + filename).c_str(), std::ios::in);
 					reset(wifi, wifinames, freqs, routers);
 					wifi.readRouters(infile, wifinames, routers, freqs);
 					start_render = true;
@@ -2295,7 +2351,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 					nearest_router_on = true;
 					num_routers_changed = true;
 					infile.close();
-
+					
 				}
 				
 				
@@ -2345,18 +2401,22 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 		
 		ImGui::Render();
 
+		glViewport(0, 0, render_resolution.x, render_resolution.y);
+
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 		if (use_vr) {
 			vr.handle_vr_input();
-			glm::vec3 pos = camera.getPosition();
-			pos.z += vr.adjusted_height;
-			vr.adjusted_height = 0;
-			camera.setPosition(pos);
-			num_routers = floor(vr.right_hand->joystick_counter.x);
-			int next_config = floor(vr.left_hand->joystick_counter.x);
-			if (next_config != config_ind) {
-				config_ind = next_config;
-				update_config = true;
+			//glm::vec3 pos = camera.getPosition();
+			//pos.z += vr.adjusted_height;
+			//vr.adjusted_height = 0;
+			//camera.setPosition(pos);
+			if (!demo_mode) {
+				num_routers = floor(vr.right_hand->joystick_counter.x);
+				int next_config = floor(vr.left_hand->joystick_counter.x);
+				//if (next_config != config_ind) {
+				//	config_ind = next_config;
+				//	update_config = true;
+				//}
 			}
 		}
 		ImGuiIO& io = ImGui::GetIO();

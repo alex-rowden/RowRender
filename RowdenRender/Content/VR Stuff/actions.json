@@ -16,15 +16,19 @@
       "type": "pose"
     },
     {
-      "name": "/actions/demo/in/select",
+      "name": "/actions/demo/in/right_trigger",
       "type": "boolean"
     },
     {
-      "name": "/actions/demo/in/move_quad",
+      "name": "/actions/demo/in/left_trigger",
       "type": "boolean"
     },
     {
-      "name": "/actions/demo/in/nearest_router",
+      "name": "/actions/demo/in/a_button",
+      "type": "boolean"
+    },
+    {
+      "name": "/actions/demo/in/b_button",
       "type": "boolean"
     },
     {
@@ -37,6 +41,10 @@
     },
     {
       "name": "/actions/demo/in/right_grip",
+      "type":  "boolean"
+    },
+    {
+      "name": "/actions/demo/in/left_grip",
       "type":  "boolean"
     },
     {

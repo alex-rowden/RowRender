@@ -25,7 +25,7 @@
           {
             "inputs": {
               "click": {
-                "output": "/actions/demo/in/select"
+                "output": "/actions/demo/in/right_trigger"
               }
             },
             "mode": "button",
@@ -51,6 +51,15 @@
           },
           {
             "inputs": {
+              "click": {
+                "output": "/actions/demo/in/left_grip"
+              }
+            },
+            "mode": "button",
+            "path": "/user/hand/left/input/grip"
+          },
+          {
+            "inputs": {
               "position": {
                 "output": "/actions/demo/in/left_joy"
               }
@@ -61,11 +70,20 @@
           {
             "inputs": {
               "click": {
-                "output": "/actions/demo/in/nearest_router"
+                "output": "/actions/demo/in/a_button"
               }
             },
             "mode": "button",
             "path": "/user/hand/right/input/a"
+          },
+          {
+            "inputs": {
+              "click": {
+                "output": "/actions/demo/in/b_button"
+              }
+            },
+            "mode": "button",
+            "path": "/user/hand/right/input/b"
           },
           {
             "inputs": {
@@ -88,7 +106,7 @@
           {
             "inputs": {
               "click": {
-                "output": "/actions/demo/in/move_quad"
+                "output": "/actions/demo/in/left_trigger"
               }
             },
             "mode": "button",

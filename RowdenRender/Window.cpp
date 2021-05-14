@@ -233,8 +233,8 @@ bool Window::makeWindow(int width, int height, std::string title) {
 	glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
 	glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
 
-	if (width == 0) { width = mode->width; }
-	if (height == 0) { height = mode->height; }
+	if (width == 0 || mode->width < width) { width = mode->width; }
+	if (height == 0 || mode->height < height) { height = mode->height; }
 
 	window = glfwCreateWindow(width, height, title.c_str(), NULL, NULL);
 	this->width = width;

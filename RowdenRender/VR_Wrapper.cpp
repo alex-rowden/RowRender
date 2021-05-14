@@ -206,7 +206,7 @@ void VR_Wrapper::setActionHandles()
 	auto ret = vr::VRInput()->GetInputSourceHandle("/user/hand/left", &hand[0].source);
 	ret = vr::VRInput()->GetActionHandle("/actions/demo/in/hand_left", &hand[0].pose_handle);
 	
-	ret = vr::VRInput()->GetActionHandle("/actions/demo/in/move_quad", &trigger_left);
+	ret = vr::VRInput()->GetActionHandle("/actions/demo/in/left_trigger", &trigger_left);
 
 	if (ret != vr::EVRInputError::VRInputError_None) {
 		std::cout << "left trigger error " << ret << std::endl;
@@ -215,15 +215,26 @@ void VR_Wrapper::setActionHandles()
 	vr::VRInput()->GetInputSourceHandle("/user/hand/right", &hand[1].source);
 	vr::VRInput()->GetActionHandle("/actions/demo/in/hand_right", &hand[1].pose_handle);
 	
-	ret = vr::VRInput()->GetActionHandle("/actions/demo/in/select", &trigger_right);
+	ret = vr::VRInput()->GetActionHandle("/actions/demo/in/right_trigger", &trigger_right);
 
 	if (ret != vr::EVRInputError::VRInputError_None) {
 		std::cout << "right trigger error " << ret << std::endl;
 	}
 	
-	ret = vr::VRInput()->GetActionHandle("/actions/demo/in/nearest_router", &a_button);
+	ret = vr::VRInput()->GetActionHandle("/actions/demo/in/a_button", &a_button); //a
 	if (ret != vr::EVRInputError::VRInputError_None) {
 		std::cout << "a button error " << ret << std::endl;
+	}ret = vr::VRInput()->GetActionHandle("/actions/demo/in/b_button", &b_button); //b
+	if (ret != vr::EVRInputError::VRInputError_None) {
+		std::cout << "a button error " << ret << std::endl;
+	}
+	ret = vr::VRInput()->GetActionHandle("/actions/demo/in/x_button", &x_button); //x
+	if (ret != vr::EVRInputError::VRInputError_None) {
+		std::cout << "x button error " << ret << std::endl;
+	}
+	ret = vr::VRInput()->GetActionHandle("/actions/demo/in/y_button", &y_button); //y
+	if (ret != vr::EVRInputError::VRInputError_None) {
+		std::cout << "y button error " << ret << std::endl;
 	}
 
 	ret = vr::VRInput()->GetActionHandle("/actions/demo/in/right_joy", &joysticks[1]); //right_joystick
@@ -237,15 +248,11 @@ void VR_Wrapper::setActionHandles()
 	ret = vr::VRInput()->GetActionHandle("/actions/demo/in/right_grip", &grip_right); //right grip
 	if (ret != vr::EVRInputError::VRInputError_None) {
 		std::cout << "right grip error " << ret << std::endl;
-	}
-	ret = vr::VRInput()->GetActionHandle("/actions/demo/in/x_button", &x_button); //x
+	}ret = vr::VRInput()->GetActionHandle("/actions/demo/in/left_grip", &grip_left); //left grip
 	if (ret != vr::EVRInputError::VRInputError_None) {
-		std::cout << "x button error " << ret << std::endl;
+		std::cout << "right grip error " << ret << std::endl;
 	}
-	ret = vr::VRInput()->GetActionHandle("/actions/demo/in/y_button", &y_button); //y
-	if (ret != vr::EVRInputError::VRInputError_None) {
-		std::cout << "y button error " << ret << std::endl;
-	}
+	
 }
 
 //straight up stolen from openvr sample
@@ -300,10 +307,12 @@ void VR_Wrapper::UpdateActionState() {
 	}
 	right_hand->trigger = GetDigitalActionState(trigger_right);
 	left_hand->trigger = GetDigitalActionState(trigger_left);
-	right_hand->a = GetDigitalActionState(a_button);
+	left_hand->grip = GetDigitalActionState(grip_left);
 	right_hand->grip = GetDigitalActionState(grip_right);
 	bool x_curr_pressed = GetDigitalActionState(x_button);
 	bool y_curr_pressed = GetDigitalActionState(y_button);
+	bool a_curr_pressed = GetDigitalActionState(a_button);
+	bool b_curr_pressed = GetDigitalActionState(b_button);
 	if (x_curr_pressed && !left_hand->a_pressed) {
 		left_hand->a = true;
 	}
@@ -316,8 +325,22 @@ void VR_Wrapper::UpdateActionState() {
 	else{
 		left_hand->b = false;
 	}
+	if (a_curr_pressed && !right_hand->a_pressed) {
+		right_hand->a = true;
+	}
+	else{
+		right_hand->a = false;
+	}
+	if (b_curr_pressed && !right_hand->b_pressed) {
+		right_hand->b = true;
+	}
+	else{
+		right_hand->b = false;
+	}
 	left_hand->a_pressed = x_curr_pressed;
 	left_hand->b_pressed = y_curr_pressed;
+	right_hand->a_pressed = a_curr_pressed;
+	right_hand->b_pressed = b_curr_pressed;
 	for (int j = 0; j < 2; j++) {
 		auto actionData = GetAnalogActionState(joysticks[j]);
 		controllers[j].joystick_raw_position = glm::vec2(actionData.x, actionData.y);

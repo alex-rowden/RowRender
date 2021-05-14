@@ -1,4 +1,4 @@
-function [data_entries] = readAVW(filename, this_floor, cart_offset, size_between)
+function [data_entries, num_samples] = readAVW(filename, this_floor, cart_offset, size_between)
     x = [];
     y = [];
     rssi = [];
@@ -13,9 +13,11 @@ function [data_entries] = readAVW(filename, this_floor, cart_offset, size_betwee
     fid = fopen(filename, 'r');
     count = 1;
     legacy = ~exist('cart_offset', 'var');
+    num_samples = 0;
     if(legacy)
         while(~feof(fid))
             [sample, num] = fscanf(fid, '%f %f %d\n', [1,3]);
+            num_samples = num_samples + 1;
             for i=1:sample(3)
                 x(count) = sample(1);
                 y(count) = sample(2);
@@ -52,6 +54,7 @@ function [data_entries] = readAVW(filename, this_floor, cart_offset, size_betwee
     else % Non-legacy import code
        while(~feof(fid))
         [sample, num] = fscanf(fid, '%f %f %d\n', [1,3]);
+        num_samples = num_samples + 1;
         for i=1:sample(3)
             
             num_samples = fscanf(fid, '%d\n');

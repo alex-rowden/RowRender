@@ -18,6 +18,27 @@ public:
 			counter_min = glm::vec2(1, 0),
 			counter_max = glm::vec2(19, 19);
 		Joystick_Mode mode = Joystick_Mode::Impulse;
+		void setCounter(glm::vec2 a) {
+			if (a.x < counter_min.x)
+				a.x = counter_min.x;
+			else if (a.x > counter_max.x)
+				a.x = counter_max.x;
+			if (a.y < counter_min.y)
+				a.y = counter_min.y;
+			else if (a.y > counter_max.y)
+				a.y = counter_max.y;
+
+			this->joystick_counter = a;
+		}
+		void setCounter(float a, float b) {
+			setCounter(glm::vec2(a, b));
+		};
+		void setCounterx(float a) {
+			setCounter(glm::vec2(a, this->joystick_counter.y));
+		};
+		void setCountery(float a) {
+			setCounter(glm::vec2(this->joystick_counter.x, a));
+		}
 	}controllers[2], 
 		*right_hand = &controllers[1],
 		*left_hand = &controllers[0];
@@ -44,7 +65,7 @@ public:
 	IVRSystem* vr_pointer = NULL;
 	VRActionHandle_t m_actionSet, trigger_right,
 		trigger_left, a_button, b_button, x_button,
-		y_button, joysticks[2], grip_right;
+		y_button, joysticks[2], grip_right, grip_left;
 	vr::TrackedDevicePose_t trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
 	glm::mat4 DevicePose[vr::k_unMaxTrackedDeviceCount];
 	char DevClassChar[k_unMaxTrackedDeviceCount];
