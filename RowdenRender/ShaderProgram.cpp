@@ -80,28 +80,28 @@ void ShaderProgram::Use() {
 	glUseProgram(shaderProgram);
 }
 
-int ShaderProgram::getFloor(glm::vec3 position) {
+int ShaderProgram::getFloor(glm::vec3 position, float scaling_factor) {
 	int floor = 0;
 	float z_coord = position.z;
-	if (z_coord > .92)
+	if (z_coord > .92 * scaling_factor)
 		floor++;
-	if (z_coord > 1.92)
+	if (z_coord > 1.92 * scaling_factor)
 		floor++;
-	if (z_coord > 2.92)
+	if (z_coord > 2.92 * scaling_factor)
 		floor++;
 	return floor;
 }
 
-void ShaderProgram::SetLights(Lights&lights, glm::vec3 position, int num_lights) {
+void ShaderProgram::SetLights(Lights&lights, glm::vec3 position, int num_lights, float scaling_factor) {
 	if (num_lights != -1) {
 	float z_boost = -.1;
 	float z_coord = position.z;
-	if (z_coord > .92)
-		z_boost += 1.01;
-	if (z_coord > 1.92)
-		z_boost += 1.01;
-	if (z_coord > 2.92)
-		z_boost += 1.01;
+	if (z_coord > .92 * scaling_factor)
+		z_boost += 1.01 * scaling_factor;
+	if (z_coord > 1.92 * scaling_factor)
+		z_boost += 1.01 * scaling_factor;
+	if (z_coord > 2.92 * scaling_factor)
+		z_boost += 1.01 * scaling_factor;
 	for (int i = 0; i < lights.point_lights.size(); i++) {
 		lights.point_lights.at(i).position.z += z_boost;
 	}

@@ -307,8 +307,8 @@ void VR_Wrapper::UpdateActionState() {
 	}
 	right_hand->trigger = GetDigitalActionState(trigger_right);
 	left_hand->trigger = GetDigitalActionState(trigger_left);
-	left_hand->grip = GetDigitalActionState(grip_left);
-	right_hand->grip = GetDigitalActionState(grip_right);
+	bool curr_left_grip_pressed = GetDigitalActionState(grip_left);
+	bool curr_right_grip_pressed = GetDigitalActionState(grip_right);
 	bool x_curr_pressed = GetDigitalActionState(x_button);
 	bool y_curr_pressed = GetDigitalActionState(y_button);
 	bool a_curr_pressed = GetDigitalActionState(a_button);
@@ -336,11 +336,23 @@ void VR_Wrapper::UpdateActionState() {
 	}
 	else{
 		right_hand->b = false;
+	}if (curr_left_grip_pressed && !left_hand->grip_pressed) {
+		left_hand->grip = true;
+	}
+	else{
+		left_hand->grip = false;
+	}if (curr_right_grip_pressed && !right_hand->grip) {
+		right_hand->grip = true;
+	}
+	else{
+		right_hand->grip = false;
 	}
 	left_hand->a_pressed = x_curr_pressed;
 	left_hand->b_pressed = y_curr_pressed;
+	left_hand->grip_pressed = curr_left_grip_pressed;
 	right_hand->a_pressed = a_curr_pressed;
 	right_hand->b_pressed = b_curr_pressed;
+	right_hand->grip_pressed = curr_right_grip_pressed;
 	for (int j = 0; j < 2; j++) {
 		auto actionData = GetAnalogActionState(joysticks[j]);
 		controllers[j].joystick_raw_position = glm::vec2(actionData.x, actionData.y);

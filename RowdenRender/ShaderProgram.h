@@ -39,7 +39,7 @@ public:
 	
 	void Use();
 
-	int getFloor(glm::vec3 position);
+	int getFloor(glm::vec3 position, float scaling_factor = 1);
 	
 
 	void SetUniform(std::string uniform_name, glm::vec4 vec);
@@ -71,7 +71,7 @@ public:
 	};
 
 	void SetLights(Lights lights);
-	void SetLights(Lights&lights, glm::vec3 position, int num_lights = -1);
+	void SetLights(Lights&lights, glm::vec3 position, int num_lights = -1, float scaling_factor = 1.0f);
 
 	void SetEllipsoid(Ellipsoid ellipse);
 	void SetGaussians(std::vector<Gaussian> gauss);

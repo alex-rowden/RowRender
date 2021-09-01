@@ -76,9 +76,11 @@ float calculateMask(int dir, int j) {
 	float mask = 0;
 	float total_num_steps = NUM_STEPS * 3;
 	float current_step = NUM_STEPS * step_num + j;
+	
 	if (use_mask) {
-		mask = cos(2. * 3.1415 * (total_num_steps - current_step) / (total_num_steps));
-		return (0.5 + 0.5 * mask);
+		float pi_2 = 3.141592653589793238/2.0f;
+		mask = 1 - cos(pi_2 * ((NUM_STEPS/2.0f + dir * j) / (NUM_STEPS)));
+		return sqrt(mask);
 	}return NUM_STEPS - dir * j;
 }
 
@@ -109,7 +111,7 @@ vec4 renderLIC(vec3 fragPos, vec3 tangent, vec3 bitangent, vec3 Normal) {
 
 	vec3 oldFragPos = fragPos, oldTangent = tangent, oldNormal = Normal,
 		oldBitangent = bitangent, originalFragPos = fragPos, originalTangent = tangent;
-	float norm = curr_mask;;
+	float norm = 1;
 	float val;
 	float step_size = learning_rate * .02;
 
@@ -157,7 +159,7 @@ vec4 renderLIC(vec3 fragPos, vec3 tangent, vec3 bitangent, vec3 Normal) {
 				else if(step_num == 2)
 					lic = texture(lic_tex[1], uv);
 				
-				val += mask * lic.a * curr_mask;
+				val += mask * lic.a;
 				if(lic.a > 0 && multirouter){
 					if(!found && direction4.a > 0){
 						color = vec3(0);
@@ -176,7 +178,7 @@ vec4 renderLIC(vec3 fragPos, vec3 tangent, vec3 bitangent, vec3 Normal) {
 				
 				float noise_val = 0;
 				if ( procedural_noise)
-					noise_val = noise(frag_pos_scale * scale * uvt.rgb) * mask;
+					noise_val = noise(frag_pos_scale * scale * uvt.rgb);
 				else{
 					
 					noise_val = noise(frag_pos_scale * scale * uvt.rg, router_num);

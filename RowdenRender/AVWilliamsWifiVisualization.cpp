@@ -27,6 +27,7 @@ bool jittered = true;
 int color_offset = 205;
 bool show_analytics = true;
 bool demo_mode = true;
+float scaling_factor = 2.5;
 
 struct gBuffer {
 	GLuint frame_buffer, normal_tex, tangent_tex, 
@@ -83,6 +84,8 @@ Lights setPointLights(int num_lights, float intensity, float linear, float quadr
 		glm::vec3(-11.45, 11.6, .8)
 		}
 	);
+	for (int i = 0; i < controlPoints.size(); i++)
+		controlPoints[i] *= scaling_factor;
 	std::vector<float> distances(controlPoints.size());
 	distances.at(0) = 0;
 	for (int i = 1; i < controlPoints.size(); i++) {
@@ -188,7 +191,7 @@ float calculateMask(int j, int step_num, bool use_mask) {
 	float total_num_steps = NUM_STEPS * 3;
 	float current_step = NUM_STEPS * step_num + j;
 	if (use_mask) {
-		mask = cos(2. * 3.1415 * (total_num_steps - current_step) / (total_num_steps));
+		mask = cos(.5 * 3.1415 * (total_num_steps - current_step) / (total_num_steps));
 		return (0.5 + 0.5 * mask);
 	}return total_num_steps - current_step;
 }
@@ -540,11 +543,11 @@ void updateNoise(LineIntegralConvolution& lic, int num_samples, int num_routers,
 }
 
 
-void rayPicker(glm::vec3 ray, glm::vec3 ray_coord, glm::vec3 camera_pos ,glm::vec3& intersection) {
+void rayPicker(glm::vec3 ray, glm::vec3 ray_coord, glm::vec3 camera_pos ,glm::vec3& intersection, ShaderProgram &s, float scaling_factor) {
 	//std::cout << glm::to_string(ray_coord + camera_pos) << std::endl;
 	float plane_height = 0;
-	float z_coord = ray_coord.z +camera_pos.z;
-	plane_height = floor(z_coord);
+	float z_coord = ray_coord.z + camera_pos.z;
+	plane_height = s.getFloor(ray_coord + camera_pos, scaling_factor) * scaling_factor;
 
 	//std::cout << plane_height << std::endl;
 	//std::cout << z_coord << std::endl;
@@ -717,7 +720,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	);
 	int max_chars = 6;
 	
-	float texcoord_scale = .004;
+	float texcoord_scale = .004 / scaling_factor;
 	//Load shaders
 	ShaderProgram model_shader		= ShaderProgram({ 
 		ShaderProgram::Shaders::FRAG_ELLIPSOID, 
@@ -798,6 +801,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	avw_transform = glm::rotate(avw_transform, glm::radians(90.f), 
 		glm::vec3(1, 0, 0));
 	glm::vec3 avw_scale(2, 1, 2);
+	avw_scale *= scaling_factor;
 	avw_transform = glm::scale(avw_transform, avw_scale);
 
 	Texture2D popup_background("./Content/Textures/popup_background.png");
@@ -827,7 +831,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	ground_quad.setModel(false);
 	ground_quad.getMeshes().at(0)->addTexture(&white);
 	glm::mat4 ground_transform(1);
-	ground_transform = glm::scale(ground_transform, glm::vec3(15, 19, 2));
+	ground_transform = glm::scale(ground_transform, scaling_factor * glm::vec3(15, 19, 2));
 	ground_transform = glm::translate(ground_transform, glm::vec3(0, 0, -.101));
 	//quad.getMeshes().at(0)->setTexture(Texture2D(glm::vec4(50, 50, 50, 255) * (1 / 255.0f)), 0);
 	
@@ -835,22 +839,14 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	//Setup volume rendering
 	Model screen_quad("./Content/Models/quad/quad_centered.obj");
 	screen_quad.setModel();
-	float stepSize = .01;
 	
-	Model BoundingSphere = Model("./Content/Models/cube/cube.obj");
-	BoundingSphere.setModel();
-	glm::vec3 bounding_cube_translate = glm::vec3(-1.25, .588, 2.235);
-	glm::vec3 bounding_cube_scale(23, 33.588, 5);
-	glm::mat4 bounding_cube_transform(1);
-	bounding_cube_transform = glm::scale(bounding_cube_transform, bounding_cube_scale);
-	bounding_cube_transform = glm::translate(bounding_cube_transform, bounding_cube_translate);
 
 	//Setup Camera
 	//Camera camera = Camera(glm::vec3(-11.54, 11.6, .4575),glm::vec3(-10.54, 11.6, .4575) , 60.0f, w.width / (float)w.height);
 	//Camera camera = Camera(glm::vec3(.467506, 11.501509, 2.478917),glm::vec3(.467506 - .970493, 11.501509 + .020823, 2.478917 - .240227) , 60.0f, w.width / (float)w.height);
-	Camera camera = Camera(glm::vec3(-.032911, 11.68143, 2.214213), glm::vec3(-.032911, 11.68143, 2.214213) + glm::vec3(.89027, -.430448, -.090891), 60.0f, w.width / (float)w.height);
+	Camera camera = Camera(scaling_factor * glm::vec3(-.262911, 11.58143, 2.414213), scaling_factor * glm::vec3(-.262911, 11.58143, 2.414213) + glm::vec3(.89027, -.430448, 0), 60.0f, w.width / (float)w.height);
 	w.SetCamera(&camera);
-	w.setSpeed(1);
+	w.setSpeed(scaling_factor);
 
 	//setUp SSAO Kernel
 	std::uniform_real_distribution<float> randomFloats(0.0, 1.0); // random floats between [0.0, 1.0]
@@ -934,7 +930,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	instance_shader.SetUniforms(instance_shading_ints);
 
 	
-	float constant = 1, linear = .9, quadratic = .98;
+	float constant = 1, linear = .77, quadratic = .123;
 	
 	int odd_or_even_frame = 0;
 
@@ -987,7 +983,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 		Texture2D("./Content/Textures/AVWFloorPlans/3c.png"),
 		Texture2D("./Content/Textures/AVWFloorPlans/4c.png"),
 	};
-	int oldFloor = minimap_shader.getFloor(camera.getPosition());
+	int oldFloor = minimap_shader.getFloor(camera.getPosition(), scaling_factor);
 	minimap_base[oldFloor].name = "minimap_base_tex";
 	int currFloor = oldFloor;
 	for (int i = 0; i < 4; i++) {
@@ -996,8 +992,8 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	minimapBuffer minimap_buffer;
 	createMinimapBuffer(minimap_base[0].getDims(), minimap_buffer);
 
-	minimap_shader.SetUniform("bl", glm::vec2(-13.21, -18));
-	minimap_shader.SetUniform("tr", glm::vec2(10.25, 17.659));
+	minimap_shader.SetUniform("bl", scaling_factor * glm::vec2(-13.21, -18));
+	minimap_shader.SetUniform("tr", scaling_factor * glm::vec2(10.25, 17.659));
 	minimap_shader.SetUniform("aspect", ((float)minimap_base[0].getDims().y / minimap_base[0].getDims().x));
 
 	//std::vector<glm::vec4> heatmap = std::vector<glm::vec4>(2);
@@ -1012,6 +1008,8 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 
 
 	//Setup ImGUI variables
+
+	
 	glm::vec3 wifi_scale = glm::vec3(30, 34.792, 1);
 	glm::vec3 wifi_translate = glm::vec3(-15., -16.042, -.833);
 	static std::vector<bool> wifinames(wifi.getNumWifiNames());
@@ -1103,7 +1101,6 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 		{ "u_stretch", 3.654 },
 		{ "v_stretch", 3.654 },
 		{ "delta_theta", 180.f / wifi.getActiveFreqs(freqs).size() },
-		{ "learning_rate", .134 },
 		{ "distance_mask", 0 },
 		{ "alpha_boost", 20 },
 		{ "density", .025 },
@@ -1115,7 +1112,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 		{ "alpha_boost", 20 },
 		{ "density", .025 },
 		{ "frag_pos_scale", 150},
-		{ "learning_rate", .134},
+		{ "learning_rate", .134 * scaling_factor},
 	};
 	std::map<std::string, bool> deferred_shading_bools = {
 		{ "contour_on", false},
@@ -1283,14 +1280,14 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			
 			//vr widget prepass if requested (and in vr)
 			if (use_vr && vr.quad_transform != glm::mat4(1)) {
-				glm::mat4 transform = glm::inverse(camera_offset * camera.getView()) *
+				glm::mat4 transform = 
 					vr.quad_transform *
 					glm::scale(
 						glm::rotate(
 							glm::mat4(1),
 							glm::radians(90.0f),
 							glm::vec3(1, 0, 0)),
-						glm::vec3(.2))
+						glm::vec3(.12 * scaling_factor))
 					;;
 				//vr.getViewMatrix(curr_eye) * camera_offset * ViewMat
 				model_shader.SetUniform("model", transform);
@@ -1424,9 +1421,9 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			deferred_shader.SetUniform("power", lic_shading_ints["power"]);
 			
 			wifi_transform = glm::translate(glm::mat4(1), wifi_translate);
-			wifi.ellipsoid_transform = wifi_transform * glm::scale(glm::mat4(1), wifi_scale);
+			wifi.ellipsoid_transform = glm::scale(glm::mat4(1), scaling_factor * glm::vec3(1)) * wifi_transform * glm::scale(glm::mat4(1), wifi_scale);
 			deferred_shader.SetUniform("ellipsoid_transform", wifi.ellipsoid_transform);
-			wifi.radius_stretch = wifi_scale;
+			wifi.radius_stretch = scaling_factor * scaling_factor * wifi_scale;
 			
 
 			deferred_shader.SetUniform("radius_stretch", wifi.radius_stretch);
@@ -1455,14 +1452,14 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				quad.getMeshes().at(0)->setTexture(&text);
 				//std::cout << glm::to_string(fragPosArray[int(index.y * resolution.x + index.x)]) << std::endl;
 			}
-			deferred_shader.SetLights(modelLights, camera.getPosition() + vr.adjusted_height, deferred_shading_ints["num_point_lights"]);
+			deferred_shader.SetLights(modelLights, camera.getPosition() + vr.adjusted_height, deferred_shading_ints["num_point_lights"], scaling_factor);
 
 			//update minimap
 			glViewport(0, 0, minimap_base[0].getDims().x, minimap_base[0].getDims().y);
 			glBindFramebuffer(GL_FRAMEBUFFER, minimap_buffer.framebuffer);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			
-			currFloor = minimap_shader.getFloor(camera.getPosition());
+			currFloor = minimap_shader.getFloor(camera.getPosition(), scaling_factor);
 			if(oldFloor != currFloor) {
 				minimap_base[oldFloor].name = "texture_diffuse";
 				minimap_base[currFloor].name = "minimap_base_tex";
@@ -1634,20 +1631,28 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				
 				if (i == 0) {
 					
-					
+					static bool render_quad = false;
 					if (vr.left_hand->grip) {
-						//glm::decompose(vr.getControllerPose(vr.LeftDeviceId), scale, orientation, position, skew, perspective);
-						//auto inv_view = glm::inverse(camera_offset * camera.getView());
-						vr.quad_transform = vr.getControllerPose(vr.LeftDeviceId);
+						render_quad = !render_quad;
+						vr.quad_transform = glm::mat4();
 					}
+					if (vr.left_hand->grip_pressed) {
+						//glm::decompose(vr.getControllerPose(vr.LeftDeviceId), scale, orientation, position, skew, perspective);
+						
+						if (render_quad) {
+							auto inv_view = glm::inverse(camera_offset * camera.getView());
+							vr.quad_transform = inv_view * vr.getControllerPose(vr.LeftDeviceId);
+						}
+					}
+					
 					if (vr.right_hand->a) {
-						camera.setPosition(camera.getPosition() + glm::vec3(0, 0, -1));
+						camera.setPosition(camera.getPosition() + glm::vec3(0, 0, -scaling_factor));
 					}if (vr.right_hand->b) {
-						camera.setPosition(camera.getPosition() + glm::vec3(0, 0, 1));
+						camera.setPosition(camera.getPosition() + glm::vec3(0, 0, scaling_factor));
 					}
 				}
 
-				if (vr.right_hand->grip) {
+				if (vr.right_hand->grip_pressed) {
 					glm::mat4 transform = glm::inverse(camera_offset * camera.getView()) *
 						vr.getControllerPose(vr.RightDeviceId) *
 						glm::scale(
@@ -1679,7 +1684,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 					position = glm::vec3(inv_view * glm::vec4(position, 1));
 
 					forward = glm::normalize(glm::vec3(inv_view * vr.getControllerPose(vr.RightDeviceId) * glm::rotate(glm::mat4(1), glm::radians(60.0f), glm::vec3(1, 0, 0)) * glm::rotate(glm::mat4(1), glm::radians(120.0f), glm::vec3(1, 0, 0)) * glm::vec4(0, 0, -1, 0)));
-					rayPicker(forward, position, glm::vec3(0), vr.teleport_position);
+					rayPicker(forward, position, glm::vec3(0), vr.teleport_position, minimap_shader, scaling_factor);
 
 					deferred_shader.SetUniform("selectedPos", glm::vec3(vr.teleport_position.r, vr.teleport_position.g, vr.teleport_position.b));
 					glm::mat4 cylinder_mat = right_hand_transform *
@@ -1712,7 +1717,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 					position = glm::vec3(inv_view * glm::vec4(position, 1));
 
 					forward = glm::normalize(glm::vec3(inv_view * vr.getControllerPose(vr.LeftDeviceId) * glm::rotate(glm::mat4(1), glm::radians(60.0f), glm::vec3(1, 0, 0)) * glm::rotate(glm::mat4(1), glm::radians(120.0f), glm::vec3(1, 0, 0)) * glm::vec4(0, 0, -1, 0)));
-					rayPicker(forward, position, glm::vec3(0), vr.teleport_position);
+					rayPicker(forward, position, glm::vec3(0), vr.teleport_position, minimap_shader, scaling_factor);
 
 					deferred_shader.SetUniform("selectedPos", glm::vec3(vr.teleport_position.r, vr.teleport_position.g, vr.teleport_position.b));
 					glm::mat4 cylinder_mat = left_hand_transform *
@@ -1763,8 +1768,12 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
+		
 		if (render_gui) {
+			
+
 			ImGui::Begin("Gui Selector");
+			ImGui::SetWindowFontScale(1.5);
 			if(ImGui::Button("Debug")) {
 				gui_type = "debug";
 			}
@@ -1781,6 +1790,8 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 
 			if (gui_type == "debug") {
 				ImGui::Begin("Rendering Terms");
+				ImGui::SetWindowFontScale(1.5);
+
 				if (ImGui::SliderInt("Number of Routers", &num_routers, 1, 20)) {
 					if (!demo_mode && use_vr) {
 						vr.right_hand->joystick_counter.x = num_routers;
@@ -1959,6 +1970,8 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			}
 			if (nearest_router_on && render_gui) {
 				ImGui::Begin("Nearest Routers");
+				ImGui::SetWindowFontScale(1.5);
+
 				for (int i = 0; i < wifi.getRouterStrings().size(); i++) {
 					glm::vec4 color = wifi_colors[i + wifi.getNumWifiNames()];
 					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(color.r, color.g, color.b, 1));
@@ -1969,12 +1982,16 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			}
 			if (!use_vr && show_analytics) {
 				ImGui::Begin("Analytics");
+				ImGui::SetWindowFontScale(1.5);
+
 				for (auto& text : analytics_text)
 					ImGui::Text(text.c_str());
 				ImGui::End();
 			}
 			if (gui_type == "editor") {
 				ImGui::Begin("Selector");
+				ImGui::SetWindowFontScale(1.5);
+
 				if (ImGui::Button("Display Routers")) {
 					start_render = true;
 					num_routers_changed = true;
@@ -2009,7 +2026,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				
 				if (ImGui::Button("Save Configuration")) {
 					std::ofstream outfile(std::string("Content/Config/") + filename, std::ios::out);
-
+					lic_shading_floats["learning_rate"] /= scaling_factor;
 					writeDictionary(deferred_shading_bools, outfile);
 					writeDictionary(deferred_shading_floats, outfile);
 					writeDictionary(deferred_shading_ints, outfile);
@@ -2038,7 +2055,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 						readDictionary(lic_shading_ints, infile);
 
 						readDictionary(ssao_shading_floats, infile);
-
+						lic_shading_floats["learning_rate"] *= scaling_factor;
 						infile >> std::ws;
 						old_num_samples = num_samples;
 						infile >> num_samples;
@@ -2106,6 +2123,9 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				ImGui::End();
 			}
 			if (gui_type == "demo") {
+				ImGui::Begin("Demo");
+				ImGui::SetWindowFontScale(1.5);
+
 				bool update = false;
 				static bool set_use_case = false;
 				
@@ -2130,28 +2150,28 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				if (ImGui::Combo("Use Cases", &use_case_ind,
 					use_cases, num_use_cases)) {
 					set_use_case = true;
-					glm::vec3 new_camera_pos = glm::vec3(-.032911, 11.68143, 2.214213);
-					glm::vec3 new_camera_dir = glm::vec3(.89027, -.430448, -.090891);
+					glm::vec3 new_camera_pos = glm::vec3(-.262911, 11.58143, 2.414213);
+					glm::vec3 new_camera_dir = glm::vec3(.89027, -.430448, 0);
 
 					switch (use_case_ind) {
 					case 0:
 						config_ind = 0;
 						set_ind = 8;
 						new_camera_pos = glm::vec3(
-							1.639865, 11.5868, 2.3963
+							1.639865, 11.4868, 2.414213
 						);
 						new_camera_dir = glm::vec3(
-							-.986163, -.129348, .10369
+							-.986163, -.129348, 0
 						);
 						break;
 					case 1:
 						config_ind = 1;
 						set_ind = 9;
 						new_camera_pos = glm::vec3(
-							-7.166709, 11.603663, 2.372158
+							-7.166709, 11.403663, 2.414213
 						);
 						new_camera_dir = glm::vec3(
-							.948736, -.301454, -.095
+							.948736, -.301454, 0
 						);
 						break;
 					case 2:
@@ -2161,7 +2181,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 							2.842, 10.2, 3.38
 						);
 						new_camera_dir = glm::vec3(
-							.88, .454, -.13488
+							.88, .454, 0
 						);
 						break;
 					case 3:
@@ -2171,7 +2191,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 							8.658, 15.663932, .347995
 						);
 						new_camera_dir = glm::vec3(
-							-.995577, -.079694, -.05
+							-.995577, -.079694, 0
 						);
 						break;
 					case 4:
@@ -2190,20 +2210,20 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 						config_ind = 2;
 						set_ind = 10;
 						new_camera_pos = glm::vec3(
-							2.438988, 14.275912, 2.3579358
+							2.438988, 14.275912, 2.414213
 						);
 						new_camera_dir = glm::vec3(
-							0.995877, -.043959, -.079358
+							0.995877, -.043959, 0
 						);
 						break;
 					case 8:
 						config_ind = 3;
 						set_ind = 10;
 						new_camera_pos = glm::vec3(
-							2.438988, 14.275912, 2.3579358
+							2.438988, 14.275912, 2.414213
 						);
 						new_camera_dir = glm::vec3(
-							0.995877, -.043959, -.079358
+							0.995877, -.043959, 0
 						);
 						break;
 					case 9:
@@ -2213,22 +2233,22 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 							-1.284, 15.486, 1.543
 							);
 						new_camera_dir = glm::vec3(
-							.981, -.104, -.161
+							.981, -.104, 0
 						);
 						break;
 					case 10:
 						config_ind = 6;
 						set_ind = 12;
 						new_camera_pos = glm::vec3(
-							-4.63, 11.4789, 2.35659
+							-4.63, 11.4789, 2.414213
 							);
 						new_camera_dir = glm::vec3(
-							.99, .063, -.155
+							.99, .063, 0
 						);
 						break;
 					}
 
-					camera.setPosition(new_camera_pos);
+					camera.setPosition(new_camera_pos * scaling_factor);
 					camera.setDirection(new_camera_dir);
 				}
 				else {
@@ -2274,7 +2294,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 						readDictionary(lic_shading_bools, infile);
 						readDictionary(lic_shading_floats, infile);
 						readDictionary(lic_shading_ints, infile);
-
+						lic_shading_floats["learning_rate"] *= scaling_factor;
 						readDictionary(ssao_shading_floats, infile);
 						infile >> std::ws;
 						old_num_samples = num_samples;
@@ -2356,11 +2376,11 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				
 				
 				ImGui::Checkbox("Line Integral Convolution", &deferred_shading_bools["lic_on"]);
-
+				ImGui::End();
 			}
 		}if (render_gui) {
 			ImGui::Begin("Minimap");
-
+			ImGui::SetWindowFontScale(1.5f);
 			ImTextureID minimap = (void*)minimap_buffer.minimapTexture.getID();
 			//ImTextureID minimap = (void*)minimap_buffer.minimapTexture.getID();
 			
