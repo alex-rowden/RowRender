@@ -31,7 +31,7 @@ private:
 	std::map<std::string, std::map<std::string, std::vector<WifiDataEntry>>> floorToWifiNameToEntries;
 	std::map<std::string, std::map<std::string, std::pair<std::vector<WifiDataEntry>,
 		std::vector<WifiDataEntry>>>> wifiNameToMacToEntries;
-	std::map<std::string, OldNewEllipsoids> mac2routers;
+	std::vector<std::map<std::string, Ellipsoid>> listMac2Routers;
 	std::vector<std::string> available_macs;
 	std::vector<int> available_freqs;
 	std::vector<std::string> wifinames;
@@ -53,12 +53,12 @@ public:
 	std::vector<std::string> getWifinames() { return wifinames; }
 	std::vector<std::string> getRouterStrings() { return router_strings; }
 	void updateRouterStructure(std::vector<bool>routers, std::vector<bool> wifi_names, std::vector<bool> freqs,
-		std::vector<bool> old_router, std::vector<bool>new_router, ShaderProgram *shader, int num_shaders, glm::vec3 position,
+		bool old_data, ShaderProgram *shader, int num_shaders, glm::vec3 position,
 		bool nearest_router = false);
 	void sortRouters(glm::vec3 position);
 	void uploadRouters(int num_shaders, ShaderProgram *model_shader);
 	int getNumRoutersWithSignalFromSet(glm::vec3 position, float extent = 1);
-	int getNumRoutersWithSignal(glm::vec3 position, float extent);
+	int getNumRoutersWithSignal(glm::vec3 position, float extent, bool old_data);
 	std::string getInterferenceString();
 	int getNumActiveRouters(std::vector<bool> routers);
 	bool loadEllipsoid(std::string filename, Ellipsoid&ret, float wifi_num = 0);
@@ -66,7 +66,7 @@ public:
 	void writeRouters(std::ofstream &out);
 	void readRouters(std::ifstream& in, std::vector<bool>& wifinames, std::vector<bool>& routers, std::vector<bool>& freqs);
 	std::vector<glm::mat4> getTransforms(std::vector<bool> wifiname, std::vector<bool> routers,
-		std::vector<bool> old_routers, std::vector<bool> new_routers, glm::vec3 scale);
+		glm::vec3 scale, bool old_data);
 	void deactivateExtra(std::vector<bool> routers, std::vector<bool>& wifinames, std::vector<bool> &freqs,
 		std::vector<bool> old_routers, std::vector<bool> new_routers);
 	int getNumWifiNames() { return wifiNameToMacToEntries.size(); }
@@ -75,18 +75,16 @@ public:
 	int getFrequencyAt(int i) { return frequencies.at(i); }
 	std::vector<std::string>getSelectedNames(std::vector<bool> names);
 	std::vector<int> getSelectedFreqs(std::vector<bool> freqs);
-	void setAvailableMacs(std::vector<std::string> names);
-	void setAvailableMacs(std::vector<std::string> names, std::vector<int> frequencies);
-	void setAvailableFreqs(std::vector<std::string> names);
+	void setAvailableMacs(std::vector<std::string> names, bool old_data = false);
+	void setAvailableMacs(std::vector<std::string> names, std::vector<int> frequencies, bool old_data = false);
+	void setAvailableFreqs(std::vector<std::string> names, bool old_data = false);
 	std::vector<std::string>getAvailablesMacs() { return available_macs; }
 	std::vector<int> getAvailableFreqs() { return available_freqs; }
 	std::vector<int> getActiveFreqs(std::vector<bool>);
 	void setRenderText(std::vector<std::string>&text, glm::vec3 samplePosition, std::vector<bool> routers);
-	void setNewOld(std::vector<bool>& new_routers, std::vector<bool>& old_routers);
 	void setupStructures();
 	void setNearestNRouters(int n, glm::vec3 position, std::vector<bool>&wifi_bools,
-		std::vector<bool>&routers, std::vector<bool>&freqs,
-		std::vector<bool>&old_routers, std::vector<bool>&new_routers);
+		std::vector<bool>&routers, std::vector<bool>&freqs, bool old_data = false);
 	void setRouters(std::vector<bool>& wifinames, std::vector<bool>& routers, std::vector<bool>& freqs);
 	void fillRouters(std::string wifiname, std::vector<bool> &routers, bool onoff);
 	inline int findIndexToEntry(std::string wifiname);
