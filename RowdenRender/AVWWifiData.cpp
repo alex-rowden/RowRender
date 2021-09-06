@@ -302,6 +302,10 @@ void AVWWifiData::loadWifi(std::string filename, std::string floor, bool legacy)
 					entry.cipherAlg = atoi(cipherAlgorithmStr.c_str());
 
 					entry.floor = glm::floor(atof(floor.c_str()));
+					if (entry.floor == 2 && !legacy)
+						entry.location.x -= .015;
+					//else if(entry.floor == 3 && !legacy)
+
 
 					if (entry.RSSI > 0 || entry.RSSI < -120) {
 						continue;
@@ -621,7 +625,7 @@ std::vector<glm::mat4> AVWWifiData::getTransforms(std::vector<bool> wifinames, s
 			for (auto Entries : EntryList) {
 				lastEntry = Entries;
 				float size = ((Entries.RSSI + 100) / 30.0f) * .1;
-				glm::mat4 translation = glm::translate(glm::mat4(1), glm::vec3(Entries.location.y * scale.x, Entries.location.x * scale.y, Entries.floor * scale.z));
+				glm::mat4 translation = glm::translate(glm::mat4(1), glm::vec3(Entries.location.y * scale.x, Entries.location.x * scale.y, Entries.location.z * scale.z));
 				out.push_back(glm::scale(translation, glm::vec3(size)));
 				color_indices.push_back((float)wifinum / (wifiNameToMacToEntries.size() + 1));
 			}

@@ -1013,8 +1013,17 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 
 
 	//Setup ImGUI variables
-	glm::vec3 wifi_scale = glm::vec3(30, 34.792, 1);
-	glm::vec3 wifi_translate = glm::vec3(-15., -16.042, -.833);
+	glm::vec3 wifi_scale = glm::vec3(30, -34.792, 1);
+	glm::vec3 wifi_translate = glm::vec3(-15., 16.042, -.833);
+	if (!old_data) {
+		wifi_translate += glm::vec3(1.851, 1.057, 0);
+		wifi_scale *= glm::vec3(.809 * .966, 1, 1);
+	}
+	else {
+		wifi_translate += glm::vec3(-.213, 1.17, .106);
+		wifi_scale *= glm::vec3(1.026, 1, 1);
+		
+	}
 	static std::vector<bool> wifinames(wifi.getNumWifiNames());
 	std::fill(wifinames.begin(), wifinames.end(), true);
 	wifi.setAvailableFreqs(wifi.getSelectedNames(wifinames), old_data);
@@ -1180,6 +1189,9 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 		vr.left_hand->counter_min.x = 0;
 		vr.left_hand->counter_max.x = num_configs - 1;
 	}
+
+	glm::vec3 scale_shift = glm::vec3(1);
+	glm::vec3 translate_shift = glm::vec3(0);
 	
 	while (!glfwWindowShouldClose(w.getWindow())) {
 		if (w.sleeping) {
@@ -1424,10 +1436,11 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			deferred_shader.SetUniform("alpha_boost", lic_shading_floats["alpha_boost"]);
 			deferred_shader.SetUniform("power", lic_shading_ints["power"]);
 			
-			wifi_transform = glm::translate(glm::mat4(1), wifi_translate);
-			wifi.ellipsoid_transform = wifi_transform * glm::scale(glm::mat4(1), wifi_scale);
+			wifi_transform = glm::translate(glm::mat4(1), wifi_translate + translate_shift);
+			wifi.ellipsoid_transform = wifi_transform * glm::scale(glm::mat4(1), wifi_scale * scale_shift);
+		
 			deferred_shader.SetUniform("ellipsoid_transform", wifi.ellipsoid_transform);
-			wifi.radius_stretch = wifi_scale;
+			wifi.radius_stretch = wifi_scale * scale_shift;
 			
 
 			deferred_shader.SetUniform("radius_stretch", wifi.radius_stretch);
@@ -1588,12 +1601,10 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				
 				instance_shader.Use();
 				wifi_transforms.clear();
-				if (deferred_shading_bools["shade_instances"])
-					wifi_transforms = wifi.getTransforms(wifinames, routers, wifi_scale, old_data);
+				wifi_transforms = wifi.getTransforms(wifinames, routers, wifi_scale * scale_shift, old_data);
 
 				std::vector<float> wifi_color_indices = wifi.getColorIndices();
-				if (deferred_shading_bools["shade_instances"])
-					Sphere.getMeshes().at(0)->SetInstanceTransforms(wifi_transforms, wifi_color_indices);
+				Sphere.getMeshes().at(0)->SetInstanceTransforms(wifi_transforms, wifi_color_indices);
 				instance_shader.SetUniform("projection", ProjectionMat);
 				instance_shader.SetUniform("view", ViewMat);
 				//wifi_transform = glm::scale(glm::mat4(1), wifi_scale);
@@ -1700,6 +1711,8 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				
 			}
 		}
+
+		
 		glFlush(); 
 		
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -1783,6 +1796,8 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				ImGui::Checkbox("Shade Instances", &deferred_shading_bools["shade_instances"]);
 				ImGui::Checkbox("Jittered Colors", &jittered);
 				ImGui::Checkbox("Line Integral Convolution", &deferred_shading_bools["lic_on"]);
+				ImGui::SliderFloat3("translate", glm::value_ptr(translate_shift), -5, 5);
+				ImGui::SliderFloat3("scale", glm::value_ptr(scale_shift), .8, 1.2);
 				if (deferred_shading_bools["lic_on"]) {
 					ImGui::SliderFloat("Fragment Position Scale", &lic_shading_floats["frag_pos_scale"], 0, 300);
 					ImGui::SliderFloat("Rate", &lic_shading_floats["learning_rate"], 0, .9);
