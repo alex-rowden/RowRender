@@ -20,11 +20,6 @@ struct VolumeData {
 	int getSize() { return dimensions.x * dimensions.y * dimensions.z; }
 };
 
-struct OldNewEllipsoids {
-	Ellipsoid first, second;
-	bool old_router, new_router;
-};
-
 class AVWWifiData
 {
 private:

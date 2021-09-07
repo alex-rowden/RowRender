@@ -579,31 +579,30 @@ std::string getLocationString(glm::vec3 position) {
 }
 
 void startNearestRouters(std::vector<bool>&wifinames, 
-	std::vector<bool>&router_bools, std::vector<bool>&freqs,
+	std::vector<bool>&routers, std::vector<bool>&freqs,
 	Camera&camera, AVWWifiData&wifi,int&num_routers, 
 	std::map<std::string, float>&deferred_shading_floats,
-	bool&start_render, bool&num_routers_changed, bool&updated_routers, bool old_data
+	bool&start_render, bool&num_routers_changed, bool&updated_routers
 	) {
 	start_render = true;
 	num_routers_changed = true;
 	std::fill(freqs.begin(), freqs.end(), true);
-	wifi.setNearestNRouters(num_routers, camera.getPosition(), wifinames, router_bools,
-		freqs, old_data);
+	wifi.setNearestNRouters(num_routers, camera.getPosition(), wifinames, routers, freqs);
 	deferred_shading_floats["delta_theta"] = 180.f / wifi.getActiveFreqs(freqs).size();
 	updated_routers = true;
 	nearest_router_on = true;
 }
 
 void reset(AVWWifiData wifi,std::vector<bool> &wifinames, std::vector<bool> &freqs,
-	std::vector<bool> &router_bools, bool old_data) {
+	std::vector<bool> &routers) {
 	wifinames.resize(wifi.getNumWifiNames());
 	std::fill(wifinames.begin(), wifinames.end(), true);
-	wifi.setAvailableFreqs(wifi.getWifinames(), old_data);
+	wifi.setAvailableFreqs(wifi.getWifinames());
 	freqs.resize(wifi.getAvailableFreqs().size());
 	std::fill(freqs.begin(), freqs.end(), true);
-	wifi.setAvailableMacs(wifi.getWifinames(), wifi.getAvailableFreqs(), old_data);
-	router_bools.resize(wifi.getAvailablesMacs().size());
-	std::fill(router_bools.begin(), router_bools.end(), false);
+	wifi.setAvailableMacs(wifi.getWifinames(), wifi.getAvailableFreqs());
+	routers.resize(wifi.getAvailablesMacs().size());
+	std::fill(routers.begin(), routers.end(), false);
 }
 
 void createMinimapBuffer(glm::uvec2 resolution, minimapBuffer& buffer) {
@@ -641,7 +640,6 @@ void createMinimapBuffer(glm::uvec2 resolution, minimapBuffer& buffer) {
 int AVWilliamsWifiVisualization(bool use_vr) {
 
 	bool start_render = false;
-	bool old_data = false;
 	std::string gui_type = "demo";
 	//initialize glfw
 	glfwInit();
@@ -951,10 +949,6 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	wifi.loadWifi("./Content/Data/AVW2.txt", "2");
 	wifi.loadWifi("./Content/Data/AVW3.txt", "3");
 	wifi.loadWifi("./Content/Data/AVW4.txt", "4");
-	wifi.loadWifi("./Content/Data/DataCollection1.txt", "1", false);
-	wifi.loadWifi("./Content/Data/DataCollection2.txt", "2", false);
-	wifi.loadWifi("./Content/Data/DataCollection3.txt", "3", false);
-	wifi.loadWifi("./Content/Data/DataCollection4.txt", "4", false);
 	wifi.pruneEntries();
 	wifi.setupStructures();
 	std::vector<glm::vec4> wifi_colors(wifi.getNumWifiNames());
@@ -1027,8 +1021,8 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 	}
 	static std::vector<bool> wifinames(wifi.getNumWifiNames());
 	std::fill(wifinames.begin(), wifinames.end(), true);
-	wifi.setAvailableFreqs(wifi.getSelectedNames(wifinames), old_data);
-	wifi.setAvailableMacs(wifi.getSelectedNames(wifinames), old_data);
+	wifi.setAvailableFreqs(wifi.getSelectedNames(wifinames));
+	wifi.setAvailableMacs(wifi.getSelectedNames(wifinames));
 	
 	static std::vector<bool> routers(wifi.getAvailablesMacs().size());
 	float transparency = 1;
@@ -1189,9 +1183,6 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 		vr.left_hand->counter_min.x = 0;
 		vr.left_hand->counter_max.x = num_configs - 1;
 	}
-
-	glm::vec3 scale_shift = glm::vec3(1);
-	glm::vec3 translate_shift = glm::vec3(0);
 	
 	while (!glfwWindowShouldClose(w.getWindow())) {
 		if (w.sleeping) {
@@ -1527,7 +1518,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 
 			//Update the router structure if needed (preserver colors)
 			if (updated_routers) {
-				wifi.updateRouterStructure(routers, wifinames, freqs, old_data, router_shaders, 2, camera.getPosition(), nearest_router_on);
+				wifi.updateRouterStructure(routers, wifinames, freqs, router_shaders, 2, camera.getPosition(), nearest_router_on);
 				updated_routers = false;
 				if (nearest_router_on) {
 					std::vector<glm::vec4> new_wifi_colors(wifi.getNumActiveRouters(routers));
@@ -1601,10 +1592,12 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				
 				instance_shader.Use();
 				wifi_transforms.clear();
-				wifi_transforms = wifi.getTransforms(wifinames, routers, wifi_scale * scale_shift, old_data);
+				if (deferred_shading_bools["shade_instances"])
+					wifi_transforms = wifi.getTransforms(wifinames, routers, wifi_scale);
 
 				std::vector<float> wifi_color_indices = wifi.getColorIndices();
-				Sphere.getMeshes().at(0)->SetInstanceTransforms(wifi_transforms, wifi_color_indices);
+				if (deferred_shading_bools["shade_instances"])
+					Sphere.getMeshes().at(0)->SetInstanceTransforms(wifi_transforms, wifi_color_indices);
 				instance_shader.SetUniform("projection", ProjectionMat);
 				instance_shader.SetUniform("view", ViewMat);
 				//wifi_transform = glm::scale(glm::mat4(1), wifi_scale);
@@ -1624,7 +1617,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 			if (show_analytics) {
 				analytics_text.clear();
 				analytics_text.emplace_back(std::to_string(wifi.getNumRoutersWithSignalFromSet(camera.getPosition(), deferred_shading_floats["extent"])) + " Displayed routers with signal strength");
-				analytics_text.emplace_back(std::to_string(wifi.getNumRoutersWithSignal(camera.getPosition(), deferred_shading_floats["extent"], old_data)) + ": Number of routers with signal strength");
+				analytics_text.emplace_back(std::to_string(wifi.getNumRoutersWithSignal(camera.getPosition(), deferred_shading_floats["extent"])) + ": Number of routers with signal strength");
 				if (wifi.routers.size() > 0)
 					analytics_text.emplace_back("Interference: " + wifi.getInterferenceString());
 				analytics_text.emplace_back(getLocationString(camera.getPosition()));
@@ -1769,8 +1762,6 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				
 			}
 		}
-
-		
 		glFlush(); 
 		
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -1782,8 +1773,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 		if (!demo_mode && vr.left_hand->a) {
 			startNearestRouters(wifinames, routers, freqs,
 				camera, wifi, num_routers, deferred_shading_floats,
-				start_render, num_routers_changed, updated_routers, 
-				old_data);
+				start_render, num_routers_changed, updated_routers);
 		}
 		
 		//Render ImGUI
@@ -1822,11 +1812,10 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				if (ImGui::Button("Nearest Routers")) {
 					startNearestRouters(wifinames, routers, freqs,
 						camera, wifi, num_routers, deferred_shading_floats,
-						start_render, num_routers_changed, updated_routers,
-						old_data);
+						start_render, num_routers_changed, updated_routers);
 				}
 				if (ImGui::Button("Reset")) {
-					reset(wifi, wifinames, freqs, routers, old_data);
+					reset(wifi, wifinames, freqs, routers);
 				}if (ImGui::TreeNode("Lighting Settings")) {
 					ImGui::SliderInt("Total Lights", &totalLights, 1, 200);
 					ImGui::SliderInt("Lights Shown", &deferred_shading_ints["num_point_lights"], 1, totalLights);
@@ -1863,8 +1852,6 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 				ImGui::Checkbox("Shade Instances", &deferred_shading_bools["shade_instances"]);
 				ImGui::Checkbox("Jittered Colors", &jittered);
 				ImGui::Checkbox("Line Integral Convolution", &deferred_shading_bools["lic_on"]);
-				ImGui::SliderFloat3("translate", glm::value_ptr(translate_shift), -5, 5);
-				ImGui::SliderFloat3("scale", glm::value_ptr(scale_shift), .8, 1.2);
 				if (deferred_shading_bools["lic_on"]) {
 					ImGui::SliderFloat("Fragment Position Scale", &lic_shading_floats["frag_pos_scale"], 0, 300);
 					ImGui::SliderFloat("Rate", &lic_shading_floats["learning_rate"], 0, .9);
@@ -1950,9 +1937,9 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 								wifi.fillRouters(wifi.getWifiName(i).c_str(), routers, false);
 							else
 								wifi.fillRouters(wifi.getWifiName(i).c_str(), routers, true);
-							wifi.setAvailableFreqs(wifi.getSelectedNames(wifinames), old_data);
+							wifi.setAvailableFreqs(wifi.getSelectedNames(wifinames));
 							std::fill(freqs.begin(), freqs.end(), true);
-							wifi.setAvailableMacs(wifi.getSelectedNames(wifinames), old_data);
+							wifi.setAvailableMacs(wifi.getSelectedNames(wifinames));
 
 						}
 						ImGui::PopStyleColor();
@@ -1969,7 +1956,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 							}
 							updated_routers = true;
 							nearest_router_on = false;
-							wifi.setAvailableMacs(wifi.getSelectedNames(wifinames), wifi.getSelectedFreqs(freqs), old_data);
+							wifi.setAvailableMacs(wifi.getSelectedNames(wifinames), wifi.getSelectedFreqs(freqs));
 						}
 					}
 					ImGui::TreePop();
@@ -2036,7 +2023,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 					outfile.close();
 				}if (ImGui::Button("Load Set")) {
 					std::ifstream infile(filename, std::ios::in);
-					reset(wifi, wifinames, freqs, routers, old_data);
+					reset(wifi, wifinames, freqs, routers);
 					wifi.readRouters(infile, wifinames, routers, freqs);
 					start_render = true;
 					num_routers = wifi.getNumActiveRouters(routers);
@@ -2106,9 +2093,9 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 								wifi.fillRouters(wifi.getWifiName(i).c_str(), routers, false);
 							else
 								wifi.fillRouters(wifi.getWifiName(i).c_str(), routers, true);
-							wifi.setAvailableFreqs(wifi.getSelectedNames(wifinames), old_data);
+							wifi.setAvailableFreqs(wifi.getSelectedNames(wifinames));
 							std::fill(freqs.begin(), freqs.end(), true);
-							wifi.setAvailableMacs(wifi.getSelectedNames(wifinames), old_data);
+							wifi.setAvailableMacs(wifi.getSelectedNames(wifinames));
 
 						}
 						ImGui::PopStyleColor();
@@ -2125,7 +2112,7 @@ int AVWilliamsWifiVisualization(bool use_vr) {
 							}
 							updated_routers = true;
 							nearest_router_on = false;
-							wifi.setAvailableMacs(wifi.getSelectedNames(wifinames), wifi.getSelectedFreqs(freqs), old_data);
+							wifi.setAvailableMacs(wifi.getSelectedNames(wifinames), wifi.getSelectedFreqs(freqs));
 						}
 					}
 					ImGui::TreePop();
