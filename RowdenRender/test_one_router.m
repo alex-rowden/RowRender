@@ -1,8 +1,8 @@
-data = getAVWData();
+data = getAVWData(false);
 unique_wifi_names = unique(data.wifi_name);
 for i=1:size(unique_wifi_names, 1)
     name = unique_wifi_names(i);
-    filepath = "Content/Data/AVW_data/";
+    filepath = "Content/Data/MultilevelData/";
     if strcmp(name, "")
         filepath = filepath + "empty/";
     else

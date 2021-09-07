@@ -41,7 +41,6 @@ struct Ellipsoid {
 	glm::vec4 mu;
 	glm::vec4 r;
 	glm::mat4 axis;
-
 };
 
 const glm::vec3 GOLD = glm::vec3(255, 144, 0) / 255.0f;
